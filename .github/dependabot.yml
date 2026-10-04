@@ -60,6 +60,18 @@ updates:
         exclude-patterns:
           - "@hey-api/openapi-ts"
           - typescript
+    # Two packages follow a line that is moved by hand, so the releases
+    # beyond it are not proposed. @types/node describes the Node release
+    # line named in mise.toml and in the engines of web/package.json, and
+    # moves with it. typescript stays within the releases typescript-eslint
+    # supports, which end below the next minor version.
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: typescript
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
 
   # The actions the workflows use, one pull request each: the release
   # workflow does not run on pull requests, so a new major version of one of
