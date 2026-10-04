@@ -1,0 +1,79 @@
+# SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
+# SPDX-License-Identifier: Apache-2.0
+#
+# Weekly version updates (doc/adr/0022-repository-security-baseline.md).
+# The Go release lines in go.mod and mise.toml are moved by hand, and so are
+# the tools pinned in mise.toml, in the Makefile and in
+# .github/scripts/third-party-notices.mjs
+# (doc/adr/0020-go-lines-tools-and-libraries.md).
+
+version: 2
+
+updates:
+  # The requirements in go.mod; a new direct one arrives with a decision
+  # record (doc/adr/0020-go-lines-tools-and-libraries.md). An update that
+  # raises the go line of go.mod is closed: the requirement waits until the
+  # line moves.
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    # A release has a week to be found out before it is proposed. Security
+    # updates do not wait, and neither do GSI-HPC's own modules.
+    cooldown:
+      default-days: 7
+      exclude:
+        - github.com/GSI-HPC/*
+    commit-message:
+      prefix: build
+      include: scope
+    # CI runs the whole suite on every pull request, so minor and patch
+    # releases can travel together; GSI-HPC's modules travel apart, so that
+    # their updates arrive without the others.
+    groups:
+      gsi-hpc:
+        patterns: [github.com/GSI-HPC/*]
+      go-modules:
+        update-types: [minor, patch]
+
+  # The frontend's packages, in web/package.json and its lockfile; a new
+  # runtime dependency arrives with a decision record, as a Go requirement
+  # does.
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: build
+      include: scope
+    # Minor and patch releases travel together, but for two packages whose
+    # update needs more than a merge, so that they hold up no others. The
+    # generator of web/src/api/ may write other code, and "make generate"
+    # then belongs in its pull request
+    # (doc/adr/0011-openapi-first-browser-api.md). TypeScript has to stay
+    # within the releases typescript-eslint supports, or the lint fails.
+    groups:
+      npm-packages:
+        update-types: [minor, patch]
+        exclude-patterns:
+          - "@hey-api/openapi-ts"
+          - typescript
+
+  # The actions the workflows use, one pull request each: the release
+  # workflow does not run on pull requests, so a new major version of one of
+  # its actions is reviewed on its own release notes.
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /.github/actions/setup-go
+      - /.github/actions/setup-node
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 15
+    commit-message:
+      prefix: ci
+      include: scope

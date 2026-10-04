@@ -1,0 +1,220 @@
+# SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
+# SPDX-License-Identifier: Apache-2.0
+#
+# A release of sdash is a signed tag
+# (doc/adr/0019-version-in-a-signed-tag.md). This workflow refuses a tag that
+# is not a signed statement by a listed signer, tests the commit the tag
+# names, builds the UI and the listing of third-party licences, and then
+# builds and publishes the archives, their checksums and their provenance.
+# doc/release.md says how a release is cut and what the maintainer sets up
+# for it.
+#
+# Adapted from GSI-HPC/clusterctl .github/workflows/release.yml.
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+# Read only, unless a job says otherwise: only the release job writes.
+permissions:
+  contents: read
+
+jobs:
+  verify-tag:
+    name: Verify the tag is signed
+    runs-on: ubuntu-latest
+    outputs:
+      object: ${{ steps.verify.outputs.object }}
+      commit: ${{ steps.verify.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # The signers' keys are repository variables, which only an
+      # administrator can change, and never a file in the checkout: the tagged
+      # commit would otherwise name its own signers. Without them no release
+      # is cut.
+      - name: Refuse a tag not signed by a listed signer
+        id: verify
+        env:
+          ALLOWED_SIGNERS: ${{ vars.RELEASE_ALLOWED_SIGNERS }}
+          ALLOWED_PGP_KEYS: ${{ vars.RELEASE_ALLOWED_PGP_KEYS }}
+        run: .github/scripts/verify-release-tag.sh
+
+  # The tests and the checks of the source run side by side, and the
+  # release waits for both. They run on the Go release line the release is
+  # built with.
+  test:
+    name: Test
+    needs: verify-tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.verify-tag.outputs.commit }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup-go
+      - run: go vet ./...
+      - run: go test -race ./...
+
+  lint:
+    name: Lint
+    needs: verify-tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.verify-tag.outputs.commit }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup-go
+
+      # The exact release mise.toml pins, as in the CI workflow.
+      - id: golangci-lint
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^golangci-lint = "\([0-9][0-9.]*\)"$/\1/p' mise.toml)
+          # Without a version the action would quietly take the latest.
+          if [ -z "$version" ]; then
+            echo "::error::mise.toml names no golangci-lint version"
+            exit 1
+          fi
+          echo "version=v$version" >> "$GITHUB_OUTPUT"
+
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: ${{ steps.golangci-lint.outputs.version }}
+
+  # What npm and third-party tools make of the release: the UI the binary
+  # embeds and the listing of third-party licences. They are made here, in a
+  # job that can write nothing, and handed to the publishing job as an
+  # artifact. GoReleaser gives a hook its whole environment, so made there
+  # the frontend's toolchain, some 300 npm packages, and go-licenses would
+  # run beside the token that writes to the repository, in a job that may
+  # ask for the certificate the attestation is signed with.
+  assets:
+    name: Build the UI and the licence listing
+    needs: verify-tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.verify-tag.outputs.commit }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup-go
+      - uses: ./.github/actions/setup-node
+
+      # The UI, built and copied into the directory the binary embeds
+      # (doc/adr/0001-local-first-binary-with-embedded-ui.md), and a binary
+      # that holds it for the next step.
+      - name: Build
+        run: make build
+
+      # Nothing is released whose page and API do not answer.
+      - name: Smoke test
+        run: .github/scripts/smoke-test.sh bin/sdash
+
+      # Fails for a dependency whose licence it cannot name.
+      - name: Write the listing of third-party licences
+        run: make notices
+
+      # Both paths keep their place below the root of the checkout, so the
+      # publishing job downloads them to where the build looks for them. The
+      # hidden files are included so that the embed directory arrives whole,
+      # whatever the bundler writes into it.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-assets
+          path: |
+            internal/static/dist/
+            dist/THIRD-PARTY-NOTICES.txt
+          include-hidden-files: true
+          if-no-files-found: error
+
+  release:
+    name: Build and publish
+    needs: [verify-tag, test, lint, assets]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      # Minting a Sigstore signing certificate and storing the attestation.
+      id-token: write
+      attestations: write
+    # Protection rules on this environment, such as a required reviewer or a
+    # rule that only v* tags deploy, hold the release until they are met.
+    environment: release
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # The tag may have moved since it was verified; what is built is the tag
+      # object that was verified and the commit it names, or nothing.
+      - name: Refuse a tag that moved since it was verified
+        env:
+          TAG: ${{ github.ref_name }}
+          OBJECT: ${{ needs.verify-tag.outputs.object }}
+          COMMIT: ${{ needs.verify-tag.outputs.commit }}
+        run: |
+          set -euo pipefail
+          if [ -z "$OBJECT" ] || [ "$(git rev-parse --verify "refs/tags/$TAG")" != "$OBJECT" ]; then
+            echo "::error::$TAG no longer points at the verified tag object $OBJECT"
+            exit 1
+          fi
+          if [ "$(git rev-parse --verify HEAD)" != "$COMMIT" ]; then
+            echo "::error::the checkout is not the verified commit $COMMIT"
+            exit 1
+          fi
+
+      # Go at the newest patch of the release line, because a binary is only
+      # as patched as the toolchain that linked it
+      # (doc/adr/0020-go-lines-tools-and-libraries.md). Without the caches of
+      # earlier runs: the build cache of a go.sum is saved by whichever job
+      # on main finished first, jobs that run third-party code among them,
+      # and Go would link what it holds into the released binaries.
+      - uses: ./.github/actions/setup-go
+        with:
+          cache: false
+
+      # The UI and the listing of third-party licences, as the assets job
+      # made them. This job runs no npm and no Node.
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-assets
+
+      # GoReleaser wants dist/ empty, so the listing waits in bin/ for the
+      # archives, where .goreleaser.yaml takes it from.
+      - name: Put the UI and the licence listing in place
+        run: |
+          set -euo pipefail
+          test -f internal/static/dist/index.html
+          mkdir -p bin
+          mv dist/THIRD-PARTY-NOTICES.txt bin/
+
+      # Without the hooks of .goreleaser.yaml: what they make is in place
+      # already, and they stay in the configuration for CI's rehearsal and
+      # for a snapshot built by hand.
+      - uses: goreleaser/goreleaser-action@v7
+        with:
+          version: '~> v2'
+          args: release --clean --skip=before
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # The verified tag, not whichever tag on this commit GoReleaser
+          # would otherwise pick.
+          GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
+
+      # Attest every published archive. checksums.txt already names each
+      # artifact and its digest, so one call covers the whole release.
+      #
+      # This is what lets an installer verify where a binary came from without
+      # a key exchange: mise checks GitHub artifact attestations by default,
+      # and "gh attestation verify" does the same by hand.
+      - name: Attest the release artifacts
+        uses: actions/attest@v4
+        with:
+          subject-checksums: dist/checksums.txt
