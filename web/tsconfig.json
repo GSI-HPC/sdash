@@ -1,0 +1,15 @@
+// SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
+// SPDX-License-Identifier: Apache-2.0
+//
+// The frontend is two TypeScript projects, because its files run in two
+// places: tsconfig.app.json holds what the browser runs, tsconfig.node.json
+// what Node runs. This file only names them, so "tsc --build" checks both and
+// an editor finds the right one for each file
+// (doc/adr/0013-frontend-stack.md).
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}

@@ -1,0 +1,22 @@
+<!doctype html>
+<!-- SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de> -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>sdash</title>
+    <!--
+      Both scripts are modules in files of their own, and there is no style
+      attribute or style element anywhere: the server's
+      Content-Security-Policy allows neither inline script nor inline style
+      (doc/adr/0012-local-listener-security.md). The theme comes first so
+      that the application renders with it.
+    -->
+    <script type="module" src="/src/theme/apply.ts"></script>
+    <script type="module" src="/src/main.tsx"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

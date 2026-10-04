@@ -1,0 +1,42 @@
+// SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
+// SPDX-License-Identifier: Apache-2.0
+//
+// What Node runs: the configuration of Vite, Vitest, Playwright, ESLint and
+// Prettier, and the end-to-end tests (doc/adr/0013-frontend-stack.md).
+{
+  "compilerOptions": {
+    // Kept beside the installed packages, which git ignores.
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "noEmit": true,
+
+    // Node 24, the line in package.json's "engines" and in mise.toml. DOM is
+    // here for the functions a Playwright test hands to the page.
+    "target": "ES2024",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "verbatimModuleSyntax": true,
+    // These files are loaded by Node and not bundled by Vite, and Node finds
+    // a local file an import names only by its full name, extension included.
+    "allowImportingTsExtensions": true,
+
+    // The ESLint and Prettier configurations are JavaScript and are checked
+    // like the rest.
+    "allowJs": true,
+    "checkJs": true,
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noUncheckedSideEffectImports": true,
+    "skipLibCheck": true
+  },
+  "include": ["*.config.ts", "*.config.js", "e2e"]
+}
