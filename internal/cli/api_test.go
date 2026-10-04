@@ -1,0 +1,70 @@
+// SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
+// SPDX-License-Identifier: Apache-2.0
+
+package cli
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/cookiejar"
+	"net/url"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/GSI-HPC/sdash/internal/api"
+	"github.com/GSI-HPC/sdash/internal/exitcode"
+	"github.com/GSI-HPC/sdash/internal/server"
+	"github.com/GSI-HPC/sdash/internal/version"
+)
+
+// The command line is where the browser API gets what it reports: the
+// provenance of this binary and the --read-only flag. The test goes the way
+// a browser goes, through the printed address and then to the API with the
+// cookie that address gave it.
+func TestTheServedStatusDescribesThisBinaryAndItsFlags(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		args     []string
+		readOnly bool
+	}{
+		{name: "by default", args: []string{"--no-browser"}},
+		{name: "with --read-only", args: []string{"--no-browser", "--read-only"}, readOnly: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			sdash := launch(t, newDesktop(t, nil, nil), tt.args...)
+			jar, err := cookiejar.New(nil)
+			require.NoError(t, err)
+			client := &http.Client{Jar: jar}
+			t.Cleanup(client.CloseIdleConnections)
+
+			signedIn, err := client.Get(sdash.address)
+			require.NoError(t, err)
+			require.NoError(t, signedIn.Body.Close())
+
+			address, err := url.Parse(sdash.address)
+			require.NoError(t, err)
+			answer, err := client.Get("http://" + address.Host + server.APIPrefix + "/status")
+			require.NoError(t, err)
+			defer func() { _ = answer.Body.Close() }()
+			require.Equal(t, http.StatusOK, answer.StatusCode)
+			var status api.Status
+			require.NoError(t, json.NewDecoder(answer.Body).Decode(&status))
+
+			build := version.Get()
+			assert.Equal(t, build.Version, status.Version)
+			assert.Equal(t, build.GoVersion, status.GoVersion)
+			assert.Equal(t, build.Platform, status.Platform)
+			assert.Equal(t, tt.readOnly, status.ReadOnly)
+			assert.Empty(t, status.Clusters)
+
+			assert.Equal(t, exitcode.OK, sdash.stop())
+		})
+	}
+}

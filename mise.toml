@@ -1,0 +1,31 @@
+# SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
+# SPDX-License-Identifier: Apache-2.0
+#
+# The tools needed to work on sdash, so that everyone builds, tests and lints
+# it with the same ones. Install them with "mise install". The pins are
+# recorded in doc/adr/0020-go-lines-tools-and-libraries.md.
+
+[tools]
+# The newest Go release line, which CI's current jobs and the release build
+# use through .github/actions/setup-go; mise takes its newest patch, as they
+# do. The go line in go.mod is the oldest release the code compiles with,
+# which CI tests as well.
+go = "1.27"
+
+# The exact release .golangci.yml is written against, which CI's lint job
+# reads from here, so that "make lint" and CI run the same linter. Pinned, so
+# that a new release of the linter, with checks of its own, fails no change
+# that did not cause it; raised by hand.
+golangci-lint = "2.14.0"
+
+# The Node release line the frontend in web/ is built and tested with, and
+# npx runs the Markdown lint with; mise takes its newest patch. The Go code
+# alone builds without it (doc/adr/0013-frontend-stack.md).
+node = "24"
+
+# The sind the end-to-end tests create their Slurm clusters with. It ships
+# Linux binaries only, and runs on Linux only, since its nodes are Docker
+# containers with systemd inside. Nothing but the end-to-end tests needs it,
+# and they wait for a sind release that runs slurmrestd, to which this pin
+# is then raised (doc/adr/0016-e2e-and-fixtures-on-sind.md).
+"github:GSI-HPC/sind" = { version = "0.10.0", os = ["linux"] }

@@ -1,0 +1,180 @@
+# SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
+# SPDX-License-Identifier: Apache-2.0
+#
+# The API between the sdash server and the user interface it serves, and the
+# one source of both ends: "make generate" writes the Go server in
+# internal/api/ and the TypeScript types in web/src/api/ from this file
+# (doc/adr/0011-openapi-first-browser-api.md). It is not the API of
+# slurmrestd, towards which sdash generates nothing
+# (doc/adr/0009-one-tolerant-wire-model.md).
+#
+# The document keeps to what OpenAPI 3.0.3 and both generators support. An
+# operation has an operationId, which names its Go method and its TypeScript
+# types; a schema that an answer refers to lives under components, so that
+# both ends get a named type for it.
+
+openapi: 3.0.3
+
+info:
+  title: sdash browser API
+  description: |
+    The API between the sdash server and the user interface it serves. Both
+    ends ship in one binary, so there is one version of this API and the two
+    always agree on it.
+
+    The server answers a request only if it comes from a page of the
+    server's own origin and carries the session cookie. The server gives
+    that cookie to the browser that opens the address sdash printed when it
+    started.
+
+    Every answer is JSON, and every answer that is not a success is an
+    Error. The one exception lies outside the API: a request that names the
+    server by another host than the one it listens on is refused in plain
+    text before it reaches the API, whatever its address.
+  # The version of this API, which is the one in the base path. It is not
+  # the version of sdash: no file in the tree names that
+  # (doc/adr/0019-version-in-a-signed-tag.md).
+  version: v1
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  # Relative, so that it holds for whatever loopback address and port sdash
+  # is bound to. The server's router and the client in web/src state the
+  # same path, and a test on each side compares it with this line.
+  - url: /api/v1
+    description: The sdash that served the page.
+
+paths:
+  /status:
+    get:
+      operationId: getStatus
+      summary: The running sdash and the clusters it is configured for
+      description: |
+        Says which sdash is running, as `sdash version` does, whether it
+        runs read-only, and which clusters it is configured for.
+      responses:
+        "200":
+          description: The status of the running sdash.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+        default:
+          $ref: "#/components/responses/Error"
+
+components:
+  schemas:
+    # The members that describe the build are named as "sdash version
+    # --json" names them (internal/version), and the commit and the date are
+    # left out when unknown as they are there, so that the two read alike.
+    Status:
+      description: The running sdash and the clusters it is configured for.
+      type: object
+      required:
+        - version
+        - goVersion
+        - platform
+        - readOnly
+        - clusters
+      properties:
+        version:
+          description: |
+            The release of sdash, in the form v1.4.0, or "devel" for a build
+            that is not a release.
+          type: string
+        commit:
+          description: |
+            The git revision the binary was built from. Absent when the
+            build carried no information about it.
+          type: string
+        date:
+          description: |
+            When the binary was built or its revision was committed. Absent
+            when the build carried no information about it.
+          type: string
+          format: date-time
+        goVersion:
+          description: The Go toolchain that built the binary.
+          type: string
+        platform:
+          description: |
+            The system the binary was built for, as os/arch: linux/amd64,
+            for example.
+          type: string
+        readOnly:
+          description: |
+            Whether sdash was started with --read-only, and so sends nothing
+            that changes a cluster.
+          type: boolean
+        clusters:
+          description: |
+            The clusters sdash is configured for. The list is always
+            present, and empty when there is none.
+          type: array
+          items:
+            $ref: "#/components/schemas/Cluster"
+
+    # A cluster has a name and nothing else for now. What sdash says about a
+    # cluster is defined from what its slurmrestd serves, and that waits,
+    # with everything that speaks to Slurm, for
+    # doc/adr/0016-e2e-and-fixtures-on-sind.md. Until then the server has no
+    # cluster to list.
+    Cluster:
+      description: A Slurm cluster sdash is configured for.
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          description: The name the user gave the cluster in the configuration.
+          type: string
+
+    # The one body of every answer that is not a success.
+    Error:
+      description: Why a request was not answered with what it asked for.
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          $ref: "#/components/schemas/ErrorCode"
+        message:
+          description: The cause in one line, for the person at the browser.
+          type: string
+
+    # A schema of its own, so that both ends get the values as named
+    # constants and can tell a code they know from one they do not. A new
+    # cause of failure adds a value here, and nowhere else.
+    ErrorCode:
+      description: |
+        The cause of an Error, for the program that reads the answer.
+
+        - `bad_request`: the request is not one the operation accepts.
+        - `not_signed_in`: the request does not carry the session cookie of
+          this run of sdash.
+        - `cross_origin`: the request comes from a page of another origin.
+        - `not_found`: the API has nothing at this address.
+        - `method_not_allowed`: the API has something at this address, but
+          not for this method.
+        - `internal`: sdash failed while answering; its log says why.
+      type: string
+      enum:
+        - bad_request
+        - not_signed_in
+        - cross_origin
+        - not_found
+        - method_not_allowed
+        - internal
+
+  responses:
+    Error:
+      description: |
+        The request was not answered with what it asked for. The status says
+        what kind of failure it is, and the body what caused it.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"

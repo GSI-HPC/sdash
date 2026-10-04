@@ -1,0 +1,68 @@
+# SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
+# SPDX-License-Identifier: Apache-2.0
+#
+# The GSI-HPC baseline of linters for Go modules. golangci-lint v2 cannot
+# extend a remote configuration, so each module carries its own copy. The
+# release it is written against is pinned in mise.toml
+# (doc/adr/0020-go-lines-tools-and-libraries.md).
+
+version: "2"
+
+run:
+  # The end-to-end tests build only with their tag, and are linted with the
+  # rest (doc/adr/0016-e2e-and-fixtures-on-sind.md).
+  build-tags: [e2e]
+
+linters:
+  # depguard is part of the baseline and is left out here on purpose: without
+  # rules of its own it denies every import outside the standard library. It
+  # comes back with the first rule a decision record asks for.
+  enable:
+    # sdash speaks HTTP to slurmrestd; a response body left open keeps its
+    # connection from being reused.
+    - bodyclose
+    - copyloopvar
+    - errcheck
+    - errorlint
+    - govet
+    - ineffassign
+    - misspell
+    - nilerr
+    - revive
+    - staticcheck
+    - unconvert
+    - unused
+    - usestdlibvars
+
+  settings:
+    errcheck:
+      # A deliberate discard is written as _ = f(), which reads as a decision
+      # rather than an oversight.
+      check-blank: false
+    misspell:
+      # No locale is set on purpose. Comments are British English, but an
+      # identifier keeps the spelling of whoever defines it: Slurm's own
+      # field is spelt "Organization", and a locale would rewrite an
+      # identifier the accounting database defines.
+      ignore-rules:
+        - organization
+
+  exclusions:
+    rules:
+      # A test may ignore an error where the failure it is provoking is the
+      # point of the test.
+      - path: _test\.go
+        linters: [errcheck]
+    # Generated code is committed and regenerated in CI
+    # (doc/adr/0011-openapi-first-browser-api.md). It is the generator's to
+    # get right, so it is neither linted nor formatted here.
+    paths:
+      - \.gen\.go$
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    paths:
+      - \.gen\.go$

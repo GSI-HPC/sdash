@@ -1,0 +1,4 @@
+SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
+SPDX-License-Identifier: Apache-2.0
+
+"make build" copies the built user interface from web/dist into this directory, from where the Go compiler embeds it into the binary; this file keeps the directory in the repository so that "go build ./..." works on a checkout whose interface has not been built.
