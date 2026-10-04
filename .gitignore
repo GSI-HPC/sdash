@@ -1,4 +1,51 @@
+# SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
+# SPDX-License-Identifier: Apache-2.0
+
 # Design handoff archive and the prototype runtime it contains: kept local,
 # the runtime (support.js) carries no licence.
 /*Slurm REST API UI Design.zip
 /doc/design/support.js
+
+# Personal instructions for coding agents
+/AGENTS.local.md
+/CLAUDE.local.md
+
+# Agent state; the shared skills live in .agents/skills, and .claude/skills
+# links to them
+/.claude/*
+!/.claude/skills
+
+# Personal mise overrides
+/mise.local.toml
+
+# A workspace for developing against a local checkout of a dependency is
+# never committed, and neither is a replace directive
+go.work
+go.work.sum
+
+# Build output: the binary, and the release archives with their third-party
+# licence listing
+/bin/
+/dist/
+
+# The embedded UI. "make build" copies web/dist here; only the placeholder is
+# tracked, so that "go build ./..." works on a checkout without Node
+# (doc/adr/0001-local-first-binary-with-embedded-ui.md)
+/internal/static/dist/*
+!/internal/static/dist/placeholder.txt
+
+# Frontend: installed packages, the Vite build, and coverage and test reports
+/web/node_modules/
+/web/dist/
+/web/coverage/
+/web/test-results/
+/web/playwright-report/
+
+# Output of the Go tests: profiles such as coverage.out, test binaries, and
+# the coverage report
+*.out
+*.test
+coverage.html
+
+# Packages npm installs anywhere else, such as for the Markdown lint
+node_modules/

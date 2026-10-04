@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de> -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
 # slurmrestd facts sdash depends on
 
 Collected on 2026-10-03 from the Slurm documentation (slurm.schedmd.com, version 26.05), the Slurm source
