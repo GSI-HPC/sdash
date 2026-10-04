@@ -1,0 +1,46 @@
+// SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
+// SPDX-License-Identifier: Apache-2.0
+//
+// What the browser runs: the application and its tests, the unit tests
+// included. TypeScript only checks; Vite compiles
+// (doc/adr/0013-frontend-stack.md).
+{
+  "compilerOptions": {
+    // Kept beside the installed packages, which git ignores.
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "noEmit": true,
+
+    // The language level that every supported browser has
+    // (doc/adr/0014-accessibility-and-browsers.md). It decides which
+    // built-in APIs type-check, not what Vite emits.
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+
+    // Imports are resolved the way Vite resolves them.
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    // Vite compiles one file at a time and cannot tell a type from a value
+    // across files, so an import of a type has to say that it is one.
+    "verbatimModuleSyntax": true,
+
+    // No Node types on purpose: code that reaches for "process" or
+    // "node:fs" would compile here and fail in the browser. A test that
+    // needs a file imports it through Vite ("?raw").
+    "types": ["vite/client"],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    // A misspelt path in a side-effect import, such as a stylesheet, is an
+    // error and not silently nothing.
+    "noUncheckedSideEffectImports": true,
+    "skipLibCheck": true
+  },
+  "include": ["src"]
+}

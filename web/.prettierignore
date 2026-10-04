@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
+# SPDX-License-Identifier: Apache-2.0
+
+# Build and test output
+dist/
+coverage/
+test-results/
+playwright-report/
+
+# Written by npm, which decides its layout
+package-lock.json
+
+# Generated from api/openapi.yaml and committed as the generator writes it
+# (doc/adr/0011-openapi-first-browser-api.md)
+src/api/

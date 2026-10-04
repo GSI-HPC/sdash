@@ -1,0 +1,110 @@
+/* SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de> */
+/* SPDX-License-Identifier: Apache-2.0 */
+
+/*
+ * The design tokens of the handoff, name for name as the prototype's style
+ * block has them (doc/design/sdash.dc.html). tokens.test.ts reads that file
+ * and fails when the two differ: a value differs from the prototype only
+ * when it is listed in tokens.test.ts with its reason
+ * (doc/adr/0014-accessibility-and-browsers.md). Prettier leaves both rules
+ * alone, which keeps each value as the prototype writes it.
+ *
+ * The light values are the default; an element with data-theme="dark", in
+ * practice the html element, gets the dark ones
+ * (doc/adr/0013-frontend-stack.md).
+ */
+
+/* prettier-ignore */
+:root {
+  --bg-base: #F0F3F9;
+  --bg-surface: #F8FBFE;
+  --bg-elevated: #E6ECF5;
+  --bg-hover: #DDE5F2;
+  --bg-active: #D3DCEC;
+  --t1: #1A1C20;
+  --t2: #555860;
+  --t3: #6B7080;
+  --t4: #A0A4AC;
+  --bd: #D8E0EE;
+  --bd2: #CDD6E8;
+  --bds: rgba(74,100,180,0.10);
+  --ac: #4A7CC9;
+  --ac-l: #3B66A8;
+  --ac-m: rgba(74,124,201,0.12);
+  --ac-t: #3B66A8;
+  --selection: rgba(74,124,201,0.09);
+  --ok: #22C55E;
+  --warn: #F59E0B;
+  --err: #EF4444;
+  --info: #3B82F6;
+  --vio: #8B5CF6;
+  --org: #F97316;
+  --ok-bg: rgba(34,197,94,0.14);
+  --ok-fg: #15803D;
+  --warn-bg: rgba(245,158,11,0.16);
+  --warn-fg: #92400E;
+  --err-bg: rgba(239,68,68,0.12);
+  --err-fg: #B91C1C;
+  --info-bg: rgba(59,130,246,0.12);
+  --info-fg: #1D4ED8;
+  --vio-bg: rgba(139,92,246,0.13);
+  --vio-fg: #6D28D9;
+  --org-bg: rgba(249,115,22,0.14);
+  --org-fg: #C2410C;
+  --hm-cold: #DCE3EF;
+  --scrim: rgba(20,28,48,0.28);
+  --sh-sm: 0 1px 2px rgba(30,45,90,0.06);
+  --sh-lg: 0 18px 50px rgba(30,45,90,0.18);
+  --sh-drawer: -12px 0 40px rgba(30,45,90,0.14);
+}
+
+/* prettier-ignore */
+[data-theme="dark"] {
+  --bg-base: #0B0F1E;
+  --bg-surface: #14192A;
+  --bg-elevated: #1E2338;
+  --bg-hover: #282E48;
+  --bg-active: #1C2840;
+  --t1: #F5F6F8;
+  --t2: #D8DAE0;
+  --t3: #B0B5C0;
+  --t4: #6A7080;
+  --bd: #222840;
+  --bd2: #2C324A;
+  --bds: rgba(255,255,255,0.05);
+  --ac: #6A9FE0;
+  --ac-l: #8BB5EA;
+  --ac-m: rgba(106,159,224,0.18);
+  --ac-t: #8BB5EA;
+  --selection: rgba(106,159,224,0.12);
+  --ok-bg: rgba(34,197,94,0.16);
+  --ok-fg: #4ADE80;
+  --warn-bg: rgba(245,158,11,0.16);
+  --warn-fg: #FBBF24;
+  --err-bg: rgba(239,68,68,0.16);
+  --err-fg: #F87171;
+  --info-bg: rgba(59,130,246,0.18);
+  --info-fg: #60A5FA;
+  --vio-bg: rgba(139,92,246,0.18);
+  --vio-fg: #A78BFA;
+  --org-bg: rgba(249,115,22,0.16);
+  --org-fg: #FB923C;
+  --hm-cold: #1A2034;
+  --scrim: rgba(0,0,0,0.5);
+  --sh-sm: 0 1px 2px rgba(0,0,0,0.4),inset 0 0 0 1px rgba(255,255,255,0.02);
+  --sh-lg: 0 24px 60px rgba(0,0,0,0.55);
+  --sh-drawer: -16px 0 50px rgba(0,0,0,0.5);
+}
+
+/*
+ * sdash's own token, which the prototype does not have: the colour of the
+ * keyboard focus ring. It is the hover accent of whichever theme applies,
+ * which stands at least 3:1 against every background token in both themes,
+ * as WCAG 2.1 asks of a focus indicator
+ * (doc/adr/0014-accessibility-and-browsers.md). Declared for both selectors
+ * so that it is worked out again wherever a theme is set.
+ */
+:root,
+[data-theme="dark"] {
+  --focus: var(--ac-l);
+}

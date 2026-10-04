@@ -1,0 +1,154 @@
+/* SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de> */
+/* SPDX-License-Identifier: Apache-2.0 */
+
+/*
+ * The one stylesheet of the application: Tailwind, the fonts, the design
+ * tokens and the base styles. Everything ends up in a file the page links
+ * to, because the server's Content-Security-Policy allows no inline style
+ * (doc/adr/0012-local-listener-security.md).
+ */
+
+@import "tailwindcss";
+
+/*
+ * The fonts come from the installed packages and are built into the bundle,
+ * so the page asks no other host for anything and works offline
+ * (doc/adr/0013-frontend-stack.md). DM Sans is the variable font with the
+ * optical-size axis, which covers every weight; DM Mono has no variable
+ * form, so the two weights the design uses are loaded one by one.
+ */
+@import "@fontsource-variable/dm-sans/opsz.css";
+@import "@fontsource/dm-mono/400.css";
+@import "@fontsource/dm-mono/500.css";
+
+@import "./tokens.css";
+
+@theme {
+  --font-sans: "DM Sans Variable", system-ui, sans-serif;
+  --font-mono: "DM Mono", ui-monospace, monospace;
+}
+
+/*
+ * The tokens as Tailwind utilities. "inline" makes a utility refer to the
+ * token itself, var(--bg-surface), and not to a copy fixed on the root
+ * element, so the utility follows the theme of the element it is on.
+ *
+ * Tailwind's own palette and shadows are removed: a colour that is not a
+ * token would not change with the theme. A token whose name says where it
+ * belongs gets utilities for that place only (bg-surface, text-t2,
+ * border-bd); the others work wherever a colour goes (bg-ac, text-ok-fg,
+ * fill-info).
+ */
+@theme inline {
+  --color-*: initial;
+  --shadow-*: initial;
+
+  --background-color-base: var(--bg-base);
+  --background-color-surface: var(--bg-surface);
+  --background-color-elevated: var(--bg-elevated);
+  --background-color-hover: var(--bg-hover);
+  --background-color-active: var(--bg-active);
+
+  --text-color-t1: var(--t1);
+  --text-color-t2: var(--t2);
+  --text-color-t3: var(--t3);
+  --text-color-t4: var(--t4);
+
+  --border-color-bd: var(--bd);
+  --border-color-bd2: var(--bd2);
+  --border-color-bds: var(--bds);
+
+  --color-ac: var(--ac);
+  --color-ac-l: var(--ac-l);
+  --color-ac-m: var(--ac-m);
+  --color-ac-t: var(--ac-t);
+  --color-selection: var(--selection);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-err: var(--err);
+  --color-info: var(--info);
+  --color-vio: var(--vio);
+  --color-org: var(--org);
+  --color-ok-bg: var(--ok-bg);
+  --color-ok-fg: var(--ok-fg);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-fg: var(--warn-fg);
+  --color-err-bg: var(--err-bg);
+  --color-err-fg: var(--err-fg);
+  --color-info-bg: var(--info-bg);
+  --color-info-fg: var(--info-fg);
+  --color-vio-bg: var(--vio-bg);
+  --color-vio-fg: var(--vio-fg);
+  --color-org-bg: var(--org-bg);
+  --color-org-fg: var(--org-fg);
+  --color-hm-cold: var(--hm-cold);
+  --color-scrim: var(--scrim);
+  --color-focus: var(--focus);
+
+  --shadow-sm: var(--sh-sm);
+  --shadow-lg: var(--sh-lg);
+  --shadow-drawer: var(--sh-drawer);
+}
+
+/*
+ * The prototype's base styles. Two of its rules are left out because
+ * Tailwind's reset already says the same: border-box sizing on every
+ * element, and form controls that inherit the font.
+ */
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  html,
+  body {
+    margin: 0;
+    background: var(--bg-base);
+    color: var(--t1);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Form controls and scrollbars the browser draws follow the theme too. */
+  :root {
+    color-scheme: light;
+  }
+
+  [data-theme="dark"] {
+    color-scheme: dark;
+  }
+
+  /*
+   * The theme is set by a script (theme/apply.ts), and a browser may paint
+   * before a script has run. Until then the page is the browser's own empty
+   * canvas in the colour scheme the system prefers and not the light theme,
+   * so that a dark desktop gets no bright flash each time the page loads.
+   */
+  html:not([data-theme]),
+  html:not([data-theme]) body {
+    background: Canvas;
+    color-scheme: light dark;
+  }
+
+  a {
+    color: var(--ac-t);
+    text-decoration: none;
+  }
+
+  a:hover {
+    color: var(--ac);
+    text-decoration: underline;
+  }
+
+  /*
+   * Every element that takes keyboard focus shows it, without a component
+   * having to remember to. :focus-visible leaves a mouse click unmarked
+   * (doc/adr/0014-accessibility-and-browsers.md).
+   */
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+}
