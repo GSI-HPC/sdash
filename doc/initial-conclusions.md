@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de> -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
 # Initial conclusions
 
 Status: first architecture position, 2026-10-03. Not yet validated against a live slurmrestd.

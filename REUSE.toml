@@ -1,0 +1,60 @@
+# SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
+# SPDX-License-Identifier: Apache-2.0
+#
+# Copyright and licence of the files that cannot hold a comment
+# (doc/adr/0002-apache-2-0-and-reuse.md). Every other file states both in
+# its first two lines and is not listed here. The precedence is "aggregate"
+# throughout: what a block states always applies, and is added to whatever a
+# file states itself, so a generated file that comes with half a header is
+# still complete.
+
+version = 1
+
+# Go's module checksums.
+[[annotations]]
+path = "go.sum"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>"
+SPDX-License-Identifier = "Apache-2.0"
+
+# The frontend's package manifest and its lockfile, JSON files that cannot
+# hold a comment.
+[[annotations]]
+path = ["web/package.json", "web/package-lock.json"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>"
+SPDX-License-Identifier = "Apache-2.0"
+
+# Code generated from api/openapi.yaml
+# (doc/adr/0011-openapi-first-browser-api.md). The header of the generated
+# Go file is the generator's and does not hold the two lines. The TypeScript
+# generator is told to write them (web/openapi-ts.config.ts); its files are
+# listed all the same, so that one it writes without them is still covered.
+[[annotations]]
+path = ["internal/api/*.gen.go", "web/src/api/*.gen.ts"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>"
+SPDX-License-Identifier = "Apache-2.0"
+
+# The UI design handoff, GSI's own work, kept as it was delivered and so
+# without headers. The prototype runtime that came with it, support.js, is
+# not GSI's and carries no licence: .gitignore keeps it out of the tree, and
+# it must stay out for as long as this block covers the whole directory.
+[[annotations]]
+path = "doc/design/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>"
+SPDX-License-Identifier = "Apache-2.0"
+
+# Vendored slurmrestd OpenAPI documents are SchedMD's, not GSI's, and each
+# declares Apache 2.0 in its own info.license (doc/research/slurmrestd.md,
+# section 5). None is vendored yet: the first comes from an end-to-end run
+# on sind (doc/adr/0016-e2e-and-fixtures-on-sind.md). The commit that vendors
+# it enables this block and sets the path to where the documents land; the
+# one below is the layout doc/initial-conclusions.md proposes.
+#
+# [[annotations]]
+# path = "internal/slurm/versions/*/openapi.json"
+# precedence = "aggregate"
+# SPDX-FileCopyrightText = "SchedMD LLC <https://www.schedmd.com/>"
+# SPDX-License-Identifier = "Apache-2.0"

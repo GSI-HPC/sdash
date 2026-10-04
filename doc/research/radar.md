@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de> -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
 # Radar study
 
 [Radar](https://github.com/skyhook-io/radar) is a local-first Kubernetes UI by Skyhook (Apache-2.0). sdash is meant to
