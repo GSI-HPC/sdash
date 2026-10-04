@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
+# SPDX-License-Identifier: Apache-2.0
+
+name: Set up Node
+description: >-
+  Node at the newest release of the line mise.toml names, which contributors
+  build and test the frontend with, and npm's download cache.
+
+runs:
+  using: composite
+  steps:
+    - id: version
+      shell: bash
+      run: |
+        set -euo pipefail
+        node=$(sed -n 's/^node = "\([0-9][0-9]*\)"$/\1/p' mise.toml)
+        # Without a version setup-node would quietly use the runner's own Node.
+        if [ -z "$node" ]; then
+          echo "::error::mise.toml names no Node release line"
+          exit 1
+        fi
+        echo "node=$node" >> "$GITHUB_OUTPUT"
+
+    # The newest release of the line, as mise takes it. The cache holds what
+    # npm downloaded, not web/node_modules: "npm ci" still installs from the
+    # lockfile and checks every package against the checksum recorded there,
+    # so the key is the lockfile.
+    - uses: actions/setup-node@v7
+      with:
+        node-version: ${{ steps.version.outputs.node }}
+        check-latest: true
+        cache: npm
+        cache-dependency-path: web/package-lock.json

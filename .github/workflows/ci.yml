@@ -1,0 +1,380 @@
+# SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
+# SPDX-License-Identifier: Apache-2.0
+#
+# Adapted from GSI-HPC/go-clikit .github/workflows/ci.yml and
+# GSI-HPC/clusterctl .github/workflows/ci.yml.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Go and Node come from .github/actions/setup-go and setup-node at the
+# release lines mise.toml names, so that CI and a contributor use the same
+# ones (doc/adr/0020-go-lines-tools-and-libraries.md). doc/testing.md says
+# what each layer of tests is for.
+jobs:
+  # Both ends of the supported range: the go line in go.mod, the oldest
+  # release the code compiles with, and the release line mise.toml names,
+  # which the release is built with. sdash is released for macOS as well
+  # (doc/adr/0019-version-in-a-signed-tag.md), so the tests run there too.
+  # The Go code needs no Node: without a built UI the binary embeds a
+  # placeholder.
+  test:
+    name: Test (Go ${{ matrix.line }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {line: floor, os: ubuntu-latest}
+          - {line: current, os: ubuntu-latest}
+          - {line: current, os: macos-latest}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-go
+        with:
+          line: ${{ matrix.line }}
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test under the race detector
+        if: ${{ !(matrix.line == 'current' && runner.os == 'Linux') }}
+        run: go test -race ./...
+
+      # The same run with the coverage measured. Coverage is reported, not
+      # gated (doc/adr/0015-how-tests-are-written.md): the step prints the
+      # total, and the profile is kept for whoever wants to read it.
+      - name: Test under the race detector and measure coverage
+        if: matrix.line == 'current' && runner.os == 'Linux'
+        run: make cover
+
+      - uses: actions/upload-artifact@v7
+        if: matrix.line == 'current' && runner.os == 'Linux'
+        with:
+          name: coverage
+          path: coverage.out
+          retention-days: 14
+
+  # The fuzz targets are the FUZZ list of the Makefile, so that "make fuzz"
+  # and CI run the same ones. The list is empty until there is a parser of
+  # what slurmrestd sends (doc/adr/0016-e2e-and-fixtures-on-sind.md), and a
+  # matrix cannot be empty, so this job reads the list and the Fuzz job is
+  # skipped while it holds nothing.
+  fuzz-targets:
+    name: Fuzz targets
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.list.outputs.targets }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # make itself says what the list holds, however the Makefile writes
+      # it. Each package:Target pair becomes one leg of the matrix.
+      - id: list
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC2016 # $(FUZZ) is for make to expand
+          list=$(make -s --no-print-directory --eval 'print-fuzz: ; @echo $(FUZZ)' print-fuzz)
+          targets=$(tr -s '[:space:]' '\n' <<< "$list" |
+            jq -Rcn '[inputs | select(. != "") | {package: sub(":.*$"; ""), target: sub("^.*:"; "")}]')
+          echo "targets=$targets" >> "$GITHUB_OUTPUT"
+
+  # A short run on every change catches a regression; a failing input is
+  # committed under the package's testdata/fuzz/, where every later run
+  # replays it.
+  fuzz:
+    # No expression in the name: GitHub appends the matrix values itself, and
+    # shows a name with an expression unexpanded while the job is skipped.
+    name: Fuzz
+    needs: fuzz-targets
+    if: needs.fuzz-targets.outputs.targets != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.fuzz-targets.outputs.targets) }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-go
+
+      - name: Fuzz
+        run: make fuzz FUZZ=${{ matrix.package }}:${{ matrix.target }} FUZZTIME=60s
+
+      # The index keeps the names apart when two packages have a target of
+      # the same name.
+      - name: Upload the failing input
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-corpus-${{ strategy.job-index }}-${{ matrix.target }}
+          path: ${{ matrix.package }}/testdata/fuzz/
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-go
+
+      - name: Check that the module requirements are tidy
+        run: |
+          set -euo pipefail
+          make tidy
+          if [ -n "$(git status --porcelain -- go.mod go.sum)" ]; then
+            git diff -- go.mod go.sum
+            echo "::error::go.mod or go.sum is not as go mod tidy leaves it; run make tidy"
+            exit 1
+          fi
+
+      # The exact release mise.toml pins, so that "make lint" and this job
+      # run the same linter, and a new release of it, with checks of its own,
+      # fails no change that did not cause it.
+      - id: golangci-lint
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^golangci-lint = "\([0-9][0-9.]*\)"$/\1/p' mise.toml)
+          # Without a version the action would quietly take the latest.
+          if [ -z "$version" ]; then
+            echo "::error::mise.toml names no golangci-lint version"
+            exit 1
+          fi
+          echo "version=v$version" >> "$GITHUB_OUTPUT"
+
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: ${{ steps.golangci-lint.outputs.version }}
+
+  # The frontend by itself: its lint and formatting, its types, the unit
+  # tests in Node and the component tests in a real browser
+  # (doc/adr/0015-how-tests-are-written.md). The steps call the make targets
+  # a contributor runs, where there is one.
+  ui:
+    name: UI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-node
+
+      - name: Install the packages the lockfile names
+        working-directory: web
+        run: npm ci
+
+      - name: Lint and check the formatting
+        run: make lint-ui
+
+      - name: Check the types
+        working-directory: web
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: make test-ui
+
+      # The Chromium build that the Playwright release in the lockfile
+      # expects, with the system libraries it needs.
+      - name: Install the browser
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: Component tests
+        run: make test-components
+
+      - name: Upload what the failed tests left behind
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ui-test-results
+          path: web/test-results/
+          retention-days: 14
+
+  # The built binary in a browser, with the axe scan of every view
+  # (doc/adr/0014-accessibility-and-browsers.md): one leg for each engine
+  # behind the supported browsers. Playwright's WebKit stands in for Safari,
+  # and its Firefox for the ESR as well.
+  browser:
+    name: Browser (${{ matrix.engine }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-go
+      - uses: ./.github/actions/setup-node
+
+      # Installs the frontend's packages from the lockfile, builds the UI
+      # and compiles bin/sdash with it embedded.
+      - name: Build
+        run: make build
+
+      - name: Install the browser
+        working-directory: web
+        run: npx playwright install --with-deps ${{ matrix.engine }}
+
+      # The tests start bin/sdash themselves, on a free port.
+      - name: Test in the browser
+        working-directory: web
+        run: npm run test:browser -- --project=${{ matrix.engine }}
+
+      - name: Upload the report and the traces
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-${{ matrix.engine }}
+          path: |
+            web/playwright-report/
+            web/test-results/
+          retention-days: 14
+
+  # The end-to-end job goes here: the built binary against Slurm clusters
+  # that sind creates, one leg for each supported Slurm release, set up with
+  # GSI-HPC/sind-action at the sind version mise.toml pins. It waits, with
+  # everything that speaks to Slurm, for a sind release that runs slurmrestd
+  # (doc/adr/0016-e2e-and-fixtures-on-sind.md, doc/sind-requirements.md).
+
+  # The generated Go and TypeScript are committed, so that a plain checkout
+  # builds; this is what keeps them from drifting away from api/openapi.yaml
+  # (doc/adr/0011-openapi-first-browser-api.md). A file the generators add
+  # or drop counts as a difference, so the whole tree is looked at and not
+  # only the tracked files.
+  generated:
+    name: Generated
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-go
+      - uses: ./.github/actions/setup-node
+
+      - name: Check that the generated code is what the generators write
+        run: |
+          set -euo pipefail
+          make generate
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --short
+            git diff
+            echo "::error::the generated code is not what make generate writes from api/openapi.yaml; run make generate and commit the result"
+            exit 1
+          fi
+
+  docs:
+    name: Markdown
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-node
+      - run: make lint-docs
+
+  reuse:
+    name: REUSE
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Every file states its copyright holder and licence
+      # (doc/adr/0002-apache-2-0-and-reuse.md).
+      - uses: fsfe/reuse-action@v6
+
+  vulnerabilities:
+    name: Vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-go
+      # The newest govulncheck on purpose: a vulnerability it learns to see
+      # is what this job is for. Its findings come from the database, which
+      # it always reads afresh, so the job can fail without any change here
+      # (doc/adr/0022-repository-security-baseline.md).
+      - run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  # The binary as a user gets it: the UI built and embedded, then started
+  # and asked for its page and its API, so that one that does not work fails
+  # here. Then the release is rehearsed with the configuration and the
+  # GoReleaser the release workflow uses, publishing nothing: a tag that
+  # was pushed is never moved (doc/release.md), so what would stop a release
+  # has to be found before there is a tag.
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      # The whole history: GoReleaser derives the snapshot's version from
+      # the tags.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-go
+      - uses: ./.github/actions/setup-node
+
+      - name: Build
+        run: make build
+
+      - name: Smoke test
+        run: .github/scripts/smoke-test.sh bin/sdash
+
+      # The hooks of .goreleaser.yaml build the UI again, and write the
+      # listing of third-party licences, which fails for a dependency whose
+      # licence it cannot name.
+      - name: Rehearse the release
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          version: '~> v2'
+          args: release --snapshot --clean --skip=publish
+
+      - name: Check what the archives hold, and smoke test one
+        run: |
+          set -euo pipefail
+          for target in linux_amd64 linux_arm64 darwin_amd64 darwin_arm64; do
+            tar -tzf "dist/sdash_$target.tar.gz" | LC_ALL=C sort |
+              diff <(printf '%s\n' LICENSE README.md THIRD-PARTY-NOTICES.txt sdash) -
+          done
+          mkdir "$RUNNER_TEMP/release"
+          tar -xzf dist/sdash_linux_amd64.tar.gz -C "$RUNNER_TEMP/release"
+          .github/scripts/smoke-test.sh "$RUNNER_TEMP/release/sdash"
+
+  # The release ships a static binary, so the release targets have to build
+  # without cgo on every change rather than at tag time; an operating system
+  # to a job, side by side.
+  cross-build:
+    name: Cross build (${{ matrix.goos }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        goos: [linux, darwin]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-go
+
+      - name: Build every release target
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+        run: |
+          set -euxo pipefail
+          for arch in amd64 arm64; do
+            GOARCH="$arch" go build -trimpath -o /dev/null ./cmd/sdash
+          done
+
+  release-tag:
+    name: Release tag verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # The release workflow runs only when a tag is pushed, so the check that
+      # refuses a tag is tested here against tags made on the spot.
+      - name: Test the tag verification
+        run: make test-release

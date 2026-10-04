@@ -1,0 +1,129 @@
+# SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
+# SPDX-License-Identifier: Apache-2.0
+#
+# The release build (doc/adr/0019-version-in-a-signed-tag.md, doc/release.md).
+# The version comes from the signed git tag and is injected here; nothing in
+# the source tree carries one.
+#
+# Adapted from GSI-HPC/clusterctl .goreleaser.yaml.
+
+version: 2
+
+project_name: sdash
+
+# The release workflow skips these hooks (--skip=before): it makes the UI and
+# the licence listing in a job of its own that holds no token that can write,
+# and hands them to the job that publishes (doc/release.md). The hooks are
+# for CI's rehearsal of the release and for a snapshot built by hand.
+before:
+  hooks:
+    - go mod download
+    - go mod verify
+    # The UI, built and copied into the directory the binary embeds. Without
+    # this step the archives would hold a binary with the placeholder in
+    # place of the UI (doc/adr/0001-local-first-binary-with-embedded-ui.md).
+    # The step also compiles bin/sdash, which the next one starts: nothing is
+    # released whose page and API do not answer.
+    - make build
+    - .github/scripts/smoke-test.sh bin/sdash
+    # The listing of third-party licences each archive carries. "make
+    # notices" writes it into dist/, which GoReleaser wants empty when these
+    # hooks are done, so it waits in bin/ for the archives.
+    - make notices
+    - mv dist/THIRD-PARTY-NOTICES.txt bin/THIRD-PARTY-NOTICES.txt
+
+builds:
+  - id: sdash
+    main: ./cmd/sdash
+    binary: sdash
+    env:
+      # A static binary: no interpreter, no libc dependency, one file that
+      # runs on every supported distribution.
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      # The tag as written, v included, since .Version drops the v.
+      - -X github.com/GSI-HPC/sdash/internal/version.version=v{{ .Version }}
+      - -X github.com/GSI-HPC/sdash/internal/version.commit={{ .FullCommit }}
+      - -X github.com/GSI-HPC/sdash/internal/version.date={{ .CommitDate }}
+    # The release targets. CI's cross build and the listing of third-party
+    # licences (.github/scripts/third-party-notices.mjs) name the same four.
+    goos: [linux, darwin]
+    goarch: [amd64, arm64]
+    mod_timestamp: '{{ .CommitTimestamp }}'
+
+archives:
+  - id: sdash
+    ids: [sdash]
+    # No version in the name, so that
+    # releases/latest/download/sdash_linux_amd64.tar.gz is a stable address.
+    name_template: 'sdash_{{ .Os }}_{{ .Arch }}'
+    formats: [tar.gz]
+    files:
+      - README.md
+      - LICENSE
+      - src: bin/THIRD-PARTY-NOTICES.txt
+        strip_parent: true
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+snapshot:
+  version_template: '{{ incpatch .Version }}-next'
+
+changelog:
+  # The first release has no earlier tag to compare with, and a list of
+  # every commit since the repository began tells a reader nothing; its
+  # notes are the body of the tag message alone, which the header below
+  # carries.
+  disable: '{{ not .PreviousTag }}'
+  use: github
+  sort: asc
+  groups:
+    - title: Features
+      regexp: '^feat(\(.+\))?!?:'
+      order: 0
+    - title: Fixes
+      regexp: '^fix(\(.+\))?!?:'
+      order: 1
+    - title: Documentation
+      regexp: '^docs(\(.+\))?!?:'
+      order: 2
+    - title: Other
+      order: 99
+  filters:
+    exclude:
+      - '^test(\(.+\))?:'
+      - '^ci(\(.+\))?:'
+
+release:
+  github:
+    owner: GSI-HPC
+    name: sdash
+  prerelease: auto
+  # Whatever the tag message says after its first line opens the notes, so
+  # the words announcing a release are signed along with it. There is no
+  # "go install" line: such a build embeds the placeholder, not the UI.
+  header: |
+    ## sdash {{ .Tag }}
+
+    {{ with .TagBody }}{{ . }}
+
+    {{ end }}Download the archive for your platform below.
+  footer: |
+    ---
+
+    Verify a download against `checksums.txt`, and that the release
+    workflow built it from this tag:
+
+    ```console
+    $ gh attestation verify <archive> --repo GSI-HPC/sdash \
+        --signer-workflow GSI-HPC/sdash/.github/workflows/release.yml \
+        --source-ref refs/tags/{{ .Tag }}
+    ```
+
+    Each archive carries `THIRD-PARTY-NOTICES.txt`, the licences of what the
+    binary embeds.
