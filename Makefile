@@ -148,8 +148,8 @@ test-release:
 ## dev: print the two-terminal development loop
 .PHONY: dev
 dev:
-	@echo 'Terminal 1: the server on 127.0.0.1:7374, which reads the UI from web/dist and'
-	@echo 'accepts the requests the Vite dev server proxies:'
+	@echo 'Terminal 1: the server on port 7374 of 127.0.0.1 and ::1, which reads the UI'
+	@echo 'from web/dist and accepts the requests the Vite dev server proxies:'
 	@echo
 	@echo '    $(GO) run ./cmd/sdash --dev --no-browser'
 	@echo

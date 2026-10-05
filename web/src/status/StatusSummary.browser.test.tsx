@@ -62,6 +62,35 @@ test("the version and the platform of the server are shown", async () => {
   expect(asked).toEqual(["/api/v1/status"]);
 });
 
+// A user of a sdash that was started with --read-only has to know why it
+// offers no change, and a screen reader user as well: the mode is words in
+// the status region, which is announced, and not a colour.
+test("a sdash that runs read-only says so in words in the status region", async () => {
+  serverAnswers(() =>
+    Promise.resolve(json(200, { ...status, readOnly: true })),
+  );
+
+  const screen = await renderSummary();
+
+  const live = screen.getByRole("status");
+  await expect.element(live.getByText("v1.4.0")).toBeVisible();
+  await expect.element(live.getByRole("term").nth(2)).toHaveTextContent("Mode");
+  await expect
+    .element(live.getByRole("definition").nth(2))
+    .toHaveTextContent("Read-only: this sdash changes nothing on a cluster");
+});
+
+test("a sdash that may change something says nothing about a mode", async () => {
+  serverAnswers(() => Promise.resolve(json(200, status)));
+
+  const screen = await renderSummary();
+
+  const live = screen.getByRole("status");
+  await expect.element(live.getByText("v1.4.0")).toBeVisible();
+  await expect.element(live).not.toMatchTextContent(/Mode|Read-only/i);
+  expect(live.getByRole("term").elements()).toHaveLength(2);
+});
+
 // sdash is on the loopback address, which needs no network. A laptop that
 // lost its Wi-Fi must still be told what its own sdash answers, where the
 // query library by default waits for the network to come back.

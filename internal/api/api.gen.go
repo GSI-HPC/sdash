@@ -21,6 +21,7 @@ const (
 	ErrorCodeMethodNotAllowed ErrorCode = "method_not_allowed"
 	ErrorCodeNotFound         ErrorCode = "not_found"
 	ErrorCodeNotSignedIn      ErrorCode = "not_signed_in"
+	ErrorCodeReadOnly         ErrorCode = "read_only"
 )
 
 // Valid indicates whether the value is a known member of the ErrorCode enum.
@@ -37,6 +38,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeNotFound:
 		return true
 	case ErrorCodeNotSignedIn:
+		return true
+	case ErrorCodeReadOnly:
 		return true
 	default:
 		return false
@@ -57,6 +60,9 @@ type Error struct {
 	// - `not_signed_in`: the request does not carry the session cookie of
 	//   this run of sdash.
 	// - `cross_origin`: the request comes from a page of another origin.
+	// - `read_only`: sdash was started with --read-only, and the request
+	//   has a method other than GET, HEAD and OPTIONS, which could change
+	//   something. The status is 403.
 	// - `not_found`: the API has nothing at this address.
 	// - `method_not_allowed`: the API has something at this address, but
 	//   not for this method.
@@ -73,6 +79,9 @@ type Error struct {
 //   - `not_signed_in`: the request does not carry the session cookie of
 //     this run of sdash.
 //   - `cross_origin`: the request comes from a page of another origin.
+//   - `read_only`: sdash was started with --read-only, and the request
+//     has a method other than GET, HEAD and OPTIONS, which could change
+//     something. The status is 403.
 //   - `not_found`: the API has nothing at this address.
 //   - `method_not_allowed`: the API has something at this address, but
 //     not for this method.
@@ -101,7 +110,8 @@ type Status struct {
 	Platform string `json:"platform"`
 
 	// ReadOnly Whether sdash was started with --read-only, and so sends nothing
-	// that changes a cluster.
+	// that changes a cluster: it then answers every request that could
+	// with the Error `read_only`.
 	ReadOnly bool `json:"readOnly"`
 
 	// Version The release of sdash, in the form v1.4.0, or "devel" for a build

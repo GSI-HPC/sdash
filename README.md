@@ -54,8 +54,18 @@ Until then sdash is built from a checkout, which needs Go and Node (see
 
 ```console
 $ make build      # the UI, then bin/sdash with the UI embedded
-$ bin/sdash       # listens on 127.0.0.1:7374 and opens the browser
+$ bin/sdash       # listens on port 7374 of 127.0.0.1 and ::1, and opens the browser
 ```
+
+On a host you share with other users, such as a login node, start it as
+`bin/sdash --listen unix:` instead: every user of the host can connect to a
+loopback port, and only you to the unix socket sdash then listens on. A
+browser cannot open a socket, so sdash prints an `ssh -L` command that
+forwards a port of your own machine to it, and the address to open there.
+It stops, and removes the socket, when it is interrupted or when the
+terminal it was started from hangs up
+([`doc/adr/0012-local-listener-security.md`](doc/adr/0012-local-listener-security.md),
+[`doc/adr/0023-the-listeners-as-built.md`](doc/adr/0023-the-listeners-as-built.md)).
 
 ## Supported Slurm releases
 

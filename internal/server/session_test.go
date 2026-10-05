@@ -196,8 +196,76 @@ func TestATokenIsLongRandomAndSafeInAnAddress(t *testing.T) {
 func TestTheCookieIsNamedAfterThePort(t *testing.T) {
 	t.Parallel()
 
-	assert.Equal(t, "sdash_session_7374", cookieName(7374))
-	assert.NotEqual(t, cookieName(7374), cookieName(41233))
+	assert.Equal(t, "sdash_session_7374", cookieName("7374"))
+	assert.NotEqual(t, cookieName("7374"), cookieName("41233"))
+}
+
+// The port in the name is the one the browser sent the request to, which it
+// states in the Host header. A listener on a unix socket has no port of its
+// own to go by: the browser names the port of whatever forward the user put
+// in front of the socket. One rule serves both kinds of listener.
+func TestTheCookieIsNamedAfterThePortInTheHostHeader(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		change func(*routerConfig)
+		host   string
+		want   string
+	}{
+		{name: "the bound address", change: func(*routerConfig) {}, host: "127.0.0.1:7374", want: "sdash_session_7374"},
+		{name: "localhost on both addresses", change: onBothAddresses, host: "localhost:7374", want: "sdash_session_7374"},
+		{name: "the IPv6 address on both addresses", change: onBothAddresses, host: "[::1]:7374", want: "sdash_session_7374"},
+		{name: "a socket behind a forward from the suggested port", change: onSocket, host: "127.0.0.1:7374", want: "sdash_session_7374"},
+		{name: "a socket behind a forward from another port", change: onSocket, host: "127.0.0.1:18080", want: "sdash_session_18080"},
+		{name: "a socket behind a forward that is named localhost", change: onSocket, host: "localhost:8000", want: "sdash_session_8000"},
+		{name: "a socket behind a forward over IPv6", change: onSocket, host: "[::1]:8000", want: "sdash_session_8000"},
+		// A browser leaves the default port of HTTP out of the header.
+		{name: "a socket behind a forward from port 80", change: onSocket, host: "localhost", want: "sdash_session_80"},
+		{name: "a socket behind a forward from port 80 over IPv6", change: onSocket, host: "[::1]", want: "sdash_session_80"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			stub := &apiStub{}
+			router := testRouter(withAPI(stub), tt.change)
+			to := func(r *http.Request) *http.Request {
+				r.Host = tt.host
+				return r
+			}
+
+			exchange := serve(router, to(request(http.MethodGet, "/?token="+testToken)))
+
+			require.Equal(t, http.StatusSeeOther, exchange.Code)
+			cookie, err := http.ParseSetCookie(exchange.Header().Get("Set-Cookie"))
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, cookie.Name)
+
+			// The cookie the exchange gave is the one the API then asks
+			// for, under the same Host.
+			withCookie := to(request(http.MethodGet, "/api/v1/status"))
+			withCookie.AddCookie(cookie)
+			assert.Equal(t, http.StatusOK, serve(router, withCookie).Code)
+			assert.Equal(t, []string{"GET /api/v1/status"}, stub.seen())
+		})
+	}
+}
+
+// Two forwards to one socket, or a forward and another sdash on a port, sit
+// behind one host name in the browser, which sends the cookies of both to
+// each. Only the cookie of the port a request names counts.
+func TestTheCookieOfAnotherPortDoesNotSignInBehindAForward(t *testing.T) {
+	t.Parallel()
+
+	stub := &apiStub{}
+	router := testRouter(withAPI(stub), onSocket)
+	r := request(http.MethodGet, "/api/v1/status")
+	r.Host = "127.0.0.1:18080"
+	r.AddCookie(&http.Cookie{Name: "sdash_session_7374", Value: testToken})
+
+	assert.Equal(t, http.StatusUnauthorized, serve(router, r).Code)
+	assert.Empty(t, stub.seen())
 }
 
 // A log is copied into issues and read by more people than a terminal is.

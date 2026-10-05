@@ -41,7 +41,8 @@ export type Status = {
     platform: string;
     /**
      * Whether sdash was started with --read-only, and so sends nothing
-     * that changes a cluster.
+     * that changes a cluster: it then answers every request that could
+     * with the Error `read_only`.
      *
      */
     readOnly: boolean;
@@ -81,6 +82,9 @@ export type Error = {
  * - `not_signed_in`: the request does not carry the session cookie of
  * this run of sdash.
  * - `cross_origin`: the request comes from a page of another origin.
+ * - `read_only`: sdash was started with --read-only, and the request
+ * has a method other than GET, HEAD and OPTIONS, which could change
+ * something. The status is 403.
  * - `not_found`: the API has nothing at this address.
  * - `method_not_allowed`: the API has something at this address, but
  * not for this method.
@@ -91,6 +95,7 @@ export const ErrorCode = {
     BAD_REQUEST: 'bad_request',
     NOT_SIGNED_IN: 'not_signed_in',
     CROSS_ORIGIN: 'cross_origin',
+    READ_ONLY: 'read_only',
     NOT_FOUND: 'not_found',
     METHOD_NOT_ALLOWED: 'method_not_allowed',
     INTERNAL: 'internal'
@@ -103,6 +108,9 @@ export const ErrorCode = {
  * - `not_signed_in`: the request does not carry the session cookie of
  * this run of sdash.
  * - `cross_origin`: the request comes from a page of another origin.
+ * - `read_only`: sdash was started with --read-only, and the request
+ * has a method other than GET, HEAD and OPTIONS, which could change
+ * something. The status is 403.
  * - `not_found`: the API has nothing at this address.
  * - `method_not_allowed`: the API has something at this address, but
  * not for this method.

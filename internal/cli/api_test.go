@@ -64,6 +64,23 @@ func TestTheServedStatusDescribesThisBinaryAndItsFlags(t *testing.T) {
 			assert.Equal(t, tt.readOnly, status.ReadOnly)
 			assert.Empty(t, status.Clusters)
 
+			// The mode the status reports is the mode the server keeps:
+			// with --read-only a request that could change something is
+			// refused for that reason, and without it the request gets as
+			// far as the API, which has nothing for it at this address.
+			changed, err := client.Post("http://"+address.Host+server.APIPrefix+"/status", "application/json", nil)
+			require.NoError(t, err)
+			defer func() { _ = changed.Body.Close() }()
+			var refusal api.Error
+			require.NoError(t, json.NewDecoder(changed.Body).Decode(&refusal))
+			if tt.readOnly {
+				assert.Equal(t, http.StatusForbidden, changed.StatusCode)
+				assert.Equal(t, api.ErrorCodeReadOnly, refusal.Code)
+			} else {
+				assert.Equal(t, http.StatusMethodNotAllowed, changed.StatusCode)
+				assert.Equal(t, api.ErrorCodeMethodNotAllowed, refusal.Code)
+			}
+
 			assert.Equal(t, exitcode.OK, sdash.stop())
 		})
 	}

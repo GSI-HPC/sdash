@@ -61,13 +61,13 @@ func TestWithoutFlagsTheServerRunsOnItsDefaults(t *testing.T) {
 
 	assert.Equal(t, exitcode.OK, code)
 	assert.Empty(t, stderr.String())
-	assert.Equal(t, options{listen: "127.0.0.1:7374"}, got)
+	assert.Equal(t, options{listen: "localhost:7374"}, got)
 }
 
 func TestEachFlagReachesTheServer(t *testing.T) {
 	t.Parallel()
 
-	defaults := options{listen: "127.0.0.1:7374"}
+	defaults := options{listen: "localhost:7374"}
 	with := func(change func(*options)) options {
 		o := defaults
 		change(&o)
@@ -79,7 +79,9 @@ func TestEachFlagReachesTheServer(t *testing.T) {
 		want options
 	}{
 		{name: "another address", args: []string{"--listen", "[::1]:8000"}, want: with(func(o *options) { o.listen = "[::1]:8000" })},
-		{name: "another address with =", args: []string{"--listen=localhost:0"}, want: with(func(o *options) { o.listen = "localhost:0" })},
+		{name: "another address with =", args: []string{"--listen=127.0.0.1:0"}, want: with(func(o *options) { o.listen = "127.0.0.1:0" })},
+		{name: "a unix socket", args: []string{"--listen", "unix:/run/user/1000/sdash.sock"}, want: with(func(o *options) { o.listen = "unix:/run/user/1000/sdash.sock" })},
+		{name: "the default unix socket", args: []string{"--listen", "unix:"}, want: with(func(o *options) { o.listen = "unix:" })},
 		{name: "no browser", args: []string{"--no-browser"}, want: with(func(o *options) { o.noBrowser = true })},
 		{name: "development", args: []string{"--dev"}, want: with(func(o *options) { o.dev = true })},
 		{name: "read-only", args: []string{"--read-only"}, want: with(func(o *options) { o.readOnly = true })},
@@ -170,6 +172,77 @@ func TestAnAddressBeyondThisMachineIsAUsageError(t *testing.T) {
 			assert.Equal(t, exitcode.Usage, code)
 			assert.True(t, strings.HasPrefix(stderr.String(), "sdash: --listen: "), stderr.String())
 			assert.Empty(t, stdout.String(), "no address is printed")
+		})
+	}
+}
+
+// A unix socket that cannot be named is a mistake on the command line too,
+// and is reported with what to do about it.
+func TestASocketThatCannotBeNamedIsAUsageError(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		listen string
+		env    map[string]string
+		says   string
+	}{
+		{
+			// The default socket lies in the runtime directory, which
+			// macOS and a session without a login manager do not have.
+			name:   "the default socket without a runtime directory",
+			listen: "unix:",
+			says: `sdash: --listen: "unix:" names no socket, and XDG_RUNTIME_DIR, where the default one would lie, ` +
+				"is not set; name one, as in unix:/path/to/sdash.sock\n",
+		},
+		{
+			// The XDG Base Directory specification has a relative path in
+			// the variable ignored. Taken as it is, it would put the socket
+			// below the directory sdash happened to be started in.
+			name:   "the default socket with a relative runtime directory",
+			listen: "unix:",
+			env:    map[string]string{"XDG_RUNTIME_DIR": "run/user/1000"},
+			says: `sdash: --listen: "unix:" names no socket, and XDG_RUNTIME_DIR, where the default one would lie, ` +
+				`is "run/user/1000": a relative path, which is not valid there and counts as not set; ` +
+				"name one, as in unix:/path/to/sdash.sock\n",
+		},
+		{
+			// "unix:~/run/sdash.sock" reaches sdash with the ~ in it, and
+			// would otherwise create a directory of that name.
+			name:   "a home directory the shell did not expand",
+			listen: "unix:~/run/sdash.sock",
+			says: `sdash: --listen: the shell has left the ~ in "unix:~/run/sdash.sock" as it is; ` +
+				"write the directory out, as in unix:$HOME/sdash.sock\n",
+		},
+		{
+			name:   "a path that is too long for a socket",
+			listen: "unix:/" + strings.Repeat("long/", 30) + "sdash.sock",
+			says:   "bytes long, and a unix socket on this system takes",
+		},
+		{
+			name:   "a default socket that is too long",
+			listen: "unix:",
+			env:    map[string]string{"XDG_RUNTIME_DIR": "/" + strings.Repeat("long/", 30)},
+			says:   "bytes long, and a unix socket on this system takes",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			stdout, stderr := &output{}, &output{}
+
+			code := runToItsEnd(t, Process{
+				Args:   []string{"--listen", tt.listen},
+				Stdout: stdout,
+				Stderr: stderr,
+				Getenv: func(name string) string { return tt.env[name] },
+			})
+
+			assert.Equal(t, exitcode.Usage, code)
+			assert.True(t, strings.HasPrefix(stderr.String(), "sdash: --listen: "), stderr.String())
+			assert.Contains(t, stderr.String(), tt.says)
+			assert.Empty(t, stdout.String(), "nothing is printed to open")
 		})
 	}
 }

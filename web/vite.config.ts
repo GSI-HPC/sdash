@@ -33,21 +33,30 @@ export default defineConfig({
   },
 
   server: {
-    // The host sdash itself listens on by default, and not "localhost". A
-    // browser keeps cookies by host name and ignores the port, so the
-    // session cookie it got from http://127.0.0.1:7374 goes along to
+    // The host in the address sdash prints, and not "localhost". A browser
+    // keeps cookies by host name and ignores the port, so the session
+    // cookie it got from http://127.0.0.1:7374 goes along to
     // http://127.0.0.1:5173 and through the proxy below. Under another name
     // for the same machine the API would answer "not signed in".
     host: "127.0.0.1",
     // Fixed, and an error when taken, because "sdash --dev" accepts the
-    // dev server on this port and no other.
+    // origin of the dev server on this port and no other.
     port: 5173,
     strictPort: true,
     // The browser talks to Vite only; Vite hands the API calls to a sdash
     // started beside it with --dev on its default address
     // (doc/adr/0012-local-listener-security.md).
     proxy: {
-      "/api": "http://127.0.0.1:7374",
+      "/api": {
+        target: "http://127.0.0.1:7374",
+        // The proxy names sdash by the address of the target in the Host
+        // header, as a browser that goes there directly does, and not by
+        // the address of the dev server, which is what the browser sent.
+        // sdash answers to its own address only, and it looks for the
+        // session cookie under the port in that header: the port the
+        // cookie was given under.
+        changeOrigin: true,
+      },
     },
   },
 });

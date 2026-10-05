@@ -8,7 +8,13 @@ import { ApiError, client } from "../client/client";
 
 /**
  * Says which sdash serves the page: its version and the platform it was
- * built for, as the status operation of the API reports them.
+ * built for, as the status operation of the API reports them, and that it
+ * runs read-only when it does.
+ *
+ * The mode is told in words, in the list the rest of the status is in. A
+ * badge whose colour alone set it apart would tell nothing to a user who
+ * does not see the colour, and a text outside the status region would not
+ * be announced with the answer.
  *
  * The three states reach assistive technology as well as the eye
  * (doc/adr/0014-accessibility-and-browsers.md). The status region is in the
@@ -40,6 +46,12 @@ export function StatusSummary() {
             <dd className="font-mono">{status.data.version}</dd>
             <dt className="text-t2">Platform</dt>
             <dd className="font-mono">{status.data.platform}</dd>
+            {status.data.readOnly && (
+              <>
+                <dt className="text-t2">Mode</dt>
+                <dd>Read-only: this sdash changes nothing on a cluster</dd>
+              </>
+            )}
           </dl>
         )}
       </div>

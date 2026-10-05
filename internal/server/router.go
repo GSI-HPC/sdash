@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -21,13 +22,21 @@ const APIPrefix = "/api/v1"
 
 // routerConfig is what the handler tree is built from.
 type routerConfig struct {
-	// addr is the address the listener is bound to; its port is part of
-	// the allowed Host values and of the cookie's name.
-	addr *net.TCPAddr
+	// addrs are the TCP addresses the listeners are bound to. The allowed
+	// values of the Host header are made of them (allowedHosts).
+	addrs []*net.TCPAddr
+	// socket says that the listener is a unix socket, which has no address
+	// of that kind: it answers to the loopback names under whatever port
+	// the forward in front of it has (forwardedHost). With neither addrs
+	// nor socket, no Host is answered.
+	socket bool
 	// token is the secret of this launch.
 	token string
 	// dev accepts the requests the Vite dev server proxies.
 	dev bool
+	// readOnly refuses every request under /api/ that could change
+	// something (readsOnly).
+	readOnly bool
 	// files holds the built user interface.
 	files fs.FS
 	// api is the handler of the browser API, or nil.
@@ -40,25 +49,38 @@ type routerConfig struct {
 //
 // Every request passes the security headers and the Host allow-list. What
 // lies under /api/ then passes the guarded chain: no caching, same origin,
-// session cookie. The API handler sits behind that chain and is reachable
-// through it alone, so an operation added to the API cannot be registered
-// around the checks.
+// session cookie and, in read-only mode, a method that changes nothing. The
+// API handler sits behind that chain and is reachable through it alone, so
+// an operation added to the API cannot be registered around the checks.
+//
+// The read-only check comes after the session check, so that a request
+// without a session is answered as it is in every mode and learns nothing
+// about this one.
 //
 // The handler in cfg.api receives each request with its full path, the
 // /api/v1 prefix included; the router does not strip it.
 func newRouter(cfg routerConfig) http.Handler {
-	session := cookieName(cfg.addr.Port)
-	guarded := chi.Chain(
+	checks := chi.Middlewares{
 		noStore,
 		sameOrigin(cfg.dev, cfg.logger),
-		requireSession(session, cfg.token, cfg.logger),
-	)
+		requireSession(cfg.token, cfg.logger),
+	}
+	if cfg.readOnly {
+		checks = append(checks, readsOnly(cfg.logger))
+	}
+	guarded := chi.Chain(checks...)
+
+	answers := forwardedHost
+	if !cfg.socket {
+		hosts := allowedHosts(cfg.addrs)
+		answers = func(host string) bool { return hosts[strings.ToLower(host)] }
+	}
 
 	r := chi.NewRouter()
 	r.Use(
 		logRequests(cfg.logger),
 		securityHeaders,
-		allowHosts(allowedHosts(cfg.addr, cfg.dev), cfg.logger),
+		allowHosts(answers, cfg.logger),
 	)
 	if cfg.api != nil {
 		r.Handle(APIPrefix+"/*", guarded.Handler(cfg.api))
@@ -71,7 +93,7 @@ func newRouter(cfg routerConfig) http.Handler {
 	// it for the same reason.
 	r.Handle("/api", guarded.HandlerFunc(apiNotFound))
 	r.Handle("/api/*", guarded.HandlerFunc(apiNotFound))
-	r.Handle("/*", exchangeToken(session, cfg.token, cfg.logger)(static{files: cfg.files}))
+	r.Handle("/*", exchangeToken(cfg.token, cfg.logger)(static{files: cfg.files}))
 	return r
 }
 

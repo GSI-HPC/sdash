@@ -23,6 +23,7 @@ import (
 
 	"github.com/GSI-HPC/sdash/internal/browser"
 	"github.com/GSI-HPC/sdash/internal/exitcode"
+	"github.com/GSI-HPC/sdash/internal/server"
 )
 
 // desktop stands in for the user's desktop: an environment, a cache
@@ -51,6 +52,12 @@ func newDesktop(t *testing.T, env map[string]string, startErr error) *desktop {
 	return d
 }
 
+// patience is how long a test waits for a step of sdash that it cannot go
+// on without. It is far more than any step needs, and what it is for is the
+// step that never happens: the test then fails and says which, where a bare
+// wait would hang until the timeout of the test binary.
+const patience = 30 * time.Second
+
 // await returns the arguments the opener was started with. When it is never
 // started it fails the test, where a bare receive would hang.
 func (d *desktop) await(t *testing.T) []string {
@@ -58,7 +65,7 @@ func (d *desktop) await(t *testing.T) []string {
 	select {
 	case started := <-d.opened:
 		return started
-	case <-time.After(30 * time.Second):
+	case <-time.After(patience):
 		require.FailNow(t, "timed out waiting for the opener to be started")
 		return nil
 	}
@@ -87,29 +94,73 @@ func (l *launched) stop() int {
 	return code
 }
 
-// launch starts sdash with args on a free loopback port and returns once it
-// has printed its address.
-func launch(t *testing.T, d *desktop, args ...string) *launched {
+// begin starts sdash as the process p, whose streams it sets, and returns
+// it with what it prints. The caller reads until sdash has said where it
+// serves (said).
+func begin(t *testing.T, p Process) (*launched, *bufio.Reader) {
 	t.Helper()
 	stdout, written := io.Pipe()
 	ctx, cancel := context.WithCancel(context.Background())
 	l := &launched{stderr: &output{}, cancel: cancel, exit: make(chan int, 1)}
+	p.Stdout, p.Stderr = written, l.stderr
 	go func() {
-		code := run(ctx, Process{
-			Args:    append([]string{"--listen", "127.0.0.1:0"}, args...),
-			Stdout:  written,
-			Stderr:  l.stderr,
-			Browser: d.Opener,
-		}, serve)
+		code := run(ctx, p, serve)
 		_ = written.Close()
 		l.exit <- code
 	}()
 	t.Cleanup(func() { l.stop() })
+	return l, bufio.NewReader(stdout)
+}
 
-	line, err := bufio.NewReader(stdout).ReadString('\n')
-	require.NoError(t, err, "sdash ended before it printed its address: %s", l.stderr)
-	// Nothing else is printed, but a write that nobody reads would block.
+// said returns what sdash prints up to the first line that ends in last,
+// that line included, which is how it says where it serves. What it prints
+// after that is read and dropped: nothing is expected, but a write that
+// nobody reads would block.
+//
+// A sdash that serves without having printed that line would have the read
+// wait for ever. It is interrupted after patience instead, which ends its
+// output, and the test fails with what was printed.
+func (l *launched) said(t *testing.T, stdout *bufio.Reader, last string) string {
+	t.Helper()
+	silent := time.AfterFunc(patience, l.cancel)
+	defer silent.Stop()
+
+	var printed strings.Builder
+	for !strings.HasSuffix(printed.String(), last) {
+		line, err := stdout.ReadString('\n')
+		require.NoError(t, err, "sdash ended, or was stopped after %v, before it had said where it serves: %s%s",
+			patience, printed.String(), l.stderr)
+		printed.WriteString(line)
+	}
 	go func() { _, _ = io.Copy(io.Discard, stdout) }()
+	return printed.String()
+}
+
+// runToItsEnd runs the command line of p as the program does and returns
+// its exit code. It is for a command line that has to end by itself. One
+// that starts to serve instead would run for as long as the test does, so
+// it is interrupted after patience, and the test fails for that.
+func runToItsEnd(t *testing.T, p Process) int {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(t.Context(), patience)
+	defer cancel()
+
+	code := run(ctx, p, serve)
+
+	require.NoError(t, ctx.Err(), "sdash did not end by itself and was stopped after %v", patience)
+	return code
+}
+
+// launch starts sdash with args on a free loopback port and returns once it
+// has printed its address.
+func launch(t *testing.T, d *desktop, args ...string) *launched {
+	t.Helper()
+	l, stdout := begin(t, Process{
+		Args:    append([]string{"--listen", "127.0.0.1:0"}, args...),
+		Browser: d.Opener,
+	})
+
+	line := l.said(t, stdout, "\n")
 
 	address, found := strings.CutPrefix(strings.TrimSuffix(line, "\n"), "sdash is serving at ")
 	require.True(t, found, "the first line of the output is %q", line)
@@ -289,14 +340,66 @@ func TestDevServesTheInterfaceFromWebDistOnDisk(t *testing.T) {
 	assert.Equal(t, http.StatusOK, got.status)
 	assert.Equal(t, built, got.body)
 
-	// With --dev the request of the Vite dev server's proxy is accepted.
-	proxied, err := http.NewRequestWithContext(t.Context(), http.MethodGet, sdash.address, nil)
-	require.NoError(t, err)
-	proxied.Host = "localhost:5173"
-	answer, err := http.DefaultClient.Do(proxied)
-	require.NoError(t, err)
-	require.NoError(t, answer.Body.Close())
-	assert.Equal(t, http.StatusOK, answer.StatusCode)
+	// With --dev a request the Vite dev server proxies is accepted.
+	assert.Equal(t, http.StatusOK, proxiedByVite(t, sdash))
 
 	assert.Equal(t, exitcode.OK, sdash.stop())
+}
+
+// Without --dev the same request is one from another origin.
+func TestWithoutDevARequestFromTheViteDevServerIsRefused(t *testing.T) {
+	t.Parallel()
+
+	sdash := launch(t, newDesktop(t, nil, nil), "--no-browser")
+
+	assert.Equal(t, http.StatusForbidden, proxiedByVite(t, sdash))
+
+	assert.Equal(t, exitcode.OK, sdash.stop())
+}
+
+// proxiedByVite signs a browser in and returns the status of a call to the
+// API as the proxy of the Vite dev server hands it on: under the server's
+// own name, with the session cookie, from a page of the dev server's
+// origin (web/vite.config.ts).
+func proxiedByVite(t *testing.T, sdash *launched) int {
+	t.Helper()
+	jar, err := cookiejar.New(nil)
+	require.NoError(t, err)
+	client := &http.Client{Jar: jar}
+	t.Cleanup(client.CloseIdleConnections)
+	signedIn, err := client.Get(sdash.address)
+	require.NoError(t, err)
+	require.NoError(t, signedIn.Body.Close())
+
+	address, err := url.Parse(sdash.address)
+	require.NoError(t, err)
+	proxied, err := http.NewRequestWithContext(t.Context(), http.MethodGet,
+		"http://"+address.Host+server.APIPrefix+"/status", nil)
+	require.NoError(t, err)
+	proxied.Header.Set("Origin", "http://127.0.0.1:5173")
+	proxied.Header.Set("Sec-Fetch-Site", "same-origin")
+	answer, err := client.Do(proxied)
+	require.NoError(t, err)
+	require.NoError(t, answer.Body.Close())
+	return answer.StatusCode
+}
+
+// The default address is the name localhost, which binds both loopback
+// addresses. The address sdash prints, and opens, keeps the literal form:
+// it leads to sdash whatever a resolver makes of the name.
+func TestLocalhostIsPrintedAsTheLiteralLoopbackAddress(t *testing.T) {
+	t.Parallel()
+
+	sdash := launch(t, newDesktop(t, nil, nil), "--no-browser", "--listen", "localhost:0")
+
+	u, err := url.Parse(sdash.address)
+	require.NoError(t, err)
+	assert.Equal(t, "127.0.0.1", u.Hostname())
+	got := open(t, sdash.address)
+	assert.Contains(t, got.header.Get("Content-Type"), "text/html")
+
+	assert.Equal(t, exitcode.OK, sdash.stop())
+	// Nothing to warn about, on a machine with an IPv6 loopback address
+	// or without one.
+	assert.Empty(t, sdash.stderr.String())
 }

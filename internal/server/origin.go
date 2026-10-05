@@ -10,13 +10,18 @@ import (
 	"github.com/GSI-HPC/sdash/internal/api"
 )
 
+// vitePort is the port of the Vite dev server ("npm run dev" in web/), which
+// proxies /api to this server in the development loop "make dev" prints.
+const vitePort = "5173"
+
 // sameOrigin refuses every request that a page of another origin caused,
 // whatever its method. It guards the browser API.
 //
 // Reads are checked like writes: the answer to a GET shows the cluster as
 // the signed-in user sees it. No CORS header relaxes this for anyone. With
-// dev, the origins of the Vite dev server are accepted, since its proxy
-// forwards the browser's Origin header unchanged.
+// dev, the origins of the Vite dev server are accepted: its proxy names
+// this server by its own address in Host, but forwards the browser's Origin
+// header unchanged, and that names the dev server.
 func sameOrigin(dev bool, logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

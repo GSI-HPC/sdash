@@ -98,6 +98,28 @@ test("a failure the API reports carries its status, its code and its message", a
   });
 });
 
+// A sdash started with --read-only refuses what could change something
+// before any operation sees it. A view tells that refusal from every other
+// by its code, where the status 403 is shared with a request from another
+// origin.
+test("a refusal in read-only mode carries the code of the mode", async () => {
+  const { client } = clientOf(() =>
+    json(403, {
+      code: "read_only",
+      message: "sdash runs read-only and changes nothing",
+    }),
+  );
+
+  const error = await failureOf(client.getStatus());
+
+  expect(error).toBeInstanceOf(ApiError);
+  expect(error).toMatchObject({
+    status: 403,
+    code: ErrorCode.READ_ONLY,
+    message: "sdash runs read-only and changes nothing",
+  });
+});
+
 // A tab that stays open across an upgrade of sdash runs the old interface
 // against the new server. The message is still for the user; the code is
 // left out, so that nobody compares it with a list it is not in.

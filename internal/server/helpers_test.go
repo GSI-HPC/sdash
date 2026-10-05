@@ -22,6 +22,8 @@ const (
 	// to, and testHost the Host header a browser sends to it.
 	testPort = 7374
 	testHost = "127.0.0.1:7374"
+	// testCookie is the session cookie of a request to testHost.
+	testCookie = "sdash_session_7374"
 	// testToken stands in for the secret of a launch.
 	testToken = "LAUNCHTOKENLAUNCHTOKENLAUNCH"
 
@@ -53,11 +55,12 @@ func discardLogger() *slog.Logger {
 	return slog.New(slog.DiscardHandler)
 }
 
-// testRouter builds the handler tree of a listener on testHost that serves
-// a built interface and mounts no API; each change adjusts that.
+// testRouter builds the handler tree of a listener on testHost, and on that
+// address alone, that serves a built interface and mounts no API; each
+// change adjusts that.
 func testRouter(changes ...func(*routerConfig)) http.Handler {
 	cfg := routerConfig{
-		addr:   testAddr(),
+		addrs:  []*net.TCPAddr{testAddr()},
 		token:  testToken,
 		files:  builtFiles(),
 		logger: discardLogger(),
@@ -69,6 +72,20 @@ func testRouter(changes ...func(*routerConfig)) http.Handler {
 }
 
 func withDev(cfg *routerConfig) { cfg.dev = true }
+
+func withReadOnly(cfg *routerConfig) { cfg.readOnly = true }
+
+// onBothAddresses is a listener that holds testPort on 127.0.0.1 and on
+// ::1, as the name localhost has it bound.
+func onBothAddresses(cfg *routerConfig) {
+	cfg.addrs = []*net.TCPAddr{testAddr(), {IP: net.IPv6loopback, Port: testPort}}
+}
+
+// onSocket is a listener on a unix socket, which is bound to no address.
+func onSocket(cfg *routerConfig) {
+	cfg.addrs = nil
+	cfg.socket = true
+}
 
 func withAPI(api http.Handler) func(*routerConfig) {
 	return func(cfg *routerConfig) { cfg.api = api }
@@ -94,7 +111,7 @@ func request(method, target string, headers ...string) *http.Request {
 
 // signedIn adds the session cookie of the launch to a request.
 func signedIn(r *http.Request) *http.Request {
-	r.AddCookie(&http.Cookie{Name: cookieName(testPort), Value: testToken})
+	r.AddCookie(&http.Cookie{Name: testCookie, Value: testToken})
 	return r
 }
 
