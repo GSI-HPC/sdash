@@ -1,0 +1,14 @@
+// SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
+// SPDX-License-Identifier: Apache-2.0
+
+import { Placeholder } from "./Placeholder";
+
+/**
+ * The slurm.conf view: the configuration of the cluster.
+ *
+ * It is a placeholder until the Slurm-facing work can start
+ * (doc/adr/0016-e2e-and-fixtures-on-sind.md).
+ */
+export function Conf() {
+  return <Placeholder view="conf" />;
+}

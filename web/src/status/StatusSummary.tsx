@@ -32,7 +32,7 @@ export function StatusSummary() {
   });
 
   return (
-    <section aria-labelledby={headingId} className="mt-8">
+    <section aria-labelledby={headingId} className="mt-2">
       <h2 id={headingId} className="text-sm font-semibold">
         About
       </h2>

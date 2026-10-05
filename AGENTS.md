@@ -15,13 +15,13 @@ Personal, uncommitted instructions belong in `AGENTS.local.md` or
 ## Status
 
 A scaffold: the build, the checks, the decision records, and the shell of
-the UI. Its primitives (dialogs, menus, tooltips, tables) are the next work
-and are not in the tree yet. No release yet. Everything Slurm-facing (the
-slurmrestd client, vendored specs, fixtures, the views of cluster data)
-waits for slurmrestd support in GSI-HPC/sind (sind issue 90), because every
-spec and fixture comes from an end-to-end run on a sind cluster
-(`0016-e2e-and-fixtures-on-sind`). Until then write no Slurm-facing code and
-take fixtures from nowhere else.
+the UI (`doc/ui.md`) around placeholder views. Of its primitives the modal
+dialog is there; menus, tooltips and tables are next. No release yet.
+Everything Slurm-facing (the slurmrestd client, vendored specs, fixtures,
+the views of cluster data) waits for slurmrestd support in GSI-HPC/sind
+(sind issue 90), because every spec and fixture comes from an end-to-end
+run on a sind cluster (`0016-e2e-and-fixtures-on-sind`). Until then write
+no Slurm-facing code and take fixtures from nowhere else.
 
 ## Layout
 
@@ -38,9 +38,13 @@ take fixtures from nowhere else.
   (TypeScript), which are committed (`0011-openapi-first-browser-api`). An
   operation that changes anything is never a GET: `--read-only` refuses a
   request by its method alone (`0023-the-listeners-as-built`).
-- `web/`: the frontend, one npm package with its lockfile. `src/` is the
-  code, with the design tokens in `src/styles/tokens.css`; `e2e/` the
+- `web/`: the frontend, one npm package with its lockfile; `e2e/` the
   Playwright tests; `dist/` the build output, which is ignored.
+- `web/src/`: `routing/` (the view table, the routes, state in the query
+  string), `layout/` (the shell), `nav/`, `views/`, `shortcuts/`,
+  `palette/`, `overlay/` (the modal dialog), `icons/`, `theme/`, `storage/`,
+  `status/` (which sdash is running), `client/`, the generated `api/`,
+  `styles/` (`tokens.css`, the design tokens), `testing/` (shared by tests).
 - `doc/`: `adr/`, the decision records and their index; `design/`, the UI
   design handoff; `research/`, the Radar and slurmrestd studies.
 - `.github/`: `workflows/ci.yml` and `release.yml`; `actions/setup-go` and
@@ -110,13 +114,18 @@ and need Docker and sind.
 - Comments, documentation and UI text are plain British English ("licence"
   the noun, "license" the verb and in fixed names); an identifier keeps the
   spelling of whoever defines it. No em dashes, and no emoji in Markdown.
-- Frontend (`0013-frontend-stack`, `0014-accessibility-and-browsers`):
-  colours come from the design tokens only, never from a literal value; the
-  browser API is called through `web/src/client/` only, against the types
-  generated into `web/src/api/`; a tooltip comes from the tooltip primitive
-  once there is one, never from a native `title` attribute; every
-  interactive element is reachable and operable by keyboard. The target is
-  WCAG 2.1 AA, with an axe scan of every view in CI.
+- Frontend (`0013-frontend-stack`, `0014-accessibility-and-browsers`,
+  `0024-addresses-and-keyboard-in-the-shell`, `doc/ui.md`): colours come from
+  the design tokens only, never from a literal value or a `style` attribute;
+  the browser API is called through `web/src/client/` only, against the types
+  generated into `web/src/api/`; a view is a row of the view table
+  `web/src/routing/views.ts`, the source of its route, link, shortcut and
+  palette entry, and starts with `PageHeader`; a shortcut is registered with
+  `useShortcuts`, never with a key listener of a component's own; state a
+  reload must keep goes into the query string with `useSearchParam`; a
+  tooltip is a `Hint` until there is a tooltip primitive, never a native
+  `title` attribute; every interactive element is operable by keyboard. The
+  target is WCAG 2.1 AA, with an axe scan of every view in CI.
 
 ## Versions and capabilities
 

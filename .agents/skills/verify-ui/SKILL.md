@@ -32,7 +32,12 @@ been read, the honest word is "unverified", not "works".
    the state the change is about. Use the keyboard for a control the change
    added. The directory has to be readable by its owner alone, which is what
    `mktemp -d` gives, because `sdash.log` in it holds the token of the
-   launch.
+   launch. The address sdash prints leads to the Overview. A view is
+   reached from there as a user reaches it, by `g` and its letter or
+   through the navigation, or by loading its address
+   (`new URL("/nodes", page.url()).href`); `doc/ui.md` lists the addresses
+   and the keys. `[` collapses the sidebar, the palette's shortcut and `?`
+   open the two dialogs of the shell.
 4. **Start, look, stop** in one shell command, so that no server is left
    running. `localhost` binds both loopback addresses, as sdash does by
    default (`doc/adr/0023-the-listeners-as-built.md`), and port 0 has the
@@ -68,8 +73,9 @@ been read, the honest word is "unverified", not "works".
 7. **Run the committed suite.** `make test-browser` runs the Playwright
    tests of `web/e2e/` in Chromium, Firefox and WebKit. With `SDASH_CHROMIUM`
    alone, `npx playwright test --project chromium` in `web/` runs the
-   Chromium leg, and CI runs the other two. A view the change added has its
-   own axe scan there, in both themes.
+   Chromium leg, and CI runs the other two. Every view of the view table
+   has its axe scan there, in both themes and with the sidebar expanded and
+   collapsed; a state of a view that those scans do not reach has its own.
 8. **Report** what was looked at: the states, the themes, the engine, and
    what could not be looked at.
 
@@ -111,7 +117,11 @@ for (const theme of ["light", "dark"]) {
   await page.goto(address);
   await page.getByRole("heading", { level: 1 }).waitFor();
 
-  // Bring the page into the state the change is about, here.
+  // Bring the page into the state the change is about, here. For a view
+  // other than the Overview, for example:
+  //   await page.keyboard.press("g");
+  //   await page.keyboard.press("n");
+  //   await page.getByRole("heading", { level: 1, name: "Nodes" }).waitFor();
 
   await page.screenshot({ path: `${out}/${theme}.png`, fullPage: true });
   const applied = await page.locator("html").getAttribute("data-theme");

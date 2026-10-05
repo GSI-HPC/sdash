@@ -17,9 +17,11 @@ decides what you may see and do. The Slurm-facing part does not exist yet;
 sdash is a scaffold. The repository holds the decisions the project starts
 from ([`doc/adr/`](doc/adr/)), the build and its checks, and a binary that
 listens on loopback, prints its address, signs the browser in and serves the
-shell of the interface: a header, a theme toggle and a page that says which
-sdash is running, which it asks of the first operation of the browser API.
-There is no release.
+shell of the interface: a header, a sidebar that leads to the twelve views
+the design has, each at an address of its own, keyboard shortcuts and a
+command palette. The views are placeholders that say no cluster is
+configured; the first of them also says which sdash is running, which it
+asks of the first operation of the browser API. There is no release.
 
 There is no Slurm-facing code: nothing here connects to a slurmrestd, and no
 view shows a job or a node. That code is to be tested end to end against

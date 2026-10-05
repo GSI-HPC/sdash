@@ -6,6 +6,10 @@ import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 
 import "../styles/index.css";
+import {
+  ShortcutsProvider,
+  storageKey as characterKeysKey,
+} from "../shortcuts/ShortcutsProvider";
 import { storageKey } from "./theme";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -74,4 +78,97 @@ test("the keyboard reaches the toggle, shows where it is, and works it", async (
   await userEvent.keyboard(" ");
   await expect.element(toggle).toHaveAttribute("aria-pressed", "false");
   expect(page.dataset.theme).toBe("light");
+});
+
+/** The hint of the toggle: its name and its key, beside the button. */
+function hintOf(toggle: Element): HTMLElement | null {
+  return toggle.querySelector<HTMLElement>(":scope > span[aria-hidden='true']");
+}
+
+// The toggle shows an icon and no text. A sighted user gets its name on
+// keyboard focus and under the pointer, as for an item of the rail, and
+// the key that does the same beside it. It stays while the focus does and
+// goes on Escape (WCAG 2.1, success criterion 1.4.13).
+test("shows its name and its key on keyboard focus, until Escape", async () => {
+  const screen = await render(
+    <>
+      <ThemeToggle />
+      <p>Somewhere else</p>
+    </>,
+  );
+  const toggle = screen.getByRole("button", { name: "Dark theme" });
+  const hint = () => hintOf(toggle.element());
+  // The tests of this file share one pointer, and the one before left it
+  // where the toggle is.
+  await screen.getByText("Somewhere else").hover();
+  await expect.poll(() => hint()?.hidden).toBe(true);
+
+  await userEvent.tab();
+  await expect.element(toggle).toHaveFocus();
+
+  await expect.poll(() => hint()?.hidden).toBe(false);
+  // What the hint says is what the button is called: someone who speaks
+  // to the computer says what they see (success criterion 2.5.3).
+  expect(hint()?.querySelector("kbd")?.textContent).toBe("t");
+  expect(hint()?.textContent).toBe("Dark themet");
+  await expect.element(toggle).toHaveAccessibleName("Dark theme");
+  const label = hint()?.querySelector<HTMLElement>(":scope > span") ?? null;
+  await expect.element(label).toBeInViewport({ ratio: 1 });
+  // Below the button, where the header has nothing.
+  expect(label?.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+    toggle.element().getBoundingClientRect().bottom,
+  );
+
+  await userEvent.keyboard("{Escape}");
+  await expect.poll(() => hint()?.hidden).toBe(true);
+  await expect.element(toggle).toHaveFocus();
+});
+
+test("shows its name under the pointer, and no longer when the pointer has left", async () => {
+  const screen = await render(
+    <>
+      <ThemeToggle />
+      <p>Somewhere else</p>
+    </>,
+  );
+  const toggle = screen.getByRole("button", { name: "Dark theme" });
+  const elsewhere = screen.getByText("Somewhere else");
+  // From somewhere else, wherever the test before left the pointer.
+  await elsewhere.hover();
+  await expect.poll(() => hintOf(toggle.element())?.hidden).toBe(true);
+
+  await toggle.hover();
+  await expect.poll(() => hintOf(toggle.element())?.hidden).toBe(false);
+
+  await elsewhere.hover();
+  await expect.poll(() => hintOf(toggle.element())?.hidden).toBe(true);
+});
+
+// The search button and the button that collapses the sidebar tell
+// assistive technology their keys, and so does this one.
+test("tells assistive technology its key", async () => {
+  const screen = await render(<ThemeToggle />);
+
+  await expect
+    .element(screen.getByRole("button", { name: "Dark theme" }))
+    .toHaveAttribute("aria-keyshortcuts", "T");
+});
+
+// With the single-key shortcuts switched off the key does nothing, and
+// the button must not name it, to the eye or to assistive technology.
+test("names no key while the single-key shortcuts are switched off", async () => {
+  localStorage.setItem(characterKeysKey, "off");
+  const screen = await render(
+    <ShortcutsProvider platform="Linux">
+      <ThemeToggle />
+    </ShortcutsProvider>,
+  );
+  const toggle = screen.getByRole("button", { name: "Dark theme" });
+
+  await userEvent.tab();
+  await expect.element(toggle).toHaveFocus();
+
+  await expect.poll(() => hintOf(toggle.element())?.hidden).toBe(false);
+  expect(hintOf(toggle.element())?.textContent).toBe("Dark theme");
+  await expect.element(toggle).not.toHaveAttribute("aria-keyshortcuts");
 });
