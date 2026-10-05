@@ -130,10 +130,13 @@ vuln:
 reuse:
 	reuse lint
 
+# The output of the browser tests is left out: Playwright writes an
+# error-context.md for a test that failed, which is no document of this
+# repository and would fail the lint after any failed run.
 ## lint-docs: lint the Markdown files (.markdownlint.yaml)
 .PHONY: lint-docs
 lint-docs:
-	npx --yes markdownlint-cli2@$(MARKDOWNLINT) "**/*.md" ".agents/**/*.md" "#node_modules" "#.claude" "#web/node_modules" "#doc/design"
+	npx --yes markdownlint-cli2@$(MARKDOWNLINT) "**/*.md" ".agents/**/*.md" "#node_modules" "#.claude" "#web/node_modules" "#web/test-results" "#web/playwright-report" "#doc/design"
 
 ## notices: write the third-party licence listing of a release into dist/
 .PHONY: notices
