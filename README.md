@@ -69,6 +69,21 @@ terminal it was started from hangs up
 ([`doc/adr/0012-local-listener-security.md`](doc/adr/0012-local-listener-security.md),
 [`doc/adr/0023-the-listeners-as-built.md`](doc/adr/0023-the-listeners-as-built.md)).
 
+## Cluster profiles (proposed)
+
+sdash is to learn its clusters from cluster profiles: YAML documents in the
+files `~/.config/sdash/*.yaml`, each of which names a slurmrestd, the way to
+reach it, directly or through SSH, and where the token comes from. Today
+sdash reads and checks them and lists the names of the clusters; it uses
+nothing in them and connects to nothing. The format is a proposal until
+record
+[`0025`](doc/adr/0025-cluster-profiles-as-yaml-documents.md) is accepted.
+[`doc/profiles.md`](doc/profiles.md) has an example and every rule.
+
+```console
+$ bin/sdash config check   # print the clusters, or what is wrong with a profile
+```
+
 ## Supported Slurm releases
 
 Slurm 25.11 and later

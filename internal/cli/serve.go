@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/GSI-HPC/sdash/internal/config"
 	"github.com/GSI-HPC/sdash/internal/exitcode"
 	"github.com/GSI-HPC/sdash/internal/server"
 	"github.com/GSI-HPC/sdash/internal/static"
@@ -137,6 +138,15 @@ func serve(ctx context.Context, p Process, o options) error {
 		return exitcode.Wrap(exitcode.Usage, fmt.Errorf("--listen: %w", err))
 	}
 	logger := newLogger(p.Stderr, o.verbosity)
+	// Read before the listener is opened: a profile that is not valid is a
+	// configuration error, and sdash does not start on one. The profiles
+	// are read and nothing more. No cluster is contacted, and no token is
+	// fetched (doc/adr/0016-e2e-and-fixtures-on-sind.md).
+	where, profiles, err := readProfiles(p, o)
+	if err != nil {
+		return err
+	}
+	logProfiles(logger, where, profiles)
 	files, err := interfaceFiles(o.dev)
 	if err != nil {
 		return err
@@ -157,6 +167,7 @@ func serve(ctx context.Context, p Process, o options) error {
 		API: server.NewAPI(server.APIConfig{
 			Build:    version.Get(),
 			ReadOnly: o.readOnly,
+			Clusters: profiles.Names(),
 			Logger:   logger,
 		}),
 		Logger: logger,
@@ -272,6 +283,25 @@ func shellWord(s string) string {
 	// Inside single quotes nothing has a meaning but the quote itself,
 	// which is closed, written escaped and opened again.
 	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
+// logProfiles says where the cluster profiles were read from and how many
+// there are. A directory the user named and that is not there is a warning,
+// which shows without -v: the name is most likely misspelt, and sdash
+// runs without the clusters the user expects. The default directory may
+// well not exist, so that is not worth more than a step.
+func logProfiles(logger *slog.Logger, where config.Location, profiles *config.Profiles) {
+	switch {
+	case where.Dir == "":
+		logger.Info("no configuration directory")
+	case profiles.Missing && where.Chosen():
+		logger.Warn("configuration directory does not exist", "dir", where.Dir, "from", where.From)
+	case profiles.Missing:
+		logger.Info("configuration directory does not exist", "dir", where.Dir, "from", where.From)
+	default:
+		logger.Info("reading cluster profiles", "dir", where.Dir, "from", where.From,
+			"clusters", len(profiles.Clusters))
+	}
 }
 
 // openBrowser opens address on the user's desktop unless the flags or the

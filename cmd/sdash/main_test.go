@@ -57,8 +57,8 @@ type child struct {
 	stderr *bytes.Buffer
 }
 
-// start runs the test binary as the process under test, away from the home
-// and the cache of whoever runs the tests.
+// start runs the test binary as the process under test, away from the
+// home, the cache and the cluster profiles of whoever runs the tests.
 func start(t *testing.T, mode string, args ...string) *child {
 	t.Helper()
 	return startThrough(t, mode, os.Args[0], args...)
@@ -74,6 +74,8 @@ func startThrough(t *testing.T, mode, name string, args ...string) *child {
 		childEnv+"="+mode,
 		"HOME="+dir,
 		"XDG_CACHE_HOME="+filepath.Join(dir, "cache"),
+		"XDG_CONFIG_HOME="+filepath.Join(dir, "config"),
+		"SDASH_CONFIG=",
 	)
 	stderr := &bytes.Buffer{}
 	cmd.Stderr = stderr

@@ -21,7 +21,10 @@ Everything Slurm-facing (the slurmrestd client, vendored specs, fixtures,
 the views of cluster data) waits for slurmrestd support in GSI-HPC/sind
 (sind issue 90), because every spec and fixture comes from an end-to-end
 run on a sind cluster (`0016-e2e-and-fixtures-on-sind`). Until then write
-no Slurm-facing code and take fixtures from nowhere else.
+no Slurm-facing code and take fixtures from nowhere else. Cluster profiles
+are read and checked, and nothing in one is used: no SSH, no token command,
+no request. Their format is proposed, not decided
+(`0025-cluster-profiles-as-yaml-documents`).
 
 ## Layout
 
@@ -29,8 +32,10 @@ no Slurm-facing code and take fixtures from nowhere else.
 - `internal/`: everything else; there is no `pkg/`. `cli` is the command
   line, `server` the listener, on both loopback addresses or on a unix
   socket, and its checks (`0023-the-listeners-as-built`), `static` the
-  embedded UI. A test-support package is named `xxxtest`. `internal/slurm/`
-  and a root `e2e/` come with the Slurm-facing work.
+  embedded UI, `apis/v1alpha1` the types of a cluster profile and `config`
+  its reader (`doc/profiles.md`). A test-support package is named
+  `xxxtest`. `internal/slurm/` and a root `e2e/` come with the Slurm-facing
+  work.
 - `internal/static/dist/`: what the binary embeds. `make build` copies the UI
   build there; a tracked placeholder lets `go build ./...` work without Node.
 - `api/openapi.yaml`: the browser API (OpenAPI 3.0.3, base path `/api/v1`),
@@ -76,6 +81,7 @@ make test-release     # the tag verification script against scratch tags
 make dev              # print the two-terminal development loop
 make clean            # remove build and test output
 make help             # list the targets
+bin/sdash config check --config DIR   # read the cluster profiles in DIR
 ```
 
 `build`, `ui`, `generate`, `lint-ui`, `test-ui`, `test-components`,

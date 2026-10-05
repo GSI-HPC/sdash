@@ -85,6 +85,7 @@ func TestEachFlagReachesTheServer(t *testing.T) {
 		{name: "no browser", args: []string{"--no-browser"}, want: with(func(o *options) { o.noBrowser = true })},
 		{name: "development", args: []string{"--dev"}, want: with(func(o *options) { o.dev = true })},
 		{name: "read-only", args: []string{"--read-only"}, want: with(func(o *options) { o.readOnly = true })},
+		{name: "a configuration directory", args: []string{"--config", "/srv/sdash"}, want: with(func(o *options) { o.config = "/srv/sdash" })},
 		{name: "one -v", args: []string{"-v"}, want: with(func(o *options) { o.verbosity = 1 })},
 		{name: "-v twice in one word", args: []string{"-vv"}, want: with(func(o *options) { o.verbosity = 2 })},
 		{name: "-v twice in two words", args: []string{"-v", "-v"}, want: with(func(o *options) { o.verbosity = 2 })},
@@ -130,6 +131,10 @@ func TestAMistakeOnTheCommandLineIsAUsageError(t *testing.T) {
 			args: []string{"version", "--listen", "127.0.0.1:0"},
 			says: "unknown flag: --listen",
 		},
+		{name: "a command config does not have", args: []string{"config", "chekc"}, says: `unknown command "chekc" for "sdash config"`},
+		{name: "an argument config check does not take", args: []string{"config", "check", "vesta.yaml"}, says: `unknown command "vesta.yaml" for "sdash config check"`},
+		{name: "a flag of the server given to config check", args: []string{"config", "check", "--read-only"}, says: "unknown flag: --read-only"},
+		{name: "--config without its value", args: []string{"config", "check", "--config"}, says: "flag needs an argument: --config"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

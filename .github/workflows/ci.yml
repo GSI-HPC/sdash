@@ -68,10 +68,8 @@ jobs:
           retention-days: 14
 
   # The fuzz targets are the FUZZ list of the Makefile, so that "make fuzz"
-  # and CI run the same ones. The list is empty until there is a parser of
-  # what slurmrestd sends (doc/adr/0016-e2e-and-fixtures-on-sind.md), and a
-  # matrix cannot be empty, so this job reads the list and the Fuzz job is
-  # skipped while it holds nothing.
+  # and CI run the same ones. A matrix cannot be empty, so this job reads
+  # the list, and the Fuzz job is skipped should the list hold nothing.
   fuzz-targets:
     name: Fuzz targets
     runs-on: ubuntu-latest

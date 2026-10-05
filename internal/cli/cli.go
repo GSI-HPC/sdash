@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Package cli defines the sdash command line: the root command, which runs
-// the server, and "version".
+// the server, "config check" and "version".
 //
 // It is the one place where the program meets its process. The arguments,
 // the streams, the environment and the desktop arrive in a Process, and the
 // logger is built here from the -v flag and handed down; no package below
-// reads os.Args, os.Stderr or slog.Default, so each can be driven by a test
-// with fakes.
+// reads os.Args, os.Stderr, os.Getenv or slog.Default, so each can be driven
+// by a test with fakes.
 package cli
 
 import (
@@ -21,6 +21,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/GSI-HPC/sdash/internal/browser"
+	"github.com/GSI-HPC/sdash/internal/config"
 	"github.com/GSI-HPC/sdash/internal/exitcode"
 	"github.com/GSI-HPC/sdash/internal/server"
 )
@@ -43,7 +44,8 @@ type Process struct {
 	// Browser opens the address of the server on the user's desktop.
 	Browser browser.Opener
 	// Getenv reads a variable of the environment, as os.Getenv does. Without
-	// it nothing is set.
+	// it nothing is set, and so there is no configuration directory unless
+	// --config names one.
 	Getenv func(string) string
 	// Hostname returns the name of the machine, as os.Hostname does. Without
 	// it the name is unknown.
@@ -52,6 +54,9 @@ type Process struct {
 
 // options are the flags of the root command.
 type options struct {
+	// config is the directory the cluster profiles are read from, or empty
+	// to leave it to the environment.
+	config string
 	// listen says where to listen: a loopback host and a port, or a unix
 	// socket.
 	listen string
@@ -120,7 +125,11 @@ can connect to the socket. sdash then opens no browser. It prints an ssh
 command that forwards a port of your own machine to the socket, and the
 address to open there. It refuses a PATH under which another user could put
 a socket of their own: one in a directory that others may write to, or
-below a directory in which others may rename what is yours.`),
+below a directory in which others may rename what is yours.
+
+The clusters are the cluster profiles in the configuration directory. sdash
+does not start while one of them is not valid; "sdash config check" says
+what is wrong with it.`),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Args:          cobra.NoArgs,
@@ -139,8 +148,14 @@ below a directory in which others may rename what is yours.`),
 		return exitcode.Wrap(exitcode.Usage, err)
 	})
 
-	// The flags belong to the root command alone: "sdash version --listen"
-	// is a mistake worth reporting, not a flag to ignore.
+	// The one flag every command takes: where the configuration is does not
+	// depend on what is done with it.
+	cmd.PersistentFlags().StringVar(&o.config, "config", "",
+		"directory the cluster profiles are read from (default: $"+config.EnvConfig+
+			", else $XDG_CONFIG_HOME/sdash, else ~/.config/sdash)")
+
+	// The other flags belong to the root command alone: "sdash version
+	// --listen" is a mistake worth reporting, not a flag to ignore.
 	flags := cmd.Flags()
 	flags.StringVar(&o.listen, "listen", defaultListen,
 		"where to listen: host:port on loopback (localhost is 127.0.0.1 and ::1; a port that is taken is replaced "+
@@ -155,7 +170,7 @@ below a directory in which others may rename what is yours.`),
 	flags.CountVarP(&o.verbosity, "verbose", "v",
 		"log more to standard error: -v adds what sdash does, -vv every request (default: warnings and errors)")
 
-	cmd.AddCommand(newVersionCommand(p))
+	cmd.AddCommand(newConfigCommand(p, &o), newVersionCommand(p))
 	usageArgs(cmd)
 	return cmd
 }

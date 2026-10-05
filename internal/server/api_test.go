@@ -137,6 +137,25 @@ func TestTheStatusListsNoClusterAsAnEmptyList(t *testing.T) {
 	assert.Equal(t, []any{}, members(t, got.Body.String())["clusters"])
 }
 
+// The status lists the clusters it is given, in the order it is given them,
+// and says of each its name and nothing else. The order is by name, which
+// whoever reads the profiles sees to (internal/config); this package must
+// not undo it. The rest of a profile, where sdash connects and what it runs
+// for the token, never reaches the handler.
+func TestTheStatusListsTheConfiguredClustersInTheOrderGiven(t *testing.T) {
+	t.Parallel()
+
+	got := getStatus(APIConfig{Build: releaseBuild(), Clusters: []string{"dev", "lustre", "vesta", "vesta-2"}})
+
+	assert.Equal(t, http.StatusOK, got.Code)
+	assert.Equal(t, []any{
+		map[string]any{"name": "dev"},
+		map[string]any{"name": "lustre"},
+		map[string]any{"name": "vesta"},
+		map[string]any{"name": "vesta-2"},
+	}, members(t, got.Body.String())["clusters"])
+}
+
 // The interface reads one shape for everything that goes wrong, whichever
 // layer refused: the checks in front of the API, the routing, or nothing
 // being mounted at all (api/openapi.yaml, the Error schema).
