@@ -68,10 +68,11 @@ export default defineConfig({
     ? {}
     : {
         webServer: {
-          // Port 0 has the system pick a free one, so a run does not
-          // collide with a sdash the developer has open, or with a second
-          // run. No browser is opened: the tests bring their own.
-          command: `${binary} --no-browser --listen 127.0.0.1:0`,
+          // localhost binds both loopback addresses, as sdash does by
+          // default. Port 0 has the system pick a free one, so a run does
+          // not collide with a sdash the developer has open, or with a
+          // second run. No browser is opened: the tests bring their own.
+          command: `${binary} --no-browser --listen localhost:0`,
           // sdash is up once it has printed its address. The named group
           // becomes the environment variable SDASH_URL.
           wait: { stdout: /sdash is serving at (?<sdash_url>\S+)/ },

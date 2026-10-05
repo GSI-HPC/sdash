@@ -12,9 +12,9 @@ package exitcode
 import "errors"
 
 const (
-	// OK means sdash did what it was asked. A server that SIGINT or SIGTERM
-	// stopped exits OK after a clean shutdown: a signal is the normal way to
-	// stop it, where a command that runs to an end would report 130.
+	// OK means sdash did what it was asked. A server that SIGINT, SIGTERM or
+	// SIGHUP stopped exits OK after a clean shutdown: a signal is the normal
+	// way to stop it, where a command that runs to an end would report 130.
 	OK = 0
 	// Failure means the command line was accepted and sdash then could not
 	// do its work: the listener could not be opened, or the shutdown had to

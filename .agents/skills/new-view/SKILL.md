@@ -36,7 +36,10 @@ a view that needs no slurmrestd can be built.
 1. **The operation first.** Describe what the view reads and writes in
    `api/openapi.yaml`: the operations, their schemas and the shared error
    body (`doc/adr/0011-openapi-first-browser-api.md`). The browser gets
-   shapes of sdash's own, never raw slurmrestd JSON.
+   shapes of sdash's own, never raw slurmrestd JSON. An operation that
+   changes anything, on a cluster or in sdash, is never a GET, whatever
+   slurmrestd uses for it: with `--read-only` the server refuses a request
+   by its method alone (`doc/adr/0023-the-listeners-as-built.md`).
 2. **Generate.** `make generate`, and commit `internal/api/` and
    `web/src/api/` with the change to the document. Never edit a generated
    file.

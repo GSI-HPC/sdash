@@ -34,7 +34,9 @@ been read, the honest word is "unverified", not "works".
    `mktemp -d` gives, because `sdash.log` in it holds the token of the
    launch.
 4. **Start, look, stop** in one shell command, so that no server is left
-   running. Port 0 has the system pick a free port. sdash prints
+   running. `localhost` binds both loopback addresses, as sdash does by
+   default (`doc/adr/0023-the-listeners-as-built.md`), and port 0 has the
+   system pick a free port. sdash prints
    `sdash is serving at` and its address, which carries the token of this
    launch: use the address as printed, hand it on in the environment and
    never as an argument, which every user of the host can read, and keep the
@@ -42,7 +44,7 @@ been read, the honest word is "unverified", not "works".
 
    ```sh
    out=/path/to/the/directory/of/step/3
-   bin/sdash --no-browser --listen 127.0.0.1:0 > "$out/sdash.log" 2>&1 &
+   bin/sdash --no-browser --listen localhost:0 > "$out/sdash.log" 2>&1 &
    pid=$!
    until grep -q '^sdash is serving at ' "$out/sdash.log"; do
      kill -0 "$pid" || { cat "$out/sdash.log"; exit 1; }

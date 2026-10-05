@@ -5,9 +5,10 @@
 // the server, and "version".
 //
 // It is the one place where the program meets its process. The arguments,
-// the streams and the desktop arrive in a Process, and the logger is built
-// here from the -v flag and handed down; no package below reads os.Args,
-// os.Stderr or slog.Default, so each can be driven by a test with fakes.
+// the streams, the environment and the desktop arrive in a Process, and the
+// logger is built here from the -v flag and handed down; no package below
+// reads os.Args, os.Stderr or slog.Default, so each can be driven by a test
+// with fakes.
 package cli
 
 import (
@@ -21,11 +22,13 @@ import (
 
 	"github.com/GSI-HPC/sdash/internal/browser"
 	"github.com/GSI-HPC/sdash/internal/exitcode"
+	"github.com/GSI-HPC/sdash/internal/server"
 )
 
-// defaultListen is where sdash listens unless told otherwise
-// (doc/adr/0012-local-listener-security.md).
-const defaultListen = "127.0.0.1:7374"
+// defaultListen is where sdash listens unless told otherwise: its port on
+// both loopback addresses, which is what lets the server answer to the name
+// localhost as well (doc/adr/0023-the-listeners-as-built.md).
+const defaultListen = "localhost:" + server.DefaultPort
 
 // Process is what the command line takes from the process it runs in.
 // Execute fills it from package os; a test fills it with fakes.
@@ -39,18 +42,26 @@ type Process struct {
 	Stderr io.Writer
 	// Browser opens the address of the server on the user's desktop.
 	Browser browser.Opener
+	// Getenv reads a variable of the environment, as os.Getenv does. Without
+	// it nothing is set.
+	Getenv func(string) string
+	// Hostname returns the name of the machine, as os.Hostname does. Without
+	// it the name is unknown.
+	Hostname func() (string, error)
 }
 
 // options are the flags of the root command.
 type options struct {
-	// listen is the address to bind.
+	// listen says where to listen: a loopback host and a port, or a unix
+	// socket.
 	listen string
 	// noBrowser keeps sdash from opening a browser.
 	noBrowser bool
 	// dev serves the interface from web/dist on disk and accepts the
 	// requests the Vite dev server proxies.
 	dev bool
-	// readOnly asks sdash to send nothing that changes a cluster.
+	// readOnly has sdash send nothing that changes a cluster: the server
+	// refuses every request that could.
 	readOnly bool
 	// verbosity counts the -v flags.
 	verbosity int
@@ -65,10 +76,12 @@ type serveFunc func(ctx context.Context, p Process, o options) error
 // (internal/exitcode). ctx is cancelled by the signal that stops the server.
 func Execute(ctx context.Context) int {
 	return run(ctx, Process{
-		Args:    os.Args[1:],
-		Stdout:  os.Stdout,
-		Stderr:  os.Stderr,
-		Browser: browser.System(),
+		Args:     os.Args[1:],
+		Stdout:   os.Stdout,
+		Stderr:   os.Stderr,
+		Browser:  browser.System(),
+		Getenv:   os.Getenv,
+		Hostname: os.Hostname,
 	}, serve)
 }
 
@@ -93,12 +106,21 @@ func newRootCommand(p Process, serve serveFunc) *cobra.Command {
 		Use:   "sdash",
 		Short: "Serve a dashboard for Slurm clusters to a browser on this machine",
 		Long: strings.TrimSpace(`
-sdash serves its user interface on a loopback address, prints that address
-and opens it in a browser. It runs until it is interrupted, and exits 0 after
-a clean shutdown.
+sdash serves its user interface on the loopback addresses of this machine,
+prints its address and opens it in a browser. It runs until it is
+interrupted or its terminal hangs up, and exits 0 after a clean shutdown.
 
 The printed address holds a token that signs the browser in. Whoever has it
-acts as you for as long as this sdash runs, so treat it like a password.`),
+acts as you for as long as this sdash runs, so treat it like a password.
+
+On a host you share with other users, listen on a unix socket and not on a
+port: --listen unix:PATH, or --listen unix: for a socket in your runtime
+directory. Every user of the host can connect to a loopback port; only you
+can connect to the socket. sdash then opens no browser. It prints an ssh
+command that forwards a port of your own machine to the socket, and the
+address to open there. It refuses a PATH under which another user could put
+a socket of their own: one in a directory that others may write to, or
+below a directory in which others may rename what is yours.`),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Args:          cobra.NoArgs,
@@ -121,13 +143,15 @@ acts as you for as long as this sdash runs, so treat it like a password.`),
 	// is a mistake worth reporting, not a flag to ignore.
 	flags := cmd.Flags()
 	flags.StringVar(&o.listen, "listen", defaultListen,
-		"loopback address to listen on, as host:port; when the port is taken a free one is used and logged")
+		"where to listen: host:port on loopback (localhost is 127.0.0.1 and ::1; a port that is taken is replaced "+
+			"by a free one, which is logged), or unix:PATH for a unix socket and no port (unix: alone is "+
+			"$XDG_RUNTIME_DIR/sdash/sdash.sock)")
 	flags.BoolVar(&o.noBrowser, "no-browser", false,
 		"do not open a browser; the address is printed in any case")
 	flags.BoolVar(&o.dev, "dev", false,
 		"development: serve the interface from web/dist on disk and accept requests the Vite dev server proxies")
 	flags.BoolVar(&o.readOnly, "read-only", false,
-		"send nothing that changes a cluster")
+		"send nothing that changes a cluster: every request of the interface that could is refused")
 	flags.CountVarP(&o.verbosity, "verbose", "v",
 		"log more to standard error: -v adds what sdash does, -vv every request (default: warnings and errors)")
 

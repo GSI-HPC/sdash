@@ -11,8 +11,12 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"regexp"
+	"strconv"
+	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -41,13 +45,20 @@ func (r *running) stop() error {
 // ends or stop is called.
 func start(t *testing.T, cfg Config) *running {
 	t.Helper()
+	return startOn(t, cfg, systemBind)
+}
+
+// startOn is start on a machine of the test's making: bind stands in for
+// the system when an address is bound.
+func startOn(t *testing.T, cfg Config, bind bindFunc) *running {
+	t.Helper()
 	if cfg.Listen == "" {
 		cfg.Listen = "127.0.0.1:0"
 	}
 	if cfg.Files == nil {
 		cfg.Files = builtFiles()
 	}
-	srv, err := New(t.Context(), cfg)
+	srv, err := newOn(t.Context(), cfg, bind)
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -144,6 +155,235 @@ func TestAServerOnAFallbackPortAnswersToThatPort(t *testing.T) {
 	status, body := get(t, browser(t), srv.URL())
 	assert.Equal(t, http.StatusOK, status)
 	assert.Equal(t, indexBody, body)
+}
+
+// fetch asks the server at dial for target under the name host, with
+// cookies given as name and value in turn, and returns the status and the
+// body. The name and the address are apart because that is what the Host
+// check is about: a name may lead to an address that is not the name's.
+func fetch(t *testing.T, dial, host, target string, cookies ...*http.Cookie) (int, string) {
+	t.Helper()
+	r, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+dial+target, nil)
+	require.NoError(t, err)
+	r.Host = host
+	for _, cookie := range cookies {
+		r.AddCookie(cookie)
+	}
+	client := &http.Client{
+		// The redirect of the token exchange is what the caller looks at.
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+	}
+	t.Cleanup(client.CloseIdleConnections)
+	resp, err := client.Do(r)
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	return resp.StatusCode, string(body)
+}
+
+// The default: sdash holds its port on 127.0.0.1 and on ::1, one handler
+// answers on both, and with both held it answers to the name localhost,
+// which a browser may take to either. The test binds real addresses, so the
+// machine it runs on needs an IPv6 loopback address.
+func TestLocalhostIsServedOnBothLoopbackAddressesUnderEveryNameOfTheirs(t *testing.T) {
+	t.Parallel()
+
+	stub := &apiStub{}
+	srv := start(t, Config{Listen: "localhost:0", API: stub})
+	require.Len(t, srv.listeners, 2, "this test needs an IPv6 loopback address on the machine")
+	printed, err := url.Parse(srv.URL())
+	require.NoError(t, err)
+	port := printed.Port()
+	token := printed.Query().Get("token")
+	session := &http.Cookie{Name: "sdash_session_" + port, Value: token}
+
+	// The address the user is given keeps the literal form, which leads to
+	// sdash whatever a resolver makes of the name.
+	assert.Equal(t, "127.0.0.1", printed.Hostname())
+	assert.Equal(t, "127.0.0.1:"+port, srv.listeners[0].Addr().String())
+	assert.Equal(t, "[::1]:"+port, srv.listeners[1].Addr().String(), "one port number on both addresses")
+
+	for _, address := range []string{"127.0.0.1:" + port, "[::1]:" + port} {
+		for _, name := range []string{address, "localhost:" + port} {
+			status, body := fetch(t, address, name, "/")
+			assert.Equal(t, http.StatusOK, status, "%s as %s", address, name)
+			assert.Equal(t, indexBody, body)
+
+			status, _ = fetch(t, address, name, "/?token="+token)
+			assert.Equal(t, http.StatusSeeOther, status, "%s as %s signs in", address, name)
+
+			status, body = fetch(t, address, name, "/api/v1/status", session)
+			assert.Equal(t, http.StatusOK, status, "%s as %s reaches the API", address, name)
+			assert.JSONEq(t, `{"stub":true}`, body)
+		}
+		status, _ := fetch(t, address, "rebind.example:"+port, "/")
+		assert.Equal(t, http.StatusForbidden, status, "a foreign name on %s", address)
+	}
+	require.NoError(t, srv.stop())
+}
+
+// A port that another process holds on one of the two addresses is no port
+// for localhost: sdash would answer to the name while half of it leads
+// elsewhere. It takes a port it can have on both and says which. The other
+// process is a real one here, on a real address.
+func TestAPortHeldOnOneLoopbackAddressIsLeftForOneFreeOnBoth(t *testing.T) {
+	t.Parallel()
+
+	for name, held := range map[string]string{"held on 127.0.0.1": "127.0.0.1:0", "held on ::1": "[::1]:0"} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			holder, err := net.Listen("tcp", held)
+			require.NoError(t, err, "this test needs an IPv6 loopback address on the machine")
+			t.Cleanup(func() { _ = holder.Close() })
+			_, busy, err := net.SplitHostPort(holder.Addr().String())
+			require.NoError(t, err)
+			log := &logBuffer{}
+
+			srv := start(t, Config{Listen: "localhost:" + busy, Logger: log.logger()})
+
+			require.Len(t, srv.listeners, 2)
+			printed, err := url.Parse(srv.URL())
+			require.NoError(t, err)
+			port := printed.Port()
+			assert.NotEqual(t, busy, port)
+			assert.Equal(t, "127.0.0.1:"+port, srv.listeners[0].Addr().String())
+			assert.Equal(t, "[::1]:"+port, srv.listeners[1].Addr().String())
+			for _, address := range []string{"127.0.0.1:" + port, "[::1]:" + port} {
+				status, _ := fetch(t, address, "localhost:"+port, "/")
+				assert.Equal(t, http.StatusOK, status, address)
+			}
+			assert.Contains(t, log.String(), "level=WARN")
+			assert.Contains(t, log.String(), "wanted=localhost:"+busy+" address=127.0.0.1:"+port)
+		})
+	}
+}
+
+// On a host without an IPv6 loopback address sdash holds 127.0.0.1 alone,
+// and then it is not the one to say where the name localhost leads: the
+// name is refused, as it is for a literal address. The machine is the
+// test's own making, so that the test does not depend on the one it runs on.
+func TestAServerWithoutIPv6LoopbackServesIPv4AndRefusesTheNameLocalhost(t *testing.T) {
+	t.Parallel()
+
+	// The addresses are bound one after the other by the call that builds
+	// the server, so they are collected as they come and looked at when it
+	// has returned: a channel here would have a test that binds more or
+	// fewer of them than expected wait for ever.
+	var binds []string
+	withoutIPv6 := func(ctx context.Context, network, address string) (net.Listener, error) {
+		binds = append(binds, address)
+		if strings.HasPrefix(address, "[::1]:") {
+			return nil, &net.OpError{Op: "listen", Net: network, Err: os.NewSyscallError("bind", syscall.EADDRNOTAVAIL)}
+		}
+		return systemBind(ctx, network, address)
+	}
+	log := &logBuffer{}
+
+	srv := startOn(t, Config{Listen: "localhost:0", Logger: log.logger()}, withoutIPv6)
+
+	require.Len(t, srv.listeners, 1)
+	printed, err := url.Parse(srv.URL())
+	require.NoError(t, err)
+	address := printed.Host
+	assert.Equal(t, "127.0.0.1", printed.Hostname())
+	assert.Equal(t, []string{"127.0.0.1:0", "[::1]:" + printed.Port()}, binds,
+		"the IPv6 address was tried, on the same port, and nothing after it")
+
+	status, body := get(t, browser(t), srv.URL())
+	assert.Equal(t, http.StatusOK, status)
+	assert.Equal(t, indexBody, body)
+	status, _ = fetch(t, address, "localhost:"+printed.Port(), "/")
+	assert.Equal(t, http.StatusForbidden, status)
+	status, _ = fetch(t, address, "[::1]:"+printed.Port(), "/")
+	assert.Equal(t, http.StatusForbidden, status)
+
+	assert.Equal(t, 1, strings.Count(log.String(), "no IPv6 loopback address to bind"), log.String())
+}
+
+// A literal address is served under its own name and no other, as before
+// there was a second listener: the name localhost may lead a browser to the
+// address this server does not hold.
+func TestALiteralAddressIsNotServedUnderTheNameLocalhost(t *testing.T) {
+	t.Parallel()
+
+	srv := start(t, Config{Listen: "127.0.0.1:0"})
+	require.Len(t, srv.listeners, 1)
+	printed, err := url.Parse(srv.URL())
+	require.NoError(t, err)
+
+	status, _ := fetch(t, printed.Host, printed.Host, "/")
+	assert.Equal(t, http.StatusOK, status)
+	status, _ = fetch(t, printed.Host, "localhost:"+printed.Port(), "/")
+	assert.Equal(t, http.StatusForbidden, status)
+}
+
+// The flag of the command line reaches the router through Config: a server
+// that was asked to be read-only refuses a change over a real connection,
+// and one that was not lets it through to the API.
+func TestAReadOnlyServerRefusesAChangeAndAnswersARead(t *testing.T) {
+	t.Parallel()
+
+	for _, readOnly := range []bool{true, false} {
+		t.Run("read-only "+strconv.FormatBool(readOnly), func(t *testing.T) {
+			t.Parallel()
+
+			stub := &apiStub{}
+			srv := start(t, Config{API: stub, ReadOnly: readOnly})
+			client := browser(t)
+			status, _ := get(t, client, srv.URL())
+			require.Equal(t, http.StatusOK, status)
+			printed, err := url.Parse(srv.URL())
+			require.NoError(t, err)
+			jobs := "http://" + printed.Host + "/api/v1/jobs"
+
+			status, _ = get(t, client, jobs)
+			assert.Equal(t, http.StatusOK, status)
+
+			resp, err := client.Post(jobs, "application/json", strings.NewReader("{}"))
+			require.NoError(t, err)
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			require.NoError(t, resp.Body.Close())
+
+			if readOnly {
+				assert.Equal(t, http.StatusForbidden, resp.StatusCode)
+				assert.Contains(t, string(body), `"code":"read_only"`)
+				assert.Equal(t, []string{"GET /api/v1/jobs"}, stub.seen())
+			} else {
+				assert.Equal(t, http.StatusOK, resp.StatusCode)
+				assert.Equal(t, []string{"GET /api/v1/jobs", "POST /api/v1/jobs"}, stub.seen())
+			}
+		})
+	}
+}
+
+// One of two listeners that fails takes the other with it: a server that
+// answers on half of what it told the user is not what was started.
+func TestOneListenerThatFailsStopsTheOther(t *testing.T) {
+	t.Parallel()
+
+	loopback, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1)})
+	require.NoError(t, err)
+	failing := newPipeListener()
+	srv := newServer([]net.Listener{loopback, failing}, http.NotFoundHandler(), discardLogger())
+	result := make(chan error, 1)
+	go func() { result <- srv.Run(t.Context()) }()
+
+	require.NoError(t, failing.Close())
+
+	err = await(t, result, "the server to stop")
+	require.ErrorContains(t, err, "serve")
+	require.ErrorIs(t, err, net.ErrClosed)
+	// The listener is asked and not its port: a port that was just given up
+	// may belong to a test that runs beside this one by now. The deadline
+	// has passed, so a listener that is still open says so and does not
+	// wait for a connection; a closed one has no deadline to set, which is
+	// not what is asked here.
+	_ = loopback.SetDeadline(time.Now())
+	_, err = loopback.Accept()
+	assert.ErrorIs(t, err, net.ErrClosed, "the other listener is closed")
 }
 
 // A signal is the normal way to stop this server, so stopping is no error:
@@ -256,7 +496,7 @@ func TestARequestThatOutlastsTheGracePeriodIsCutOffAndReported(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		arrived := make(chan struct{})
 		listener := newPipeListener()
-		srv := newServer(listener, http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		srv := newServer([]net.Listener{listener}, http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 			close(arrived)
 			<-r.Context().Done()
 		}), discardLogger())
@@ -289,7 +529,7 @@ func TestAConnectionWithoutARequestDoesNotHoldTheStopUp(t *testing.T) {
 
 	synctest.Test(t, func(t *testing.T) {
 		listener := newPipeListener()
-		srv := newServer(listener, http.NotFoundHandler(), discardLogger())
+		srv := newServer([]net.Listener{listener}, http.NotFoundHandler(), discardLogger())
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 		result := make(chan error, 1)
@@ -349,7 +589,7 @@ func TestRunReturnsWhenServingFails(t *testing.T) {
 
 	srv, err := New(t.Context(), Config{Listen: "127.0.0.1:0", Files: builtFiles()})
 	require.NoError(t, err)
-	require.NoError(t, srv.listener.Close())
+	require.NoError(t, srv.listeners[0].Close())
 
 	err = srv.Run(t.Context())
 

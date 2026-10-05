@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/GSI-HPC/sdash/internal/api"
@@ -27,13 +26,20 @@ func newToken() string {
 	return rand.Text()
 }
 
-// cookieName names the session cookie of the listener on port.
+// cookieName names the session cookie of a request that was sent to port.
 //
 // A browser keeps cookies per host name and ignores the port, so two sdash
 // processes on one machine share a cookie jar. With the port in the name
 // each has a cookie of its own and neither signs the other's browser out.
-func cookieName(port int) string {
-	return "sdash_session_" + strconv.Itoa(port)
+//
+// The port is the one in the Host header of the request (requestPort) and
+// not one the server is bound to. For a listener on TCP the two are the
+// same, since the Host check lets nothing else through. A listener on a
+// unix socket is bound to no port: the browser names the port of the
+// forward in front of it, and that is the port its cookies have to be told
+// apart by.
+func cookieName(port string) string {
+	return "sdash_session_" + port
 }
 
 // exchangeToken turns the token in the address of the first navigation into
@@ -46,7 +52,7 @@ func cookieName(port int) string {
 // Secure attribute, which not every supported browser accepts over the plain
 // HTTP of a loopback listener, and no lifetime: it ends with the browser
 // session, and its value with the process.
-func exchangeToken(cookie, token string, logger *slog.Logger) func(http.Handler) http.Handler {
+func exchangeToken(token string, logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			query := r.URL.Query()
@@ -62,7 +68,7 @@ func exchangeToken(cookie, token string, logger *slog.Logger) func(http.Handler)
 			}
 
 			http.SetCookie(w, &http.Cookie{
-				Name:     cookie,
+				Name:     cookieName(requestPort(r)),
 				Value:    token,
 				Path:     "/",
 				HttpOnly: true,
@@ -82,10 +88,10 @@ func exchangeToken(cookie, token string, logger *slog.Logger) func(http.Handler)
 
 // requireSession refuses every request that does not carry the session
 // cookie of this launch. It guards the browser API.
-func requireSession(cookie, token string, logger *slog.Logger) func(http.Handler) http.Handler {
+func requireSession(token string, logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			sent, err := r.Cookie(cookie)
+			sent, err := r.Cookie(cookieName(requestPort(r)))
 			if err != nil || !sameSecret(sent.Value, token) {
 				// A tab left open across a restart asks again and again, so
 				// this is no warning.

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
 // SPDX-License-Identifier: Apache-2.0
 
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import type { Status } from "../src/api/types.gen.ts";
 import { open, scan } from "./support.ts";
@@ -98,6 +98,37 @@ test("the main region says which sdash is running", async ({ page }) => {
   expect(problems).toEqual([]);
 });
 
+/**
+ * Has the status say that sdash runs read-only. The sdash under test was
+ * not started that way, so the answer is given here in its place; that a
+ * sdash started with --read-only reports the mode is tested in Go.
+ */
+async function answerReadOnly(page: Page): Promise<void> {
+  const status: Status = {
+    version: "v1.4.0",
+    goVersion: "go1.27.1",
+    platform: "linux/arm64",
+    readOnly: true,
+    clusters: [],
+  };
+  await page.route(statusOperation, (route) => route.fulfill({ json: status }));
+}
+
+// A sdash started with --read-only refuses every change. The user has to
+// be told, in words and where a screen reader announces it, and not by a
+// colour.
+test("a read-only sdash says so in the status region", async ({ page }) => {
+  await answerReadOnly(page);
+  const problems = await open(page);
+
+  await expect(page.getByRole("status")).toContainText(
+    "Read-only: this sdash changes nothing on a cluster",
+  );
+  await expect(page.getByRole("alert")).toHaveCount(0);
+
+  expect(problems).toEqual([]);
+});
+
 // A user who stops sdash and comes back to the tab must be told, and told
 // as an alert, which a screen reader announces at once.
 test("a server that does not answer is reported as an alert", async ({
@@ -124,6 +155,18 @@ for (const theme of ["light", "dark"] as const) {
       // The scan sees the page as it is at that moment, so it waits for the
       // answer of the server to be on it.
       await expect(page.getByRole("status")).toContainText("Version");
+
+      expect(await scan(page)).toEqual([]);
+    });
+
+    // The read-only mode adds a line to the view, and is scanned with it.
+    test("the shell passes the axe scan when sdash is read-only", async ({
+      page,
+    }) => {
+      await answerReadOnly(page);
+      await open(page);
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      await expect(page.getByRole("status")).toContainText("Read-only");
 
       expect(await scan(page)).toEqual([]);
     });

@@ -31,6 +31,16 @@ info:
     Error. The one exception lies outside the API: a request that names the
     server by another host than the one it listens on is refused in plain
     text before it reaches the API, whatever its address.
+
+    An operation that changes anything, on a cluster or in sdash, is never
+    a GET. slurmrestd has GET requests with side effects, the ones that
+    requeue a job and that have the daemons read their configuration
+    again; an operation of this API that does the same is a POST. That
+    rule is what the read-only mode rests on. A sdash started with
+    `--read-only` refuses every request whose method is not GET, HEAD or
+    OPTIONS with the status 403 and an Error of the code `read_only`,
+    before any operation sees it, and so sends nothing that changes a
+    cluster.
   # The version of this API, which is the one in the base path. It is not
   # the version of sdash: no file in the tree names that
   # (doc/adr/0019-version-in-a-signed-tag.md).
@@ -106,7 +116,8 @@ components:
         readOnly:
           description: |
             Whether sdash was started with --read-only, and so sends nothing
-            that changes a cluster.
+            that changes a cluster: it then answers every request that could
+            with the Error `read_only`.
           type: boolean
         clusters:
           description: |
@@ -156,6 +167,9 @@ components:
         - `not_signed_in`: the request does not carry the session cookie of
           this run of sdash.
         - `cross_origin`: the request comes from a page of another origin.
+        - `read_only`: sdash was started with --read-only, and the request
+          has a method other than GET, HEAD and OPTIONS, which could change
+          something. The status is 403.
         - `not_found`: the API has nothing at this address.
         - `method_not_allowed`: the API has something at this address, but
           not for this method.
@@ -165,6 +179,7 @@ components:
         - bad_request
         - not_signed_in
         - cross_origin
+        - read_only
         - not_found
         - method_not_allowed
         - internal

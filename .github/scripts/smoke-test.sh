@@ -56,9 +56,10 @@ running() {
 "$bin" version --json | grep -q '"version"' ||
   fail "version --json names no version"
 
-# Port 0 has the system pick a free port, so the test collides with nothing
-# that runs beside it. No browser is opened: curl stands in for it.
-"$bin" --no-browser --listen 127.0.0.1:0 > "$work/stdout" 2> "$work/stderr" &
+# localhost binds both loopback addresses, as sdash does by default. Port 0
+# has the system pick a free port, so the test collides with nothing that
+# runs beside it. No browser is opened: curl stands in for it.
+"$bin" --no-browser --listen localhost:0 > "$work/stdout" 2> "$work/stderr" &
 pid=$!
 
 # sdash is up once it has printed its address, which carries the token of

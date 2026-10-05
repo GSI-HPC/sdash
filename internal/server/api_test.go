@@ -200,6 +200,15 @@ func TestEveryRefusalUnderAPIIsTheErrorOfTheDocument(t *testing.T) {
 			status:  http.StatusNotFound,
 			code:    api.ErrorCodeNotFound,
 		},
+		{
+			// The mode is asked before the routing: what could change
+			// something is refused whether or not an operation lives there.
+			name:    "a change in read-only mode",
+			router:  testRouter(withAPI(NewAPI(APIConfig{Build: releaseBuild(), ReadOnly: true})), withReadOnly),
+			request: signedIn(request(http.MethodPost, "/api/v1/status")),
+			status:  http.StatusForbidden,
+			code:    api.ErrorCodeReadOnly,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
