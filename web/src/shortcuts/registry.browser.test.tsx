@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useContext, useEffect } from "react";
-import { describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
 
 import { type Log, renderWithShortcuts } from "../testing/shortcuts";
@@ -14,6 +14,12 @@ import { createRegistry, type Registry } from "./registry";
 // see: the rules about the event itself. They are tested on the registry
 // alone, with events a keyboard cannot be made to send from a test: a
 // repeat, a composition, AltGr as Windows reports it, another layout.
+
+// The tests of all files share one store, and a choice left in it by
+// another test would switch the character keys off for the provider here.
+beforeEach(() => {
+  localStorage.clear();
+});
 
 /** Registers a shortcut of the shell that writes its keys into the log. */
 function register(registry: Registry, keys: string, log: Log): () => void {

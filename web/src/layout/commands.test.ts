@@ -28,6 +28,7 @@ function recorder(): { done: string[]; actions: ShellActions } {
       goTo: (view: View) => done.push(`go to ${view.id}`),
       togglePalette: () => done.push("toggle palette"),
       showHelp: () => done.push("show help"),
+      openGallery: () => done.push("open gallery"),
       toggleTheme: () => done.push("toggle theme"),
       toggleSidebar: () => done.push("toggle sidebar"),
       setCharacterKeys: (on: boolean) =>
@@ -38,8 +39,10 @@ function recorder(): { done: string[]; actions: ShellActions } {
 
 describe("the shell's shortcuts", () => {
   // The keys of the design handoff (doc/design/README.md, "Interactions,
-  // keys, motion"), without "r": there is nothing to reload yet.
-  test("are the keys of the design handoff", () => {
+  // keys, motion"), without "r": there is nothing to reload yet. F6 is
+  // not the handoff's: it is the key Base UI gives the region of the
+  // toasts, listed so that the help names it.
+  test("are the keys of the design handoff, and the key of the notifications", () => {
     const keys = shellShortcuts(state, recorder().actions).map(
       (shortcut) => shortcut.keys,
     );
@@ -50,6 +53,7 @@ describe("the shell's shortcuts", () => {
       "t",
       "[",
       "Escape",
+      "F6",
       ...["o", "n", "p", "r", "j", "s", "h", "a", "q", "d", "c", "x"].map(
         (letter) => `g ${letter}`,
       ),
@@ -89,12 +93,12 @@ describe("the shell's shortcuts", () => {
   // With the character keys switched off, these are what is left, and the
   // palette is how the rest is reached (WCAG 2.1, success criterion
   // 2.1.4).
-  test("leave the palette and Escape when the character keys are off", () => {
+  test("leave the palette, Escape and the key of the notifications when the character keys are off", () => {
     const left = shellShortcuts(state, recorder().actions)
       .filter((shortcut) => !isCharacterKey(parseBinding(shortcut.keys)))
       .map((shortcut) => shortcut.keys);
 
-    expect(left).toEqual(["mod+k", "Escape"]);
+    expect(left).toEqual(["mod+k", "Escape", "F6"]);
   });
 
   // The dialog acts on Escape. A second handler here would close things
@@ -152,6 +156,7 @@ describe("the entries of the command palette", () => {
       "Switch to the dark theme",
       "Collapse the sidebar",
       "Show the keyboard shortcuts",
+      "Open the component gallery",
       "Switch single-key shortcuts off",
     ]);
     items.forEach((item) => {
@@ -161,6 +166,7 @@ describe("the entries of the command palette", () => {
       "toggle theme",
       "toggle sidebar",
       "show help",
+      "open gallery",
       "character keys off",
     ]);
   });
@@ -182,6 +188,7 @@ describe("the entries of the command palette", () => {
       "Switch to the light theme",
       "Expand the sidebar",
       "Show the keyboard shortcuts",
+      "Open the component gallery",
       "Switch single-key shortcuts on",
     ]);
     expect(done).toContain("character keys on");

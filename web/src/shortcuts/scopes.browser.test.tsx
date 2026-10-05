@@ -11,7 +11,7 @@ import {
   Registers,
   renderWithShortcuts,
 } from "../testing/shortcuts";
-import { Modal, ModalTitle } from "../overlay/Modal";
+import { Dialog, DialogTitle } from "../primitives/Dialog";
 import { SettingsContext } from "./context";
 import { ShortcutScope } from "./ShortcutScope";
 import { storageKey } from "./ShortcutsProvider";
@@ -81,8 +81,8 @@ describe("the scopes", () => {
               ".slow-exit[data-ending-style] { opacity: 0; }"}
           </style>
         )}
-        <Modal open={open} onClose={close} className={slow ? "slow-exit" : ""}>
-          <ModalTitle>Dialog</ModalTitle>
+        <Dialog open={open} onClose={close} className={slow ? "slow-exit" : ""}>
+          <DialogTitle>Dialog</DialogTitle>
           {slow && <input aria-label="Field" />}
           <Registers
             shortcuts={[
@@ -90,7 +90,7 @@ describe("the scopes", () => {
               { keys: "c", description: "close", group: "Test", run: close },
             ]}
           />
-        </Modal>
+        </Dialog>
       </Registers>
     );
   }

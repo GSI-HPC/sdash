@@ -12,6 +12,7 @@ import {
   reload,
   sidebar,
   tabKey,
+  tooltips,
   withStored,
 } from "./support.ts";
 
@@ -66,11 +67,12 @@ test("the key [ collapses the sidebar, and the choice outlives a reload", async 
   expect(problems).toEqual([]);
 });
 
-// The label of a rail item is placed by a script, through two custom
-// properties on the element. The server's Content-Security-Policy lets a
-// script do that and forbids the same in the markup
-// (doc/adr/0012-local-listener-security.md), so it is checked here, where
-// the policy is in force, that the label arrives where it belongs.
+// The name of a rail item is a tooltip, which Base UI places from a
+// script, through the style of its element. The server's
+// Content-Security-Policy lets a script do that and forbids the same in
+// the markup (doc/adr/0012-local-listener-security.md), so it is checked
+// here, where the policy is in force, that the name arrives where it
+// belongs.
 test("the rail shows the name of a link beside it, under the server's policy", async ({
   page,
   browserName,
@@ -78,27 +80,33 @@ test("the rail shows the name of a link beside it, under the server's policy", a
   await withStored(page, sidebarKey, "collapsed");
   const problems = await open(page);
   const link = page.getByRole("link", { name: "Reservations" });
-  const label = link.locator('[aria-hidden="true"] > span');
+  // The tooltip is not inside its link: it is where the popups of the
+  // page go, and hidden from assistive technology, which has the name of
+  // the link already.
+  const label = tooltips(page);
 
   await page.getByRole("link", { name: "Partitions" }).focus();
   await page.keyboard.press(tabKey(browserName));
   await expect(link).toBeFocused();
+  // A list, which waits for the name of the link before to go (tooltips in
+  // support.ts).
+  await expect(label).toHaveText(["Reservations"]);
   await expect(label).toBeVisible();
-  await expect(label).toHaveText("Reservations");
 
+  const owner = await link.boundingBox();
   const icon = await link.locator("svg").boundingBox();
   const shown = await label.boundingBox();
-  if (!icon || !shown) {
+  if (!owner || !icon || !shown) {
     throw new Error("the link or its label has no place on the page");
   }
-  // To the right of the rail, level with the icon.
-  expect(shown.x).toBeGreaterThanOrEqual(60);
+  // To the right of the link, level with the icon.
+  expect(shown.x).toBeGreaterThanOrEqual(owner.x + owner.width);
   expect(
     Math.abs(shown.y + shown.height / 2 - (icon.y + icon.height / 2)),
   ).toBeLessThanOrEqual(1);
 
   await page.keyboard.press("Escape");
-  await expect(label).toBeHidden();
+  await expect(label).toHaveCount(0);
   expect(problems).toEqual([]);
 });
 
@@ -112,7 +120,7 @@ test("the key ? lists the shortcuts, and Escape gives the focus back", async ({
   await page.keyboard.press("?");
   const help = page.getByRole("dialog", { name: "Keyboard shortcuts" });
   await expect(help).toBeVisible();
-  await expect(help.getByRole("term")).toHaveCount(views.length + 5);
+  await expect(help.getByRole("term")).toHaveCount(views.length + 6);
   // The page behind the dialog does not act on keys meanwhile: "g" and
   // "n" go nowhere. That nothing came of them is asked once Escape, which
   // was pressed after them, has been seen to act. Asked at once, it would

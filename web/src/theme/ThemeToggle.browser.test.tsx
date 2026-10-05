@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
 // SPDX-License-Identifier: Apache-2.0
 
-import { beforeEach, expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test } from "vitest";
 import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 
@@ -10,24 +10,24 @@ import {
   ShortcutsProvider,
   storageKey as characterKeysKey,
 } from "../shortcuts/ShortcutsProvider";
+import { colourOf } from "../testing/colours";
+import { shownTooltipElements, shownTooltips } from "../testing/tooltips";
 import { storageKey } from "./theme";
 import { ThemeToggle } from "./ThemeToggle";
 
 const page = document.documentElement;
 
-/** The colour a token has on the page, written the way the browser reports it. */
-function colourOf(token: string): string {
-  const probe = document.createElement("span");
-  probe.style.color = `var(${token})`;
-  document.body.append(probe);
-  const colour = getComputedStyle(probe).color;
-  probe.remove();
-  return colour;
-}
-
 beforeEach(() => {
   localStorage.clear();
   page.dataset.theme = "light";
+});
+
+// The files of a run share the stored preferences of one browser, and not
+// every file clears them before it starts: the last test here switches the
+// single-key shortcuts off, and the file that runs next would find them
+// off.
+afterEach(() => {
+  localStorage.clear();
 });
 
 // The toggle is the one way to change the theme, and the theme is the
@@ -80,11 +80,6 @@ test("the keyboard reaches the toggle, shows where it is, and works it", async (
   expect(page.dataset.theme).toBe("light");
 });
 
-/** The hint of the toggle: its name and its key, beside the button. */
-function hintOf(toggle: Element): HTMLElement | null {
-  return toggle.querySelector<HTMLElement>(":scope > span[aria-hidden='true']");
-}
-
 // The toggle shows an icon and no text. A sighted user gets its name on
 // keyboard focus and under the pointer, as for an item of the rail, and
 // the key that does the same beside it. It stays while the focus does and
@@ -97,30 +92,28 @@ test("shows its name and its key on keyboard focus, until Escape", async () => {
     </>,
   );
   const toggle = screen.getByRole("button", { name: "Dark theme" });
-  const hint = () => hintOf(toggle.element());
   // The tests of this file share one pointer, and the one before left it
   // where the toggle is.
   await screen.getByText("Somewhere else").hover();
-  await expect.poll(() => hint()?.hidden).toBe(true);
+  await expect.poll(shownTooltips).toEqual([]);
 
   await userEvent.tab();
   await expect.element(toggle).toHaveFocus();
 
-  await expect.poll(() => hint()?.hidden).toBe(false);
-  // What the hint says is what the button is called: someone who speaks
-  // to the computer says what they see (success criterion 2.5.3).
-  expect(hint()?.querySelector("kbd")?.textContent).toBe("t");
-  expect(hint()?.textContent).toBe("Dark themet");
+  // What the tooltip says is what the button is called: someone who
+  // speaks to the computer says what they see (success criterion 2.5.3).
+  await expect.poll(shownTooltips).toEqual(["Dark themet"]);
+  const [tooltip = null] = shownTooltipElements();
+  expect(tooltip?.querySelector("kbd")?.textContent).toBe("t");
   await expect.element(toggle).toHaveAccessibleName("Dark theme");
-  const label = hint()?.querySelector<HTMLElement>(":scope > span") ?? null;
-  await expect.element(label).toBeInViewport({ ratio: 1 });
+  await expect.element(tooltip).toBeInViewport({ ratio: 1 });
   // Below the button, where the header has nothing.
-  expect(label?.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+  expect(tooltip?.getBoundingClientRect().top).toBeGreaterThanOrEqual(
     toggle.element().getBoundingClientRect().bottom,
   );
 
   await userEvent.keyboard("{Escape}");
-  await expect.poll(() => hint()?.hidden).toBe(true);
+  await expect.poll(shownTooltips).toEqual([]);
   await expect.element(toggle).toHaveFocus();
 });
 
@@ -135,13 +128,13 @@ test("shows its name under the pointer, and no longer when the pointer has left"
   const elsewhere = screen.getByText("Somewhere else");
   // From somewhere else, wherever the test before left the pointer.
   await elsewhere.hover();
-  await expect.poll(() => hintOf(toggle.element())?.hidden).toBe(true);
+  await expect.poll(shownTooltips).toEqual([]);
 
   await toggle.hover();
-  await expect.poll(() => hintOf(toggle.element())?.hidden).toBe(false);
+  await expect.poll(shownTooltips).toEqual(["Dark themet"]);
 
   await elsewhere.hover();
-  await expect.poll(() => hintOf(toggle.element())?.hidden).toBe(true);
+  await expect.poll(shownTooltips).toEqual([]);
 });
 
 // The search button and the button that collapses the sidebar tell
@@ -168,7 +161,6 @@ test("names no key while the single-key shortcuts are switched off", async () =>
   await userEvent.tab();
   await expect.element(toggle).toHaveFocus();
 
-  await expect.poll(() => hintOf(toggle.element())?.hidden).toBe(false);
-  expect(hintOf(toggle.element())?.textContent).toBe("Dark theme");
+  await expect.poll(shownTooltips).toEqual(["Dark theme"]);
   await expect.element(toggle).not.toHaveAttribute("aria-keyshortcuts");
 });

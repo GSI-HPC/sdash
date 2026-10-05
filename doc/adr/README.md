@@ -41,3 +41,4 @@ ordered by subject.
 | [0022](0022-repository-security-baseline.md) | The security baseline of the repository | accepted |
 | [0023](0023-the-listeners-as-built.md) | The listeners as built | accepted |
 | [0024](0024-addresses-and-keyboard-in-the-shell.md) | Addresses and the keyboard in the shell | accepted |
+| [0026](0026-ui-primitives-on-base-ui.md) | The UI primitives, on Base UI | proposed |

@@ -114,6 +114,27 @@ export function sidebar(page: Page): Locator {
   return page.getByRole("navigation", { name: "Views" });
 }
 
+/**
+ * The tooltips that show at this moment, of either kind. One that names
+ * its control has no role to find it by and is not inside its control: it
+ * lies where the popups of the page go. One that describes its control
+ * stays on the page while it is closed, hidden, so that the description
+ * can be read; that one is left out here.
+ *
+ * Where the focus has just come from a control with a tooltip of its own,
+ * what they say is asked for with a list, toHaveText(["Nodes"]). Base UI
+ * takes a tooltip that has closed off the page in the next animation frame
+ * and not at once, so for a moment the page holds two, the one that goes
+ * and the one that came; no frame is drawn with both, and nobody sees
+ * them. A list is compared again until it matches, and so waits for the
+ * first to go. Asked for a single text, Playwright fails at once on two
+ * elements, and whether a frame has passed by then is up to how fast the
+ * engine draws, not to the page.
+ */
+export function tooltips(page: Page): Locator {
+  return page.locator('[data-slot="tooltip"]').filter({ visible: true });
+}
+
 /** The one level-one heading of the page, which names the view. */
 export function heading(page: Page): Locator {
   return page.getByRole("heading", { level: 1 });

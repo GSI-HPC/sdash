@@ -15,6 +15,7 @@ export const shellKeys = {
   theme: "t",
   sidebar: "[",
   close: "Escape",
+  notifications: "F6",
 } as const;
 
 /** The first key of the sequences that go to a view. */

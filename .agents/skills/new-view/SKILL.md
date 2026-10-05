@@ -1,6 +1,6 @@
 ---
 name: new-view
-description: Add a view, a page with its own route, to the sdash UI in the agreed order. The OpenAPI operation comes first, then the generated code, capability gating, the route and its lazy component, design tokens, the keyboard and ARIA checklist, Vitest and Playwright tests with an axe scan, and the documentation. Use when asked to add a page or a view, or to bring a screen of the design handoff into the app.
+description: Add a view, a page with its own route, to the sdash UI in the agreed order. The OpenAPI operation comes first, then the generated code, capability gating, the route and its lazy component, the primitives it is built from, design tokens, the keyboard and ARIA checklist, Vitest and Playwright tests with an axe scan, and the documentation. Use when asked to add a page or a view, or to bring a screen of the design handoff into the app.
 ---
 
 <!-- SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de> -->
@@ -12,8 +12,10 @@ A view is one page of the app: a route, the component the route loads, the
 operations of the browser API it calls, and its tests. This skill gives the
 order of work and the rule each step has to meet.
 
-The shell of the UI is there, and `doc/ui.md` describes it: this skill
-names its files. No view shows data yet, so there is no data view to copy
+The shell of the UI and the first primitives, the controls and the
+overlays, are there, and `doc/ui.md` describes both: this skill names
+their files. The primitives that show data, cards, meters and tables, are
+not built yet. No view shows data yet, so there is no data view to copy
 from. `web/src/views/Overview.tsx` is the nearest, a placeholder with one
 part that calls the browser API. Whoever builds the first two data views
 adds what they set as the pattern to this skill, in the same PR.
@@ -76,18 +78,30 @@ a view that needs no slurmrestd can be built.
    function for each new operation, written against the types generated
    into `web/src/api/`. The view polls and shows the age of what it displays
    (`doc/adr/0010-read-through-cache-and-polling.md`).
-8. **Tokens only.** Every colour comes from a design token of
+8. **Primitives.** Build the view from the primitives of
+   `web/src/primitives/` (`doc/ui.md`, "Primitives";
+   `doc/adr/0026-ui-primitives-on-base-ui.md`): a button is `Button`, a
+   field `Input` or `Select`, a tooltip `Tooltip`, a dialog `Dialog`, the
+   question before a change is sent `ConfirmDialog`, the details of one
+   thing `Drawer`, and a report of what happened `useToast`. A look is
+   chosen by props, and `className` is for layout alone. A view imports
+   nothing of Base UI. A control or an overlay that is missing is a new
+   primitive, or a new variant of one, with its component test and its
+   section in the gallery (`web/src/gallery/`), not markup in the view.
+9. **Tokens only.** Every colour comes from a design token of
    `web/src/styles/tokens.css`, which has a value for the light and for the
    dark theme; no literal colour value in a component and no `style`
    attribute (`doc/adr/0013-frontend-stack.md`). Where a pair of tokens the
-   handoff uses fails the contrast WCAG 2.1 AA asks for, use another token
-   and add the case to the departures in `doc/ui.md`, where every other
-   difference from the handoff gets its line too.
-9. **Keyboard and ARIA.** Go through the checklist below
-   (`doc/adr/0014-accessibility-and-browsers.md`). The view's shortcuts are
-   registered with `useShortcuts` (`web/src/shortcuts/useShortcuts.ts`) and
-   in no other way; a dialog is `Modal` (`web/src/overlay/Modal.tsx`).
-10. **Tests.** Vitest for the logic (`*.test.ts` beside the code), Vitest
+   handoff uses fails the contrast WCAG 2.1 AA asks for, use another token,
+   add the pair to `web/src/styles/pairs.test.ts` and the case to the
+   departures in `doc/ui.md`, where every other difference from the handoff
+   gets its line too.
+10. **Keyboard and ARIA.** Go through the checklist below
+    (`doc/adr/0014-accessibility-and-browsers.md`). The view's shortcuts
+    are registered with `useShortcuts`
+    (`web/src/shortcuts/useShortcuts.ts`) and in no other way. A dialog is
+    rendered by the view that opens it, so that it goes with the view.
+11. **Tests.** Vitest for the logic (`*.test.ts` beside the code), Vitest
     browser mode for the components (`*.browser.test.tsx`), and Playwright
     in `web/e2e/` against the built binary.
     - The tests that go through the view table cover a new row by
@@ -106,13 +120,14 @@ a view that needs no slurmrestd can be built.
       Overview: it opens the view, uses it by keyboard and runs the axe
       scan in both themes in each state the scan of the view table does not
       reach: empty, failed, and with each overlay open. `support.ts` has
-      `openAt`, `heading` and `scan` for it. If the scan has to wait for
-      data before the view is settled, say so in `settled` of
-      `support.ts`.
-11. **Documentation.** Update `doc/ui.md`, `README.md` if the view changes
+      `openAt`, `heading`, `tooltips` and `scan` for it, and
+      `gallery.spec.ts` shows how each kind of overlay is opened and
+      scanned. If the scan has to wait for data before the view is
+      settled, say so in `settled` of `support.ts`.
+12. **Documentation.** Update `doc/ui.md`, `README.md` if the view changes
     what sdash offers, and write a decision record if the view took a
     decision.
-12. **Verify.** Follow the `verify-ui` skill, then the checks of the
+13. **Verify.** Follow the `verify-ui` skill, then the checks of the
     `steward` skill.
 
 ## Keyboard and ARIA checklist
@@ -127,12 +142,16 @@ this list.
 - An overlay (drawer, dialog, menu, palette) takes the focus when it opens,
   keeps it inside while open, closes on Escape and gives the focus back to
   the element that opened it.
-- Controls are native elements or the UI primitives, not a `div` with a
-  click handler. Each has an accessible name; a button that shows only an
-  icon has an `aria-label`.
-- A tooltip is a `Hint` (`web/src/layout/Hint.tsx`) until there is a
-  tooltip primitive, never a native `title` attribute, and what it says is
-  also available without a pointer.
+- Controls are the UI primitives, or native elements where there is no
+  primitive yet, not a `div` with a click handler. Each has an accessible
+  name; a button that shows only an icon is an `IconButton`, whose `label`
+  is its name and its tooltip.
+- A tooltip is the `Tooltip` primitive (`web/src/primitives/Tooltip.tsx`),
+  never a native `title` attribute. It sits on a control that takes the
+  focus, and says nothing the user needs to use the page: a touch screen
+  shows none. That holds for the reason a control is disabled too: where
+  the reason matters to the task, write it out beside the control as
+  well.
 - State is never carried by colour alone: a badge has its text, a bar its
   value. A state shown by a background alone, a selected row, say, gets an
   outline or a border under `forced-colors:`, where the system replaces
@@ -140,9 +159,19 @@ this list.
 - A table has header cells with a scope, and a sortable column says how it
   is sorted (`aria-sort`).
 - A disabled action keeps its reason reachable by keyboard and readable by
-  a screen reader.
+  a screen reader: `focusableWhenDisabled` on the button, inside a
+  `Tooltip` of the kind `description`.
+- A change that is sent is confirmed first, with the request it sends
+  (`ConfirmDialog`), and its result is reported by a toast.
 - Data that changes under polling does not move the focus, and a change the
-  user must notice is announced through a live region.
+  user must notice is announced through a live region: an element with
+  the role `status` that is on the page before the text is. Not the
+  `aria-live` attribute, which Base UI takes as a reason to leave that
+  element, and everything around it, readable behind an open dialog.
+- A text that is left to assistive technology (`sr-only`) is taken out of
+  the flow. Inside a region that scrolls, the element around it has the
+  class `relative`: otherwise the page holds the text, grows by it, and
+  the window scrolls with the whole shell.
 - The view has one `h1`, the one `PageHeader` renders, and its headings
   descend without a gap.
 - Motion respects `prefers-reduced-motion`.
@@ -153,4 +182,5 @@ this list.
 - A view taller than the window can be scrolled from the keyboard. The
   main region sees to that; a scroll container inside the view needs a
   control in it, or the same treatment
-  (`web/src/layout/useKeyboardScroll.ts`).
+  (`web/src/layout/useKeyboardScroll.ts`), which also gives it a role and
+  a name for as long as it is a stop of the Tab key.
