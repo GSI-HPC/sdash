@@ -26,6 +26,12 @@
 @theme {
   --font-sans: "DM Sans Variable", system-ui, sans-serif;
   --font-mono: "DM Mono", ui-monospace, monospace;
+
+  /*
+   * The one easing of the handoff, for everything that moves
+   * (doc/design/README.md, "Interactions, keys, motion"): "ease-handoff".
+   */
+  --ease-handoff: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /*
@@ -111,6 +117,15 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /*
+   * The size of the handoff's body text, 13 px at the browser's default.
+   * It is set here and not on the application's root element, because a
+   * dialog is rendered beside that element and has to inherit it too.
+   */
+  body {
+    font-size: 0.8125rem;
+  }
+
   /* Form controls and scrollbars the browser draws follow the theme too. */
   :root {
     color-scheme: light;
@@ -132,13 +147,18 @@
     color-scheme: light dark;
   }
 
+  /*
+   * A link under the pointer is underlined and keeps its colour. The
+   * prototype also turns it to --ac, which reaches 3.8:1 on the page
+   * background in the light theme, below the 4.5:1 WCAG 2.1 AA asks of
+   * text (doc/ui.md lists the departures).
+   */
   a {
     color: var(--ac-t);
     text-decoration: none;
   }
 
   a:hover {
-    color: var(--ac);
     text-decoration: underline;
   }
 

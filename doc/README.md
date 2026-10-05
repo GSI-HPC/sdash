@@ -14,6 +14,7 @@ it. What sdash is, what state it is in and how to build it is in the
 | [research/slurmrestd.md](research/slurmrestd.md) | The slurmrestd facts sdash depends on: releases and parser versions, authentication, polling and payload sizes, errors, the OpenAPI document, and the corrections to the design handoff. From documentation and source, not from a live server |
 | [design/](design/) | The UI design handoff: the reference for look and interaction only. Its statements about the API are corrected in [research/slurmrestd.md](research/slurmrestd.md#9-corrections-to-the-design-handoff) |
 | [adr/](adr/) | The decisions, one record each: what the situation was, what was decided, and what it costs |
+| [ui.md](ui.md) | The shell of the UI, for whoever builds a view: the address of each view, what happens to the title and the focus, how keyboard shortcuts are registered, what the command palette lists, the sizes of the layout, and every place where it departs from the design handoff |
 | [sind-requirements.md](sind-requirements.md) | What sdash needs from sind before any Slurm-facing work can start: what it will do with a sind cluster, each requirement with its reason and its check, and what it does not need |
 | [testing.md](testing.md) | What is tested and how: the Go tests, the frontend's three layers, the end-to-end suite on sind, and how each is run |
 | [release.md](release.md) | Cutting and verifying a release: the signed tag, its notes, the workflow, and what the maintainer sets up once |

@@ -5,6 +5,8 @@
 // how it reaches the page. The theme is the data-theme attribute of the html
 // element, which the design tokens in styles/tokens.css key on.
 
+import { readStored, store } from "../storage/local";
+
 /** The themes the design has tokens for. */
 export const themes = ["light", "dark"] as const;
 
@@ -39,30 +41,14 @@ export function otherTheme(theme: Theme): Theme {
   return theme === "dark" ? "light" : "dark";
 }
 
-/**
- * Reads the stored choice. A browser may refuse access to localStorage
- * altogether, for example when site data is blocked, and then throws; the
- * page must still come up, so that counts as no choice.
- */
+/** Reads the stored choice; storage/local.ts says what a refusal means. */
 export function readStoredTheme(): string | null {
-  try {
-    return localStorage.getItem(storageKey);
-  } catch {
-    return null;
-  }
+  return readStored(storageKey);
 }
 
-/**
- * Keeps the choice for the next visit. When the browser refuses, the theme
- * still holds for this page and is only forgotten afterwards, so the error
- * is dropped.
- */
+/** Keeps the choice for the next visit. */
 export function storeTheme(theme: Theme): void {
-  try {
-    localStorage.setItem(storageKey, theme);
-  } catch {
-    // Dropped on purpose; see above.
-  }
+  store(storageKey, theme);
 }
 
 /** The theme the page shows now. */
@@ -74,6 +60,14 @@ export function currentTheme(): Theme {
 /** Shows the page in the given theme. */
 export function applyTheme(theme: Theme): void {
   document.documentElement.dataset.theme = theme;
+}
+
+/** Switches the page to the other theme and keeps the choice. */
+export function toggleTheme(): Theme {
+  const next = otherTheme(currentTheme());
+  applyTheme(next);
+  storeTheme(next);
+  return next;
 }
 
 /** Works out the theme of a page that is starting and applies it. */

@@ -117,8 +117,10 @@ renders one component in Chromium and the test uses it as a person would:
 by its role and its name, with clicks and keys. They are for what a
 component does in a real browser, which a simulated page in Node gets wrong
 often enough: focus, the keyboard, what is announced. Only Chromium runs
-them; the engines are compared one layer up. `make test-components`, or
-`npm run test:components` in `web/`.
+them; the engines are compared one layer up. A test of what the shell does,
+navigation, shortcuts, the command palette, renders the whole application
+at an address with `renderApp` from `web/src/testing/app.tsx`.
+`make test-components`, or `npm run test:components` in `web/`.
 
 **Browser tests** are the Playwright tests in `web/e2e`. They run against the
 built binary, not against the development server, because only the binary
@@ -130,6 +132,14 @@ WebKit, the engines behind the supported browsers
 `bin/sdash` and runs them; the tests start the binary themselves on a free
 port and stop it again. `npm run test:browser -- --project=chromium` in
 `web/` runs one engine.
+
+A test in a browser that says nothing happened, that a key did not switch
+the theme or leave the view, first waits for something that shows the page
+had its chance to act: a later key that does act, or a change the same
+step of the page makes. Asked at once, the question is answered the same
+by every page that has not got to the input yet. `settled` in
+`web/src/testing/app.tsx` is the wait for a component test that has no
+such thing to go by.
 
 The two layers that need a browser use the builds Playwright installs:
 `npx playwright install` in `web/`. Where that is not wanted, `SDASH_CHROMIUM`
@@ -143,10 +153,14 @@ The target is WCAG 2.1, level AA
 ([0014](adr/0014-accessibility-and-browsers.md)). Every view has a browser
 test that scans it with axe and expects no violation: in the light and in
 the dark theme, since contrast differs between them, and in each state that
-has colours of its own, such as a failure. `scan()` in `web/e2e/support.ts`
-is the one place the scan is configured. It runs every rule axe enables by
-default, on the whole page, so an exception would have to be made there,
-where it is seen and has to give its reason.
+has colours of its own, such as a failure. `web/e2e/accessibility.spec.ts`
+goes through the view table ([ui.md](ui.md)), so a new view is scanned from
+the moment it has its row, with the sidebar expanded and collapsed; the
+dialogs of the shell are scanned there too. An enlarged page and a contrast
+theme of the system are `web/e2e/zoom-and-contrast.spec.ts`. `scan()` in
+`web/e2e/support.ts` is the one place the scan is configured. It runs every
+rule axe enables by default, on the whole page, so an exception would have
+to be made there, where it is seen and has to give its reason.
 
 A scan finds only what a tool can see. Keyboard operation, the order of the
 focus and what a screen reader says are checked by a person, view by view;

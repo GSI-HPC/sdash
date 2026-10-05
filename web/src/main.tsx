@@ -4,6 +4,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router";
 
 import { App } from "./App";
 import { createQueryClient } from "./client/query";
@@ -21,7 +22,13 @@ const queryClient = createQueryClient();
 createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      {/*
+        The address of a view is a path the browser shows and the server
+        answers with this page (doc/adr/0024-addresses-and-keyboard-in-the-shell.md).
+      */}
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,
 );

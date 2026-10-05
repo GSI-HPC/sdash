@@ -40,3 +40,4 @@ ordered by subject.
 | [0021](0021-decisions-docs-and-agent-instructions.md) | Where decisions, documents and agent instructions live | accepted |
 | [0022](0022-repository-security-baseline.md) | The security baseline of the repository | accepted |
 | [0023](0023-the-listeners-as-built.md) | The listeners as built | accepted |
+| [0024](0024-addresses-and-keyboard-in-the-shell.md) | Addresses and the keyboard in the shell | accepted |

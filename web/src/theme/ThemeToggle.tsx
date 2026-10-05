@@ -1,9 +1,16 @@
 // SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
 // SPDX-License-Identifier: Apache-2.0
 
-import { useState } from "react";
+import { Icon } from "../icons/Icon";
+import { Hint, useHint } from "../layout/Hint";
+import { shellKeys } from "../layout/keys";
+import { Keys } from "../shortcuts/Keys";
+import { useAriaKeyShortcuts } from "../shortcuts/useShortcuts";
+import { toggleTheme } from "./theme";
+import { useTheme } from "./useTheme";
 
-import { applyTheme, currentTheme, otherTheme, storeTheme } from "./theme";
+/** The name of the toggle, to assistive technology and in its hint. */
+const name = "Dark theme";
 
 /**
  * The button in the header that switches between the light and the dark
@@ -13,44 +20,41 @@ import { applyTheme, currentTheme, otherTheme, storeTheme } from "./theme";
  * or not: the name stays the same and the state is announced when it
  * changes. The icon is decoration and shows, as in the design, the theme a
  * click leads to.
+ *
+ * It shows an icon and no text, so a sighted user gets its name as a hint
+ * on hover and on keyboard focus, as for an item of the rail, with the key
+ * that does the same beside it. The hint says what the name says and not
+ * the handoff's "Toggle theme": what a control shows is what someone who
+ * speaks to the computer calls it (WCAG 2.1, success criterion 2.5.3).
+ * Assistive technology is told the key with the button, as for the other
+ * buttons of the shell that have one.
+ *
+ * The theme is also switched from the keyboard and from the command
+ * palette, so the button does not keep it: it shows what the page has
+ * (useTheme.ts).
  */
 export function ThemeToggle() {
-  // The page's theme is set before the first render (theme/apply.ts), so the
-  // attribute is the truth to start from.
-  const [theme, setTheme] = useState(currentTheme);
-  const dark = theme === "dark";
-
-  function toggle() {
-    const next = otherTheme(theme);
-    applyTheme(next);
-    storeTheme(next);
-    setTheme(next);
-  }
+  const dark = useTheme() === "dark";
+  const hint = useHint("below");
+  const ariaKeys = useAriaKeyShortcuts(shellKeys.theme);
 
   return (
     <button
       type="button"
-      aria-label="Dark theme"
+      aria-label={name}
       aria-pressed={dark}
-      onClick={toggle}
-      className="grid size-8 cursor-pointer place-items-center rounded-md border border-bd bg-surface text-t2 hover:bg-hover hover:text-t1"
+      aria-keyshortcuts={ariaKeys}
+      onClick={toggleTheme}
+      {...hint.owner}
+      className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-md border border-bd bg-surface text-t2 hover:bg-hover hover:text-t1"
     >
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        className="size-4 fill-none stroke-current stroke-[1.8]"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        {dark ? (
-          <>
-            <circle cx="12" cy="12" r="4" />
-            <path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4m0-14.2-1.4 1.4M6.3 17.7l-1.4 1.4" />
-          </>
-        ) : (
-          <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" />
-        )}
-      </svg>
+      <Icon name={dark ? "sun" : "moon"} className="size-3.75 stroke-[1.9]" />
+      <Hint state={hint}>
+        <span className="flex items-center gap-2">
+          {name}
+          <Keys keys={shellKeys.theme} size="small" />
+        </span>
+      </Hint>
     </button>
   );
 }
