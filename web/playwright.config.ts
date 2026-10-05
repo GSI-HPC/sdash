@@ -72,7 +72,9 @@ export default defineConfig({
           // default. Port 0 has the system pick a free one, so a run does
           // not collide with a sdash the developer has open, or with a
           // second run. No browser is opened: the tests bring their own.
-          command: `${binary} --no-browser --listen localhost:0`,
+          // The cluster profiles are the tests' own, none so far, and not
+          // those of whoever runs them (doc/profiles.md).
+          command: `${binary} --no-browser --listen localhost:0 --config e2e/profiles`,
           // sdash is up once it has printed its address. The named group
           // becomes the environment variable SDASH_URL.
           wait: { stdout: /sdash is serving at (?<sdash_url>\S+)/ },

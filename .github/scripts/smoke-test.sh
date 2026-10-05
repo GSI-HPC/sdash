@@ -58,8 +58,12 @@ running() {
 
 # localhost binds both loopback addresses, as sdash does by default. Port 0
 # has the system pick a free port, so the test collides with nothing that
-# runs beside it. No browser is opened: curl stands in for it.
-"$bin" --no-browser --listen localhost:0 > "$work/stdout" 2> "$work/stderr" &
+# runs beside it. No browser is opened: curl stands in for it. The
+# configuration directory is an empty one of the test's own, so that the
+# result does not depend on the cluster profiles of whoever runs it.
+mkdir "$work/config"
+"$bin" --no-browser --listen localhost:0 --config "$work/config" \
+  > "$work/stdout" 2> "$work/stderr" &
 pid=$!
 
 # sdash is up once it has printed its address, which carries the token of

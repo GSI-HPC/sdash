@@ -23,6 +23,9 @@ type APIConfig struct {
 	Build version.Info
 	// ReadOnly says that sdash was started with --read-only.
 	ReadOnly bool
+	// Clusters are the names of the clusters sdash is configured for, in
+	// the order the status lists them.
+	Clusters []string
 	// Logger receives what goes wrong while a request is answered. Nothing
 	// is logged without one.
 	Logger *slog.Logger
@@ -134,10 +137,14 @@ func newStatus(cfg APIConfig, logger *slog.Logger) api.Status {
 		Platform:  cfg.Build.Platform,
 		ReadOnly:  cfg.ReadOnly,
 		// Empty and not nil: the document promises a list, and a nil slice
-		// is sent as null. No cluster can be configured yet, since
-		// everything that speaks to Slurm waits for
-		// doc/adr/0016-e2e-and-fixtures-on-sind.md.
+		// is sent as null.
 		Clusters: []api.Cluster{},
+	}
+	// A cluster is its name and nothing else, as the document defines it.
+	// The rest of a profile, where sdash connects and what it runs for the
+	// token, is not handed to this package at all.
+	for _, name := range cfg.Clusters {
+		status.Clusters = append(status.Clusters, api.Cluster{Name: name})
 	}
 	if cfg.Build.Commit != "" {
 		status.Commit = &cfg.Build.Commit

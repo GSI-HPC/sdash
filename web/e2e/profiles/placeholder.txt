@@ -1,0 +1,4 @@
+SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
+SPDX-License-Identifier: Apache-2.0
+
+The directory of cluster profiles that the browser tests start sdash with (web/playwright.config.ts), so that what they see does not depend on the profiles of whoever runs them. It holds no profile yet; sdash reads the files that end in .yaml, and this file keeps the directory in the repository.

@@ -127,11 +127,11 @@ components:
           items:
             $ref: "#/components/schemas/Cluster"
 
-    # A cluster has a name and nothing else for now. What sdash says about a
-    # cluster is defined from what its slurmrestd serves, and that waits,
-    # with everything that speaks to Slurm, for
-    # doc/adr/0016-e2e-and-fixtures-on-sind.md. Until then the server has no
-    # cluster to list.
+    # A cluster has a name and nothing else for now: the name of its profile
+    # (doc/profiles.md). What sdash says about a cluster is defined from
+    # what its slurmrestd serves, and that waits, with everything that
+    # speaks to Slurm, for doc/adr/0016-e2e-and-fixtures-on-sind.md. The
+    # rest of a profile is not part of this API.
     Cluster:
       description: A Slurm cluster sdash is configured for.
       type: object

@@ -10,7 +10,7 @@ layer of tests is for and how it is run.
 
 | Layer | What it is for | Run it with |
 | --- | --- | --- |
-| Go tests | The logic of the binary: the command line, the listener and its checks, the API handlers | `make test` |
+| Go tests | The logic of the binary: the command line, the reader of cluster profiles, the listener and its checks, the API handlers | `make test` |
 | Fuzz targets | What must hold for any input | `make fuzz` |
 | Frontend unit tests | Logic that needs no page | `make test-ui` |
 | Component tests | One component in a real browser | `make test-components` |
@@ -98,8 +98,11 @@ CI reads the same list and runs each target for a minute on every change.
 When one fails, CI uploads the failing input; it is committed under the
 package's `testdata/fuzz/`, where every later `go test` replays it.
 
-The list is empty today. The first targets will be the parsers of what
-slurmrestd sends, and they wait with everything else that speaks to Slurm.
+The list holds one target today, `internal/config:FuzzParse`, the reader of
+cluster profiles ([profiles.md](profiles.md)): whatever a file holds, reading
+it ends in clusters and problems, and what it accepts as a cluster reads
+back as the same one. The parsers of what slurmrestd sends will join it;
+they wait with everything else that speaks to Slurm.
 
 ## The frontend's three layers
 

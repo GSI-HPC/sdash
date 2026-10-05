@@ -152,11 +152,20 @@ func runToItsEnd(t *testing.T, p Process) int {
 }
 
 // launch starts sdash with args on a free loopback port and returns once it
-// has printed its address.
+// has printed its address. Its environment is empty, so it reads no cluster
+// profiles unless --config names a directory: a test never meets the
+// configuration of whoever runs it.
 func launch(t *testing.T, d *desktop, args ...string) *launched {
+	t.Helper()
+	return launchIn(t, d, nil, args...)
+}
+
+// launchIn is launch for an sdash that runs in the environment env.
+func launchIn(t *testing.T, d *desktop, env map[string]string, args ...string) *launched {
 	t.Helper()
 	l, stdout := begin(t, Process{
 		Args:    append([]string{"--listen", "127.0.0.1:0"}, args...),
+		Getenv:  func(name string) string { return env[name] },
 		Browser: d.Opener,
 	})
 
