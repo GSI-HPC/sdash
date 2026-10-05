@@ -11,9 +11,12 @@ import { type RefObject, useEffect } from "react";
  * the focus inside the region cannot scroll it, unless the region itself
  * takes the focus (WCAG 2.1, success criterion 2.1.1; axe checks it as
  * "scrollable-region-focusable"). A region with nothing to scroll must not
- * take it: it would be a stop of the Tab key that does nothing. Chrome and
- * Firefox do the same by themselves for a region without controls in it;
- * Safari does not.
+ * take it: it would be a stop of the Tab key that does nothing. Chrome does
+ * the same by itself for a region without controls in it, and Firefox for
+ * every region that scrolls and carries no tabindex attribute, with
+ * controls in it or without; Safari does not. A region that is to be no
+ * stop while it scrolls, because the keyboard scrolls it from a control
+ * inside, has to say so with a tabindex of -1.
  *
  * So the tabindex follows from the layout: 0 while the content is larger
  * than the container, and otherwise -1, which leaves the region out of the
@@ -27,17 +30,31 @@ import { type RefObject, useEffect } from "react";
  * `containerRef` is the element that scrolls and `contentRef` the one
  * element inside it that holds everything: the container keeps its size
  * when its content grows, so the content is watched as well.
+ *
+ * `whileStop` are attributes the element carries for as long as it is a
+ * stop of the Tab key and not otherwise: a role and a name, for a region
+ * that has neither by itself. A stop has to say what it is (WCAG 2.1,
+ * success criterion 4.1.2), and a region that nobody stops on needs no
+ * name. The element must not declare those attributes in its JSX either.
  */
 export function useKeyboardScroll(
   containerRef: RefObject<HTMLElement | null>,
   contentRef: RefObject<HTMLElement | null>,
+  whileStop: Readonly<Record<string, string>> = {},
 ): void {
+  // As text, so that the effect depends on what the attributes say and not
+  // on the object, which is a new one each render.
+  const carried = JSON.stringify(whileStop);
+
   useEffect(() => {
     const container = containerRef.current;
     const content = contentRef.current;
     if (!container || !content) {
       return undefined;
     }
+    const attributes = Object.entries(
+      JSON.parse(carried) as Record<string, string>,
+    );
     container.tabIndex = -1;
     // The observer reports once when it starts to observe, which is the
     // first measurement.
@@ -46,11 +63,21 @@ export function useKeyboardScroll(
         container.scrollHeight > container.clientHeight ||
         container.scrollWidth > container.clientWidth;
       container.tabIndex = scrolls ? 0 : -1;
+      for (const [name, value] of attributes) {
+        if (scrolls) {
+          container.setAttribute(name, value);
+        } else {
+          container.removeAttribute(name);
+        }
+      }
     });
     observer.observe(container);
     observer.observe(content);
     return () => {
       observer.disconnect();
+      for (const [name] of attributes) {
+        container.removeAttribute(name);
+      }
     };
-  }, [containerRef, contentRef]);
+  }, [containerRef, contentRef, carried]);
 }

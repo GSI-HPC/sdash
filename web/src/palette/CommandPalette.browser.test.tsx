@@ -76,6 +76,7 @@ describe("the command palette", () => {
       "Switch to the dark theme",
       "Collapse the sidebar",
       "Show the keyboard shortcuts",
+      "Open the component gallery",
       "Switch single-key shortcuts off",
     ]);
   });

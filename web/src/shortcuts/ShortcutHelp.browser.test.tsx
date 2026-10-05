@@ -56,6 +56,7 @@ describe("the help dialog", () => {
       "Switch the theme: t",
       "Collapse or expand the sidebar: left square bracket",
       "Close the open dialog: Escape",
+      "Go to the notifications: F6",
     ]);
     expect(lines(screen, "Go to")).toEqual(
       views.map((view) => `${view.title}: g then ${view.goKey}`),
@@ -149,7 +150,7 @@ describe("the switch in the help dialog", () => {
     await expect.element(toggle).not.toBeChecked();
     expect(localStorage.getItem(storageKey)).toBe("off");
     // Every line of a switched-off shortcut says so, in text and not by
-    // its colour alone. The two that stay do not.
+    // its colour alone. The three that stay do not.
     const rows = (group: string) =>
       [
         ...screen
@@ -157,7 +158,7 @@ describe("the switch in the help dialog", () => {
           .element()
           .querySelectorAll("dd"),
       ].map((keys) => keys.textContent.includes("switched off"));
-    expect(rows("General")).toEqual([false, true, true, true, false]);
+    expect(rows("General")).toEqual([false, true, true, true, false, false]);
     expect(rows("Go to")).toEqual(views.map(() => true));
 
     await userEvent.keyboard("{Escape}");

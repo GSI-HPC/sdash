@@ -3,6 +3,7 @@
 
 import { expect, test } from "@playwright/test";
 
+import { galleryPath, galleryTitle } from "../src/gallery/page.ts";
 import { storageKey as sidebarKey } from "../src/layout/sidebar.ts";
 import { views } from "../src/routing/views.ts";
 import {
@@ -13,6 +14,7 @@ import {
   scan,
   settled,
   tabKey,
+  tooltips,
   withStored,
 } from "./support.ts";
 
@@ -21,11 +23,14 @@ import {
 // scanned in both themes, since contrast differs between them, and with the
 // sidebar in both of its forms, since they have different content. The
 // dialogs of the shell are states of every view and are scanned once each,
-// over the Overview. What a user with low vision changes about the page, its
-// size and its colours, is in zoom-and-contrast.spec.ts.
+// over the Overview. The gallery, which shows every primitive at rest, is
+// scanned with the views; its overlays and the other states of the
+// primitives are in gallery.spec.ts. What a user with low vision changes
+// about the page, its size and its colours, is in zoom-and-contrast.spec.ts.
 
 const pages = [
   ...views.map((view) => ({ path: view.path, title: view.title })),
+  { path: galleryPath, title: galleryTitle },
   { path: "/no/such/view", title: "Page not found" },
 ];
 
@@ -89,8 +94,8 @@ for (const theme of ["light", "dark"] as const) {
       expect(await scan(page)).toEqual([]);
     });
 
-    // The label beside a rail item is content of its own, in colours of
-    // its own.
+    // The name beside a rail item is content of its own, in colours of
+    // its own: a tooltip, in the place the page has for popups.
     test("the rail with the name of a link showing passes the axe scan", async ({
       page,
       browserName,
@@ -100,9 +105,10 @@ for (const theme of ["light", "dark"] as const) {
       await settled(page, "Overview");
       await page.getByRole("link", { name: "Overview" }).focus();
       await page.keyboard.press(tabKey(browserName));
-      await expect(
-        page.getByRole("link", { name: "Nodes" }).getByText("Nodes").last(),
-      ).toBeVisible();
+      await expect(page.getByRole("link", { name: "Nodes" })).toBeFocused();
+      // The one tooltip that shows, once the one of the link before has
+      // gone: a list waits for that (tooltips in support.ts).
+      await expect(tooltips(page)).toHaveText(["Nodes"]);
 
       expect(await scan(page)).toEqual([]);
     });

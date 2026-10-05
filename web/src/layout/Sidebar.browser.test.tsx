@@ -6,6 +6,7 @@ import { page, userEvent } from "vitest/browser";
 
 import { groups, views } from "../routing/views";
 import { renderApp, resetPage, sidebarWidth } from "../testing/app";
+import { shownTooltipElements, shownTooltips } from "../testing/tooltips";
 import { storageKey } from "./sidebar";
 
 beforeEach(async () => {
@@ -137,23 +138,32 @@ describe("the sidebar", () => {
     localStorage.setItem(storageKey, "collapsed");
     const screen = await renderApp("/overview");
     const nodes = screen.getByRole("link", { name: "Nodes" });
-    const hint = () =>
-      nodes.element().querySelector<HTMLElement>("[aria-hidden=true]:not(svg)");
 
     screen.getByRole("link", { name: "Overview" }).element().focus();
     await userEvent.tab();
     await expect.element(nodes).toHaveFocus();
 
-    await expect.poll(() => hint()?.hidden).toBe(false);
-    expect(hint()?.textContent).toBe("Nodes");
-    // The label lies beside the icon, outside the rail, where the sidebar
-    // would clip anything laid out inside it.
-    const label = hint()?.querySelector<HTMLElement>(":scope > span") ?? null;
-    expect(label?.getBoundingClientRect().left).toBeGreaterThanOrEqual(60);
-    await expect.element(label).toBeInViewport();
+    await expect.poll(shownTooltips).toEqual(["Nodes"]);
+    // The name lies beside its link and reaches over the edge of the rail,
+    // where the sidebar would clip anything laid out inside it: all of it
+    // is there to see.
+    const [name = null] = shownTooltipElements();
+    const box = name?.getBoundingClientRect();
+    expect(box?.left).toBeGreaterThanOrEqual(
+      nodes.element().getBoundingClientRect().right,
+    );
+    expect(box?.right).toBeGreaterThan(60);
+    await expect.element(name).toBeInViewport({ ratio: 1 });
+    for (const x of [(box?.left ?? NaN) + 1, (box?.right ?? NaN) - 1]) {
+      const middle = ((box?.top ?? NaN) + (box?.bottom ?? NaN)) / 2;
+      expect(name?.contains(document.elementFromPoint(x, middle))).toBe(true);
+    }
+    // It repeats the name the link has, so assistive technology skips it.
+    expect(name?.closest("[aria-hidden='true']")).not.toBeNull();
+    await expect.element(nodes).toHaveAccessibleName("Nodes");
 
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => hint()?.hidden).toBe(true);
+    await expect.poll(shownTooltips).toEqual([]);
     await expect.element(nodes).toHaveFocus();
   });
 
@@ -161,10 +171,13 @@ describe("the sidebar", () => {
     localStorage.setItem(storageKey, "collapsed");
     const screen = await renderApp("/overview");
     const jobs = screen.getByRole("link", { name: "Jobs", exact: true });
+    // From somewhere else, wherever the test before left the pointer.
+    await screen.getByRole("main").hover();
+    await expect.poll(shownTooltips).toEqual([]);
 
     await jobs.hover();
 
-    await expect.element(jobs.getByText("Jobs").last()).toBeVisible();
+    await expect.poll(shownTooltips).toEqual(["Jobs"]);
   });
 });
 
@@ -232,12 +245,11 @@ describe("on a narrow screen", () => {
       const reason = screen.getByRole("tooltip");
       await expect.element(reason).toBeVisible();
 
-      const label = reason.element().firstElementChild;
-      const box = label?.getBoundingClientRect();
-      expect(box?.left).toBeGreaterThanOrEqual(0);
-      expect(box?.right).toBeLessThanOrEqual(width);
+      const box = () => reason.element().getBoundingClientRect();
+      await expect.poll(() => box().right).toBeLessThanOrEqual(width);
+      expect(box().left).toBeGreaterThanOrEqual(0);
       // Still below its button.
-      expect(box?.top).toBeGreaterThanOrEqual(
+      expect(box().top).toBeGreaterThanOrEqual(
         switcher.element().getBoundingClientRect().bottom,
       );
     },

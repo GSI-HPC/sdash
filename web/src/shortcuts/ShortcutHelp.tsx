@@ -3,7 +3,7 @@
 
 import { useContext, useId } from "react";
 
-import { Modal, ModalClose, ModalTitle } from "../overlay/Modal";
+import { Dialog, DialogClose, DialogTitle } from "../primitives/Dialog";
 import { SettingsContext } from "./context";
 import { helpGroups } from "./help";
 import { isCharacterKey, spokenKeys } from "./keys";
@@ -29,13 +29,9 @@ export function ShortcutHelp({
   onClose: () => void;
 }) {
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      className="top-[12vh] max-h-[76vh] w-160"
-    >
+    <Dialog open={open} onClose={onClose} className="w-160">
       <Help />
-    </Modal>
+    </Dialog>
   );
 }
 
@@ -52,12 +48,12 @@ function Help() {
     // place of its own in the order of the Tab key.
     <div className="min-h-0 overflow-auto">
       <div className="sticky top-0 flex items-center justify-between gap-3 border-b border-bd bg-surface py-3 pr-3.5 pl-5">
-        <ModalTitle className="text-base font-semibold">
+        <DialogTitle className="text-base font-semibold">
           Keyboard shortcuts
-        </ModalTitle>
-        <ModalClose className="h-7.5 cursor-pointer rounded-[5px] border border-bd bg-surface px-3 text-xs hover:bg-hover">
+        </DialogTitle>
+        <DialogClose className="h-7.5 cursor-pointer rounded-[5px] border border-bd bg-surface px-3 text-xs hover:bg-hover">
           Close
-        </ModalClose>
+        </DialogClose>
       </div>
 
       <div className="flex flex-col gap-4 px-5 py-4">
@@ -124,7 +120,10 @@ function Row({
   const off = !characterKeys && isCharacterKey(shortcut.binding);
 
   return (
-    <div className="flex break-inside-avoid items-center justify-between gap-4 py-1">
+    // Positioned, to hold the keys in words, which are taken out of the
+    // flow: the dialog would hold them otherwise, where its list ends, and
+    // in a low window, where the dialog itself can scroll, grow by them.
+    <div className="relative flex break-inside-avoid items-center justify-between gap-4 py-1">
       <dt>{shortcut.description}</dt>
       <dd className="flex shrink-0 items-center gap-2 text-t2">
         {off && <span className="text-[0.6875rem]">switched off</span>}

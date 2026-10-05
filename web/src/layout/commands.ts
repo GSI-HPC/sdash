@@ -32,6 +32,7 @@ export interface ShellActions {
   readonly goTo: (view: View) => void;
   readonly togglePalette: () => void;
   readonly showHelp: () => void;
+  readonly openGallery: () => void;
   readonly toggleTheme: () => void;
   readonly toggleSidebar: () => void;
   readonly setCharacterKeys: (on: boolean) => void;
@@ -73,10 +74,19 @@ export function shellShortcuts(
       enabled: state.sidebarSwitchable,
     },
     {
-      // The dialog acts on Escape itself (overlay/Modal.tsx). It is here
-      // for the help to list.
+      // The dialog acts on Escape itself (primitives/Dialog.tsx). It is
+      // here for the help to list.
       keys: shellKeys.close,
       description: "Close the open dialog",
+      group: general,
+      run: null,
+    },
+    {
+      // The region of the toasts acts on this key itself, through Base
+      // UI's own listener, while a toast shows (primitives/Toast.tsx). It
+      // is here for the help to list.
+      keys: shellKeys.notifications,
+      description: "Go to the notifications",
       group: general,
       run: null,
     },
@@ -139,6 +149,13 @@ export function shellPaletteItems(
     keys: shellKeys.help,
     run: actions.showHelp,
   };
+  const gallery: PaletteItem = {
+    id: "action-gallery",
+    kind: "action",
+    label: "Open the component gallery",
+    keywords: ["components", "primitives", "design", "controls"],
+    run: actions.openGallery,
+  };
   const characterKeys: PaletteItem = {
     id: "action-character-keys",
     kind: "action",
@@ -156,6 +173,8 @@ export function shellPaletteItems(
     theme,
     ...(state.sidebarSwitchable ? [sidebar] : []),
     help,
+    gallery,
+    // The switch stays the last entry: it is the one that End leads to.
     characterKeys,
   ];
 }

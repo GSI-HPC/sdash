@@ -31,6 +31,11 @@ export const icons = {
   sidebarExpand: "M4 4h16v16H4zM9 4v16M13 10l2 2-2 2",
   sun: "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4",
   moon: "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z",
+
+  // The controls of the primitives.
+  close: "M6 6l12 12M18 6L6 18",
+  check: "M5 12l5 5 9-10",
+  lock: "M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4",
 } as const;
 
 /** The name of an icon. */

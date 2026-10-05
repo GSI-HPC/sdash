@@ -112,6 +112,16 @@ of an answer, how the theme is chosen, whether the design tokens keep their
 contrast. A test hands the code a function in place of `fetch`; nothing
 talks to a server. `make test-ui`, or `npm test` in `web/`.
 
+A few unit tests read text instead of running code, for rules that no type
+and no lint rule states. `documented.test.ts` reads `AGENTS.md` and
+`doc/ui.md` for every directory of `web/src`. `conventions.test.ts` reads
+the sources: nothing outside `primitives/` imports Base UI, no element has
+a `title` attribute, nothing has a `style`, and no file holds a colour
+that is no design token. `styles/pairs.test.ts` works out, from
+`styles/tokens.css`, the contrast of every pair of tokens the primitives
+set against each other, and holds each to 4.5:1 or 3:1 in both themes;
+`testing/contrast.ts` has the arithmetic.
+
 **Component tests** are `*.browser.test.tsx` files. Vitest's browser mode
 renders one component in Chromium and the test uses it as a person would:
 by its role and its name, with clicks and keys. They are for what a
@@ -119,14 +129,24 @@ component does in a real browser, which a simulated page in Node gets wrong
 often enough: focus, the keyboard, what is announced. Only Chromium runs
 them; the engines are compared one layer up. A test of what the shell does,
 navigation, shortcuts, the command palette, renders the whole application
-at an address with `renderApp` from `web/src/testing/app.tsx`.
-`make test-components`, or `npm run test:components` in `web/`.
+at an address with `renderApp` from `web/src/testing/app.tsx`. A primitive
+has its test beside it in `web/src/primitives/`, which renders it alone.
+`web/src/testing/` has what such tests share: the colour a token has on
+the page (`colours.ts`), the tooltips that show (`tooltips.ts`), and what
+the system asks of a page, a contrast theme or less motion, set through
+the DevTools protocol (`system.ts`). `make test-components`, or
+`npm run test:components` in `web/`.
 
 **Browser tests** are the Playwright tests in `web/e2e`. They run against the
 built binary, not against the development server, because only the binary
 serves the embedded build under its Content-Security-Policy, which is what a
 user gets. They are for whole flows, for what holds only when server and UI
-meet, and for the accessibility scan. They run in Chromium, Firefox and
+meet, and for the accessibility scan. The primitives are tested there on
+the gallery, the page at `/gallery` that shows each of them
+([0026](adr/0026-ui-primitives-on-base-ui.md)): every test collects what
+the browser writes to its console as an error, which is where it reports
+what the policy made it refuse, so a primitive that needed an inline style
+would fail there and nowhere else. They run in Chromium, Firefox and
 WebKit, the engines behind the supported browsers
 ([0014](adr/0014-accessibility-and-browsers.md)). `make test-browser` builds
 `bin/sdash` and runs them; the tests start the binary themselves on a free
@@ -141,11 +161,44 @@ by every page that has not got to the input yet. `settled` in
 `web/src/testing/app.tsx` is the wait for a component test that has no
 such thing to go by.
 
+The engines differ in when they do a thing, and none promises to have
+done it by the time the next step of a test arrives. A browser test
+therefore waits for what a user would see before it goes on:
+
+- Base UI takes a popup that has closed off the page in the next animation
+  frame, not at once. Right after the focus has moved from one control
+  with a tooltip to the next, the page holds both tooltips, though no
+  frame is drawn with the two. The tooltips that show are asked for with a
+  list there, `toHaveText(["Nodes"])`, which Playwright compares until it
+  matches; asked for a single text, it fails at once on two elements
+  (`tooltips` in `web/e2e/support.ts`).
+- Chromium and Firefox scroll to a control inside `focus()`. WebKit does
+  so a moment later, to whatever has the focus by then. A key that opens
+  something beside a control, a menu, a popover or the list of a select,
+  is sent once the control is on the screen (`press` in
+  `web/e2e/gallery.ts`); sent at once, it opens the popup beside a control
+  that is still out of sight.
+- Base UI moves the focus into a menu in an animation frame after the
+  menu has opened. A key meant for the menu waits for its first entry to
+  have the focus.
+
+A component test keeps the focus on the page it renders. Vitest runs a
+test file in a frame of a page of its own, and once the Tab key goes past
+the first or the last control, the browser around that page decides where
+the focus is next. A Chromium with the controls of a window takes it and
+hands it back on the next Tab. The headless shell that Playwright installs
+for a run without a window, which is what CI runs, has no such controls,
+and the focus is left nowhere. A test that needs the focus to arrive anew
+on a control sends it to a neighbouring control and back.
+
 The two layers that need a browser use the builds Playwright installs:
 `npx playwright install` in `web/`. Where that is not wanted, `SDASH_CHROMIUM`
 names a Chromium on the machine, which covers the component tests and the
-Chromium leg of the browser tests. With `SDASH_URL` set to the address a
-running sdash printed, the browser tests use that sdash and start none.
+Chromium leg of the browser tests. Such a Chromium is the whole browser run
+without a window, and not the headless shell CI runs: the two agree on a
+page and can differ in what is around it, as above. With `SDASH_URL` set to
+the address a running sdash printed, the browser tests use that sdash and
+start none.
 
 ## The accessibility scan
 
@@ -156,8 +209,15 @@ the dark theme, since contrast differs between them, and in each state that
 has colours of its own, such as a failure. `web/e2e/accessibility.spec.ts`
 goes through the view table ([ui.md](ui.md)), so a new view is scanned from
 the moment it has its row, with the sidebar expanded and collapsed; the
-dialogs of the shell are scanned there too. An enlarged page and a contrast
-theme of the system are `web/e2e/zoom-and-contrast.spec.ts`. `scan()` in
+dialogs of the shell are scanned there too, and so is the gallery of the
+primitives as it comes. `web/e2e/gallery.spec.ts` scans the gallery in the
+states a page at rest does not have: with each kind of overlay open, a
+tooltip, a popover, a menu, the list of a select, a dialog, a
+confirmation, the drawer and the toasts, with what opens from inside
+another overlay, and with controls that have the focus or are under the
+pointer. The overlays are a list in `web/e2e/gallery.ts`, which a new kind
+is added to. An enlarged page and a contrast theme of the system are
+`web/e2e/zoom-and-contrast.spec.ts`, for the shell and for the gallery. `scan()` in
 `web/e2e/support.ts` is the one place the scan is configured. It runs every
 rule axe enables by default, on the whole page, so an exception would have
 to be made there, where it is seen and has to give its reason.

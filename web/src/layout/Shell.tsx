@@ -4,7 +4,9 @@
 import { type ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { createPath, useLocation, useNavigate } from "react-router";
 
+import { galleryPath } from "../gallery/page";
 import { CommandPalette } from "../palette/CommandPalette";
+import { PopupContainer } from "../primitives/popups";
 import { SettingsContext } from "../shortcuts/context";
 import { ShortcutHelp } from "../shortcuts/ShortcutHelp";
 import { ShortcutScope } from "../shortcuts/ShortcutScope";
@@ -86,6 +88,12 @@ export function Shell({ children }: { children: ReactNode }) {
     setOpenDialog(kind && { kind, at: over });
   }
 
+  // Where the popups of the page go: tooltips, menus, popovers and the
+  // lists of selects (primitives/popups.tsx). It is state and not a ref,
+  // because a popup that is open on the first render has to be rendered
+  // again once the element is there.
+  const [popups, setPopups] = useState<HTMLElement | null>(null);
+
   const mainRef = useRef<HTMLElement>(null);
   const viewRef = useRef<HTMLDivElement>(null);
   // The main region scrolls, and a view may hold nothing in it that takes
@@ -124,6 +132,12 @@ export function Shell({ children }: { children: ReactNode }) {
     showHelp: () => {
       setDialog("help");
     },
+    openGallery: () => {
+      // As for a view: none where the gallery shows already.
+      if (createPath(location) !== galleryPath) {
+        void navigate(galleryPath);
+      }
+    },
     toggleTheme,
     toggleSidebar,
     setCharacterKeys,
@@ -135,49 +149,61 @@ export function Shell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="grid h-full grid-rows-[3.25rem_minmax(0,1fr)] overflow-hidden">
-      <SkipLink
-        target={mainId}
-        onSkip={() => {
-          // To the heading of the view where there is one: a screen reader
-          // then reads the heading and not the whole region.
-          const main = mainRef.current;
-          (main?.querySelector<HTMLElement>("h1") ?? main)?.focus();
-        }}
-      />
-      <Header
-        onOpenPalette={() => {
-          setDialog("palette");
-        }}
-      />
-      {/*
-        The width of the sidebar moves with the handoff's one easing, and
-        not at all for a user who asked the system for less motion.
-      */}
-      <div
-        className={`grid min-h-0 transition-[grid-template-columns] duration-300 ease-handoff motion-reduce:transition-none ${
-          rail
-            ? "grid-cols-[3.75rem_minmax(0,1fr)]"
-            : "grid-cols-[14rem_minmax(0,1fr)]"
-        }`}
-      >
-        <Sidebar rail={rail} onToggle={narrow ? undefined : toggleSidebar} />
-        <main
-          id={mainId}
-          ref={mainRef}
-          className="min-w-0 overflow-auto px-6 pt-5 pb-12 -outline-offset-2"
+    <PopupContainer element={popups}>
+      <div className="grid h-full grid-rows-[3.25rem_minmax(0,1fr)] overflow-hidden">
+        <SkipLink
+          target={mainId}
+          onSkip={() => {
+            // To the heading of the view where there is one: a screen
+            // reader then reads the heading and not the whole region.
+            const main = mainRef.current;
+            (main?.querySelector<HTMLElement>("h1") ?? main)?.focus();
+          }}
+        />
+        <Header
+          onOpenPalette={() => {
+            setDialog("palette");
+          }}
+        />
+        {/*
+          The width of the sidebar moves with the handoff's one easing, and
+          not at all for a user who asked the system for less motion.
+        */}
+        <div
+          className={`grid min-h-0 transition-[grid-template-columns] duration-300 ease-handoff motion-reduce:transition-none ${
+            rail
+              ? "grid-cols-[3.75rem_minmax(0,1fr)]"
+              : "grid-cols-[14rem_minmax(0,1fr)]"
+          }`}
         >
-          <div ref={viewRef}>
-            <ShortcutScope scope="view">{children}</ShortcutScope>
-          </div>
-        </main>
+          <Sidebar rail={rail} onToggle={narrow ? undefined : toggleSidebar} />
+          <main
+            id={mainId}
+            ref={mainRef}
+            className="min-w-0 overflow-auto px-6 pt-5 pb-12 -outline-offset-2"
+          >
+            <div ref={viewRef}>
+              <ShortcutScope scope="view">{children}</ShortcutScope>
+            </div>
+            {/*
+              The place for popups. It is inside the main region, so that a
+              popup lies in a landmark, and outside the element whose size
+              says whether the region scrolls. A popup is fixed to the
+              window, so the region does not clip it. The layer is the
+              handoff's for menus: over the header and under the dialogs,
+              so that a tooltip the pointer left behind does not lie over
+              the palette.
+            */}
+            <div ref={setPopups} className="relative z-40" />
+          </main>
+        </div>
+        <CommandPalette
+          open={dialog === "palette"}
+          onClose={closeDialog}
+          items={shellPaletteItems(state, actions)}
+        />
+        <ShortcutHelp open={dialog === "help"} onClose={closeDialog} />
       </div>
-      <CommandPalette
-        open={dialog === "palette"}
-        onClose={closeDialog}
-        items={shellPaletteItems(state, actions)}
-      />
-      <ShortcutHelp open={dialog === "help"} onClose={closeDialog} />
-    </div>
+    </PopupContainer>
   );
 }

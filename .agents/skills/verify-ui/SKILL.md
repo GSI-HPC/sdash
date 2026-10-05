@@ -37,7 +37,13 @@ been read, the honest word is "unverified", not "works".
    through the navigation, or by loading its address
    (`new URL("/nodes", page.url()).href`); `doc/ui.md` lists the addresses
    and the keys. `[` collapses the sidebar, the palette's shortcut and `?`
-   open the two dialogs of the shell.
+   open the two dialogs of the shell. The gallery at `/gallery` shows
+   every primitive in every state: it is the page to look at after a
+   change under `web/src/primitives/`, with the overlay the change is
+   about open, and `web/e2e/gallery.ts` has how the keyboard opens each.
+   The main region is what scrolls, so a screenshot of the whole page
+   shows the top of the gallery alone: take one of the section, with
+   `page.locator('section[aria-labelledby="drawer"]').screenshot()`.
 4. **Start, look, stop** in one shell command, so that no server is left
    running. `localhost` binds both loopback addresses, as sdash does by
    default (`doc/adr/0023-the-listeners-as-built.md`), and port 0 has the
@@ -76,6 +82,8 @@ been read, the honest word is "unverified", not "works".
    Chromium leg, and CI runs the other two. Every view of the view table
    has its axe scan there, in both themes and with the sidebar expanded and
    collapsed; a state of a view that those scans do not reach has its own.
+   The gallery is scanned with each kind of overlay open
+   (`gallery.spec.ts`).
 8. **Report** what was looked at: the states, the themes, the engine, and
    what could not be looked at.
 

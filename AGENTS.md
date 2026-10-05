@@ -15,8 +15,10 @@ Personal, uncommitted instructions belong in `AGENTS.local.md` or
 ## Status
 
 A scaffold: the build, the checks, the decision records, and the shell of
-the UI (`doc/ui.md`) around placeholder views. Of its primitives the modal
-dialog is there; menus, tooltips and tables are next. No release yet.
+the UI (`doc/ui.md`) around placeholder views. Of its primitives the
+controls and the overlays are there (buttons, fields, tabs, tooltips,
+menus, dialogs, the drawer, toasts), with a gallery of them at `/gallery`;
+what shows data (cards, meters, tables) is next. No release yet.
 Everything Slurm-facing (the slurmrestd client, vendored specs, fixtures,
 the views of cluster data) waits for slurmrestd support in GSI-HPC/sind
 (sind issue 90), because every spec and fixture comes from an end-to-end
@@ -42,9 +44,11 @@ no Slurm-facing code and take fixtures from nowhere else.
   Playwright tests; `dist/` the build output, which is ignored.
 - `web/src/`: `routing/` (the view table, the routes, state in the query
   string), `layout/` (the shell), `nav/`, `views/`, `shortcuts/`,
-  `palette/`, `overlay/` (the modal dialog), `icons/`, `theme/`, `storage/`,
-  `status/` (which sdash is running), `client/`, the generated `api/`,
-  `styles/` (`tokens.css`, the design tokens), `testing/` (shared by tests).
+  `palette/`, `primitives/` (the controls and overlays, on Base UI),
+  `gallery/` (the page that shows every primitive), `icons/`, `theme/`,
+  `storage/`, `status/` (which sdash is running), `client/`, the generated
+  `api/`, `styles/` (`tokens.css`, the design tokens), `testing/` (shared
+  by tests).
 - `doc/`: `adr/`, the decision records and their index; `design/`, the UI
   design handoff; `research/`, the Radar and slurmrestd studies.
 - `.github/`: `workflows/ci.yml` and `release.yml`; `actions/setup-go` and
@@ -115,17 +119,22 @@ and need Docker and sind.
   the noun, "license" the verb and in fixed names); an identifier keeps the
   spelling of whoever defines it. No em dashes, and no emoji in Markdown.
 - Frontend (`0013-frontend-stack`, `0014-accessibility-and-browsers`,
-  `0024-addresses-and-keyboard-in-the-shell`, `doc/ui.md`): colours come from
-  the design tokens only, never from a literal value or a `style` attribute;
+  `0024-addresses-and-keyboard-in-the-shell`,
+  `0026-ui-primitives-on-base-ui`, `doc/ui.md`): colours come from the
+  design tokens only, never from a literal value or a `style` attribute;
   the browser API is called through `web/src/client/` only, against the types
   generated into `web/src/api/`; a view is a row of the view table
   `web/src/routing/views.ts`, the source of its route, link, shortcut and
   palette entry, and starts with `PageHeader`; a shortcut is registered with
   `useShortcuts`, never with a key listener of a component's own; state a
   reload must keep goes into the query string with `useSearchParam`; a
-  tooltip is a `Hint` until there is a tooltip primitive, never a native
-  `title` attribute; every interactive element is operable by keyboard. The
-  target is WCAG 2.1 AA, with an axe scan of every view in CI.
+  control or an overlay is a primitive of `web/src/primitives/`, the one
+  directory that imports Base UI, its look chosen by props and `className`
+  kept for layout, and a new one gets its section in the gallery; a tooltip
+  is the `Tooltip` primitive, never a native `title` attribute; every
+  interactive element is operable by keyboard. The target is WCAG 2.1 AA,
+  with an axe scan of every view, and of the gallery with each kind of
+  overlay open, in CI.
 
 ## Versions and capabilities
 
