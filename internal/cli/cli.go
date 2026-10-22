@@ -21,6 +21,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/GSI-HPC/go-clikit/cobratree"
+	"github.com/GSI-HPC/go-clikit/termtext"
 	"github.com/GSI-HPC/sdash/internal/browser"
 	"github.com/GSI-HPC/sdash/internal/server"
 )
@@ -109,8 +110,10 @@ func run(ctx context.Context, p Process, serve serveFunc) int {
 	cmd := newRootCommand(p, serve)
 	if err := cmd.ExecuteContext(ctx); err != nil {
 		// The exit code is what a caller acts on; a message that cannot
-		// be written changes nothing about it.
-		_, _ = fmt.Fprintf(p.Stderr, "sdash: %s\n", err)
+		// be written changes nothing about it. An error can quote text
+		// from outside, such as an argument or a path, which must not move
+		// the cursor or retitle the terminal.
+		_, _ = fmt.Fprintf(p.Stderr, "sdash: %s\n", termtext.Escape(err.Error()))
 		if cobratree.IsUsage(err) {
 			return exitUsage
 		}
