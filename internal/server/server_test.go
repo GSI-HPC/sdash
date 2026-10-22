@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -23,6 +22,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/GSI-HPC/go-clikit/localweb"
 )
 
 // running is a Server whose Run is under way in a goroutine.
@@ -516,7 +517,7 @@ func TestARequestThatOutlastsTheGracePeriodIsCutOffAndReported(t *testing.T) {
 		err = <-result
 
 		require.ErrorIs(t, err, context.DeadlineExceeded)
-		assert.Equal(t, shutdownGrace, time.Since(begun))
+		assert.Equal(t, localweb.DefaultGrace, time.Since(begun))
 	})
 }
 
@@ -548,38 +549,6 @@ func TestAConnectionWithoutARequestDoesNotHoldTheStopUp(t *testing.T) {
 		_, err := client.Read(make([]byte, 1))
 		assert.ErrorIs(t, err, io.EOF, "the server has closed the connection")
 	})
-}
-
-// The three cases of a connection at the moment the server stops: one that
-// has sent nothing is closed, one that arrives after the stop began is
-// closed on arrival, and one with a request under way is left to finish.
-func TestOnlyConnectionsWithoutARequestAreClosedAtTheStop(t *testing.T) {
-	t.Parallel()
-
-	spare := &spareConns{conns: map[net.Conn]struct{}{}}
-	isClosed := func(peer net.Conn) bool {
-		// A pipe refuses a deadline once either of its ends is closed,
-		// which tells without a read that could block.
-		return errors.Is(peer.SetDeadline(time.Now()), io.ErrClosedPipe)
-	}
-	idle, idlePeer := net.Pipe()
-	busy, busyPeer := net.Pipe()
-	late, latePeer := net.Pipe()
-	t.Cleanup(func() {
-		for _, conn := range []net.Conn{idle, idlePeer, busy, busyPeer, late, latePeer} {
-			_ = conn.Close()
-		}
-	})
-
-	spare.track(idle, http.StateNew)
-	spare.track(busy, http.StateNew)
-	spare.track(busy, http.StateActive)
-	spare.closeAll()
-	spare.track(late, http.StateNew)
-
-	assert.True(t, isClosed(idlePeer), "a connection that has sent nothing")
-	assert.True(t, isClosed(latePeer), "a connection that arrived after the stop began")
-	assert.False(t, isClosed(busyPeer), "a connection with a request under way")
 }
 
 // A listener that fails under the server is a failure of the server, and

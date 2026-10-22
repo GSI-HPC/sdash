@@ -6,40 +6,12 @@ package server
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io/fs"
 	"log/slog"
 	"net"
 	"net/http"
-	"sync"
-	"time"
 
 	"github.com/GSI-HPC/go-clikit/localweb"
-)
-
-// The limits of the HTTP server. Its only intended client is a browser on
-// the same machine, but every local process can connect, so none of them is
-// left unbounded.
-const (
-	// readHeaderTimeout ends a connection that is opened and then sends
-	// its request line and headers too slowly, or not at all.
-	readHeaderTimeout = 10 * time.Second
-	// readTimeout bounds the whole request. The bodies of the browser API
-	// are small JSON documents.
-	readTimeout = 30 * time.Second
-	// writeTimeout bounds the time from the end of the request headers to
-	// the end of the response. A handler that has reason to take longer
-	// moves its own deadline with http.ResponseController.
-	writeTimeout = time.Minute
-	// idleTimeout closes the kept-alive connections of a tab that has
-	// stopped asking.
-	idleTimeout = 2 * time.Minute
-	// maxHeaderBytes is far above what a browser sends to this origin, one
-	// cookie included, and far below the default of 1 MiB.
-	maxHeaderBytes = 64 << 10
-	// shutdownGrace is how long the requests in flight get to finish once
-	// the server is told to stop.
-	shutdownGrace = 5 * time.Second
 )
 
 // Config is what a Server is built from.
@@ -87,7 +59,7 @@ type Config struct {
 // it. New binds it, URL and Socket say where it is, and Run serves until it
 // is told to stop.
 type Server struct {
-	http *http.Server
+	handler http.Handler
 	// listeners are served by the one handler: the two loopback addresses
 	// of the name localhost, or a single address or socket.
 	listeners []net.Listener
@@ -143,75 +115,9 @@ func newOn(ctx context.Context, cfg Config, bind bindFunc) (*Server, error) {
 	return srv, nil
 }
 
-// newServer puts handler behind listeners with the limits and the shutdown
-// behaviour of this package.
+// newServer puts handler behind listeners.
 func newServer(listeners []net.Listener, handler http.Handler, logger *slog.Logger) *Server {
-	spare := &spareConns{conns: map[net.Conn]struct{}{}}
-	server := &http.Server{
-		Handler:           handler,
-		ReadHeaderTimeout: readHeaderTimeout,
-		ReadTimeout:       readTimeout,
-		WriteTimeout:      writeTimeout,
-		IdleTimeout:       idleTimeout,
-		MaxHeaderBytes:    maxHeaderBytes,
-		ConnState:         spare.track,
-		// The standard library reports a handler's panic and a broken
-		// connection through this logger; without it they would go to the
-		// process-wide one of package log.
-		ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError),
-	}
-	// Shutdown calls this once the listener is closed. A connection the
-	// listener handed out just before that is closed by track.
-	server.RegisterOnShutdown(spare.closeAll)
-	return &Server{http: server, listeners: listeners, logger: logger}
-}
-
-// spareConns are the connections on which no request has arrived in full
-// yet: http.StateNew, which lasts until the request headers are read. A
-// browser opens such connections ahead of need.
-//
-// They are tracked because http.Server.Shutdown waits for one of them as it
-// does for a request in flight, until the connection is five seconds old,
-// which is as long as shutdownGrace. Without this, stopping sdash shortly
-// after a page was loaded would take the whole grace period and then report
-// that requests were cut off, although none was under way. A connection
-// without a request has nothing to finish, so it is closed at once.
-type spareConns struct {
-	mu    sync.Mutex
-	conns map[net.Conn]struct{}
-	// closing is set once the server stops; a connection that the listener
-	// handed out just before it closed is then closed on arrival.
-	closing bool
-}
-
-// track follows the state of a connection; it is the server's ConnState
-// hook.
-func (s *spareConns) track(conn net.Conn, state http.ConnState) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	switch {
-	case state != http.StateNew:
-		delete(s.conns, conn)
-	case s.closing:
-		// The server notices the closed connection when it reads from it;
-		// there is nothing else to tell it.
-		_ = conn.Close()
-	default:
-		s.conns[conn] = struct{}{}
-	}
-}
-
-// closeAll closes the connections that have sent nothing, and every one
-// that turns up later.
-func (s *spareConns) closeAll() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.closing = true
-	for conn := range s.conns {
-		// As in track: the server notices when it reads.
-		_ = conn.Close()
-	}
-	clear(s.conns)
+	return &Server{handler: handler, listeners: listeners, logger: logger}
 }
 
 // URL returns the address that signs a browser in: the root of the server
@@ -241,46 +147,22 @@ func (s *Server) Socket() string {
 
 // Run serves until ctx is cancelled, then stops: the listeners and the
 // connections without a request close at once, a unix socket leaves the
-// file system, and the requests in flight get shutdownGrace to finish. It
-// returns nil after such a clean stop. It returns an error when serving
-// fails on its own, or when requests had to be cut off at the end of the
-// grace period.
+// file system, and the requests in flight get localweb.DefaultGrace to
+// finish. It returns nil after such a clean stop. It returns an error when
+// serving fails on its own, or when requests had to be cut off at the end of
+// the grace period.
+//
+// localweb.Serve sets the limits of the HTTP server and does the stopping
+// (doc/adr/0026-go-clikit-localweb-for-the-listener-and-the-guard.md).
 func (s *Server) Run(ctx context.Context) error {
-	served := make(chan error, len(s.listeners))
-	for _, listener := range s.listeners {
-		go func() { served <- s.http.Serve(listener) }()
-	}
-
-	select {
-	case err := <-served:
-		// One listener has failed. Another one would go on answering
-		// under half of the names the user was told, so it stops too, at
-		// once: a server that is failing owes its requests no grace. The
-		// error to report is the one that was the cause.
-		_ = s.http.Close()
-		for range len(s.listeners) - 1 {
-			<-served
-		}
-		return fmt.Errorf("serve: %w", err)
-	case <-ctx.Done():
-	}
-
-	s.logger.Info("shutting down")
-	// ctx is cancelled already; the grace period needs a context that is
-	// not.
-	grace, cancel := context.WithTimeout(context.WithoutCancel(ctx), shutdownGrace)
-	defer cancel()
-	err := s.http.Shutdown(grace)
-	if err != nil {
-		// Shutdown has given up waiting; what is still open is closed
-		// now, and the error to report is Shutdown's.
-		_ = s.http.Close()
-		err = fmt.Errorf("stop within %s: %w", shutdownGrace, err)
-	}
-	// Serve returns as soon as its listener closes, with
-	// http.ErrServerClosed and nothing to add.
-	for range s.listeners {
-		<-served
-	}
-	return err
+	// A stop by a failed listener is no reason to say that sdash is shutting
+	// down: the context does not end then.
+	stop := context.AfterFunc(ctx, func() { s.logger.Info("shutting down") })
+	defer stop()
+	return localweb.Serve(ctx, s.listeners, s.handler, localweb.ServeOptions{
+		// The standard library reports a handler's panic and a broken
+		// connection through this logger; without it they would go to the
+		// process-wide one of package log.
+		ErrorLog: slog.NewLogLogger(s.logger.Handler(), slog.LevelError),
+	})
 }
