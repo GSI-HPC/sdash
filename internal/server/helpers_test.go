@@ -109,12 +109,24 @@ func withLogger(logger *slog.Logger) func(*routerConfig) {
 }
 
 // request builds a request to testHost, with headers given as name and
-// value in turn.
+// value in turn. A request that may change something carries the Origin of
+// the page it comes from, as a browser sends it, unless the headers give
+// another or withoutOrigin removes it.
 func request(method, target string, headers ...string) *http.Request {
 	r := httptest.NewRequest(method, "http://"+testHost+target, nil)
+	if !localweb.SafeMethod(method) {
+		r.Header.Set("Origin", "http://"+testHost)
+	}
 	for i := 0; i+1 < len(headers); i += 2 {
 		r.Header.Set(headers[i], headers[i+1])
 	}
+	return r
+}
+
+// withoutOrigin removes the Origin header that request adds, as a client
+// that is no browser does not send one.
+func withoutOrigin(r *http.Request) *http.Request {
+	r.Header.Del("Origin")
 	return r
 }
 

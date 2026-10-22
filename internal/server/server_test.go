@@ -219,7 +219,7 @@ func TestLocalhostIsServedOnBothLoopbackAddressesUnderEveryNameOfTheirs(t *testi
 			assert.JSONEq(t, `{"stub":true}`, body)
 		}
 		status, _ := fetch(t, address, "rebind.example:"+port, "/")
-		assert.Equal(t, http.StatusForbidden, status, "a foreign name on %s", address)
+		assert.Equal(t, http.StatusMisdirectedRequest, status, "a foreign name on %s", address)
 	}
 	require.NoError(t, srv.stop())
 }
@@ -296,9 +296,9 @@ func TestAServerWithoutIPv6LoopbackServesIPv4AndRefusesTheNameLocalhost(t *testi
 	assert.Equal(t, http.StatusOK, status)
 	assert.Equal(t, indexBody, body)
 	status, _ = fetch(t, address, "localhost:"+printed.Port(), "/")
-	assert.Equal(t, http.StatusForbidden, status)
+	assert.Equal(t, http.StatusMisdirectedRequest, status)
 	status, _ = fetch(t, address, "[::1]:"+printed.Port(), "/")
-	assert.Equal(t, http.StatusForbidden, status)
+	assert.Equal(t, http.StatusMisdirectedRequest, status)
 
 	assert.Equal(t, 1, strings.Count(log.String(), "no IPv6 loopback address to bind"), log.String())
 }
@@ -317,7 +317,7 @@ func TestALiteralAddressIsNotServedUnderTheNameLocalhost(t *testing.T) {
 	status, _ := fetch(t, printed.Host, printed.Host, "/")
 	assert.Equal(t, http.StatusOK, status)
 	status, _ = fetch(t, printed.Host, "localhost:"+printed.Port(), "/")
-	assert.Equal(t, http.StatusForbidden, status)
+	assert.Equal(t, http.StatusMisdirectedRequest, status)
 }
 
 // The flag of the command line reaches the router through Config: a server
@@ -342,7 +342,12 @@ func TestAReadOnlyServerRefusesAChangeAndAnswersARead(t *testing.T) {
 			status, _ = get(t, client, jobs)
 			assert.Equal(t, http.StatusOK, status)
 
-			resp, err := client.Post(jobs, "application/json", strings.NewReader("{}"))
+			// A browser names the origin of the page on a request that may
+			// change something; the client of the standard library does not.
+			post, err := http.NewRequestWithContext(t.Context(), http.MethodPost, jobs, strings.NewReader("{}"))
+			require.NoError(t, err)
+			post.Header.Set("Origin", "http://"+printed.Host)
+			resp, err := client.Do(post)
 			require.NoError(t, err)
 			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)

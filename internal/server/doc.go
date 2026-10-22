@@ -35,8 +35,13 @@
 // taken or the host has no IPv6 loopback address (listen).
 //
 // On either, a request is served only if it passes these checks, in this
-// order:
+// order. The first three are localweb's (Headers, Hosts and SameOrigin); the
+// server words their refusals and logs them (guard.go).
 //
+//   - Every answer carries the Content-Security-Policy of localweb, which
+//     allows the origin itself and nothing else, so a flaw in the user
+//     interface cannot load script from elsewhere or send what it reads to
+//     another host, and the frame, referrer and resource policies beside it.
 //   - It names the listener by a name the server answers to. On TCP that is
 //     each bound address with its port, and the name localhost once the
 //     server itself holds the port on both loopback addresses; with one
@@ -45,9 +50,13 @@
 //     of the forward, on its own machine, and names that one, so the server
 //     answers to the loopback names under any port. A page that reaches
 //     the server through DNS rebinding names it by its own domain, and is
-//     refused on both.
-//   - Under /api/, it comes from a page of the server's own origin, for
-//     every method: a read tells another page as much as a write changes.
+//     refused on both, with 421.
+//   - It was not caused by a page of another site. A page of the interface
+//     may be navigated to from anywhere, as a link in a mail is. Under
+//     /api/ nothing is a page: the request comes from a page of the
+//     server's own origin, for every method, since a read tells another page
+//     as much as a write changes, and a navigation to an address of the API
+//     is refused too.
 //   - Under /api/, it carries the session cookie, which the server gives
 //     only to a browser that presents the token of this launch. The cookie
 //     is named after the port in the Host header, so that each sdash a
@@ -60,10 +69,6 @@
 // A route registered outside newRouter's guarded chain would skip the last
 // three. That is why the browser API is not registered by its own package
 // but handed in as one handler (Config.API), which the router wraps.
-//
-// Every response carries a Content-Security-Policy that allows the origin
-// itself and nothing else, so a flaw in the user interface cannot load
-// script from elsewhere or send what it reads to another host.
 //
 // The server holds no package-level state, and sets nothing that belongs to
 // the whole process: everything it uses arrives in Config.

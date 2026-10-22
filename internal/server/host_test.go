@@ -21,7 +21,7 @@ func TestARouterWithoutAnAddressAnswersToNoHost(t *testing.T) {
 		r := request(http.MethodGet, "/")
 		r.Host = host
 
-		assert.Equal(t, http.StatusForbidden, serve(router, r).Code, host)
+		assert.Equal(t, http.StatusMisdirectedRequest, serve(router, r).Code, host)
 	}
 }
 
@@ -46,7 +46,7 @@ func TestAForeignHostIsRefusedBeforeTheAPIIsAsked(t *testing.T) {
 
 			got := serve(router, r)
 
-			assert.Equal(t, http.StatusForbidden, got.Code)
+			assert.Equal(t, http.StatusMisdirectedRequest, got.Code)
 			assert.Empty(t, stub.seen())
 		})
 	}
@@ -68,6 +68,6 @@ func TestDevAddsNoHostToTheOnesAnswered(t *testing.T) {
 		r := request(http.MethodGet, "/")
 		r.Host = host
 
-		assert.Equal(t, http.StatusForbidden, serve(router, r).Code, host)
+		assert.Equal(t, http.StatusMisdirectedRequest, serve(router, r).Code, host)
 	}
 }
