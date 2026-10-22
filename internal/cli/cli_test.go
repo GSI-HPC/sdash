@@ -152,6 +152,22 @@ func TestAMistakeOnTheCommandLineIsAUsageError(t *testing.T) {
 	}
 }
 
+// The error line can quote what the user typed or the system returned. A
+// carriage return or an escape sequence in it must not reach the terminal.
+func TestTheErrorLineIsEscaped(t *testing.T) {
+	t.Parallel()
+
+	stderr := &output{}
+
+	code := run(t.Context(), Process{Stdout: &output{}, Stderr: stderr},
+		func(context.Context, Process, options) error {
+			return errors.New("open \"a\rb\x1b]0;title\x07\": no such file")
+		})
+
+	assert.Equal(t, exitFailure, code)
+	assert.Equal(t, "sdash: open \"a\\rb\\x1b]0;title\\x07\": no such file\n", stderr.String())
+}
+
 // An address that is not this machine's own is a mistake on the command
 // line like any other, although only the server can tell: it exits 2 and
 // opens nothing.
