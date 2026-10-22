@@ -6,10 +6,12 @@
 // user interface, and the place where the browser API is mounted.
 //
 // It exists so that the rules of the local listener live in one place
-// (doc/adr/0012-local-listener-security.md, and for how the two kinds of
-// listener were built doc/adr/0023-the-listeners-as-built.md). sdash acts
-// as the user who started it, and whoever can send it a request acts as
-// that user.
+// (doc/adr/0012-local-listener-security.md, for how the two kinds of
+// listener were built doc/adr/0023-the-listeners-as-built.md, and for what
+// go-clikit's localweb now keeps of them
+// doc/adr/0026-go-clikit-localweb-for-the-listener-and-the-guard.md). sdash
+// acts as the user who started it, and whoever can send it a request acts
+// as that user.
 //
 // There are two kinds of listener, and Config.Listen chooses between them:
 //
@@ -24,9 +26,13 @@
 //     it. It lies in a directory of the user's that nobody else can write
 //     to, below directories that nobody but the user and the system can
 //     rearrange, and is named without a symbolic link, so that nobody can
-//     put another socket under its path (privateDir). A browser cannot open
-//     a socket, so the user puts a forward in front of it, from a port of
-//     the machine the browser is on.
+//     put another socket under its path. A browser cannot open a socket, so
+//     the user puts a forward in front of it, from a port of the machine the
+//     browser is on.
+//
+// localweb.Listen binds both kinds and keeps the rules of the socket; the
+// server adds what it says in its log when the port it was asked for is
+// taken or the host has no IPv6 loopback address (listen).
 //
 // On either, a request is served only if it passes these checks, in this
 // order:

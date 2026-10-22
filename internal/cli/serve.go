@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/GSI-HPC/go-clikit/cobratree"
+	"github.com/GSI-HPC/go-clikit/localweb"
 
 	"github.com/GSI-HPC/sdash/internal/server"
 	"github.com/GSI-HPC/sdash/internal/static"
@@ -132,7 +133,7 @@ func serve(ctx context.Context, p Process, o options) error {
 	// line is reported as one.
 	listen, err := listenAddress(o.listen, p.getenv)
 	if err == nil {
-		err = server.CheckListen(listen)
+		err = localweb.CheckAddr(listen)
 	}
 	if err != nil {
 		return cobratree.Usagef("--listen: %w", err)
@@ -199,7 +200,7 @@ func serve(ctx context.Context, p Process, o options) error {
 // somewhere else. Without a runtime directory there is no default socket,
 // and one that is named by a relative path counts as none.
 func listenAddress(listen string, getenv func(string) string) (string, error) {
-	path, isSocket := strings.CutPrefix(listen, server.UnixScheme)
+	path, isSocket := strings.CutPrefix(listen, localweb.UnixPrefix)
 	if !isSocket {
 		return listen, nil
 	}
@@ -207,7 +208,7 @@ func listenAddress(listen string, getenv func(string) string) (string, error) {
 		runtimeDir := getenv(runtimeDirVariable)
 		if runtimeDir == "" {
 			return "", fmt.Errorf("%q names no socket, and %s, where the default one would lie, is not set; name one, as in %s/path/to/sdash.sock",
-				listen, runtimeDirVariable, server.UnixScheme)
+				listen, runtimeDirVariable, localweb.UnixPrefix)
 		}
 		if !filepath.IsAbs(runtimeDir) {
 			// The XDG Base Directory specification has a relative path in
@@ -216,7 +217,7 @@ func listenAddress(listen string, getenv func(string) string) (string, error) {
 			// directory sdash was started in.
 			return "", fmt.Errorf("%q names no socket, and %s, where the default one would lie, is %q: a relative path, which is "+
 				"not valid there and counts as not set; name one, as in %s/path/to/sdash.sock",
-				listen, runtimeDirVariable, runtimeDir, server.UnixScheme)
+				listen, runtimeDirVariable, runtimeDir, localweb.UnixPrefix)
 		}
 		path = filepath.Join(runtimeDir, socketDir, socketName)
 	}
@@ -226,13 +227,13 @@ func listenAddress(listen string, getenv func(string) string) (string, error) {
 		// named ~ in the working directory, which is a trap for whoever
 		// removes it later.
 		return "", fmt.Errorf("the shell has left the ~ in %q as it is; write the directory out, as in %s$HOME/sdash.sock",
-			listen, server.UnixScheme)
+			listen, localweb.UnixPrefix)
 	}
 	path, err := filepath.Abs(path)
 	if err != nil {
 		return "", fmt.Errorf("make the socket path absolute: %w", err)
 	}
-	return server.UnixScheme + path, nil
+	return localweb.UnixPrefix + path, nil
 }
 
 // getenv reads a variable of the environment of p.

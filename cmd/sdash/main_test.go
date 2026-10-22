@@ -22,7 +22,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/GSI-HPC/sdash/internal/server"
+	"github.com/GSI-HPC/go-clikit/localweb"
+
 	"github.com/GSI-HPC/sdash/internal/server/servertest"
 )
 
@@ -172,10 +173,10 @@ func TestAHangupStopsAServerOnASocketWhichRemovesTheSocket(t *testing.T) {
 	arrives(t, syscall.SIGHUP)
 
 	dir := servertest.SocketDir(t, func(dir string) bool {
-		return server.CheckListen(server.UnixScheme+filepath.Join(dir, "sdash.sock")) == nil
+		return localweb.CheckAddr(localweb.UnixPrefix+filepath.Join(dir, "sdash.sock")) == nil
 	})
 	path := filepath.Join(dir, "sdash.sock")
-	sdash := start(t, "main", "--listen", server.UnixScheme+path)
+	sdash := start(t, "main", "--listen", localweb.UnixPrefix+path)
 	sdash.expect(t, "sdash is serving on the unix socket "+path)
 	require.FileExists(t, path)
 	require.NoError(t, sdash.cmd.Process.Signal(syscall.SIGHUP))

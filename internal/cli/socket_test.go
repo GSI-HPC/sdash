@@ -20,6 +20,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/GSI-HPC/go-clikit/localweb"
+
 	"github.com/GSI-HPC/sdash/internal/server"
 	"github.com/GSI-HPC/sdash/internal/server/servertest"
 )
@@ -34,7 +36,7 @@ const endOfTheHint = " and in the address alike.\n"
 func privateDir(t *testing.T) string {
 	t.Helper()
 	return servertest.SocketDir(t, func(dir string) bool {
-		return server.CheckListen(server.UnixScheme+filepath.Join(dir, socketDir, socketName)) == nil
+		return localweb.CheckAddr(localweb.UnixPrefix+filepath.Join(dir, socketDir, socketName)) == nil
 	})
 }
 
@@ -325,14 +327,14 @@ func TestASocketThatCannotBeOpenedEndsSdashWithTheReason(t *testing.T) {
 			put: func(t *testing.T, _, path string) {
 				require.NoError(t, os.WriteFile(path, []byte("kept"), 0o600))
 			},
-			says: "exists and is not a socket; sdash does not remove it",
+			says: "exists and is not a socket; it is not removed",
 		},
 		{
 			name: "another sdash on it",
 			put: func(t *testing.T, _, path string) {
 				launchOnSocket(t, Process{Args: []string{"--listen", "unix:" + path}})
 			},
-			says: "another sdash is listening there",
+			says: "another server is listening on the socket",
 		},
 	}
 	for _, tt := range tests {

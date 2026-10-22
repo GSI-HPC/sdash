@@ -5,16 +5,20 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"sync"
 	"testing"
 	"testing/fstest"
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/GSI-HPC/go-clikit/localweb"
 )
 
 const (
@@ -31,8 +35,14 @@ const (
 	scriptBody = "console.log('sdash')"
 )
 
-func testAddr() *net.TCPAddr {
-	return &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: testPort}
+func testAddr() netip.AddrPort {
+	return netip.AddrPortFrom(netip.MustParseAddr("127.0.0.1"), testPort)
+}
+
+// answering is what a router answers to when its listeners are bound to
+// addrs, or to the socket when there is none.
+func answering(addrs ...netip.AddrPort) func(string) bool {
+	return (&localweb.Bound{Addrs: addrs}).Answers
 }
 
 // builtFiles is an interface as the bundler leaves it: the index, files
@@ -60,10 +70,10 @@ func discardLogger() *slog.Logger {
 // change adjusts that.
 func testRouter(changes ...func(*routerConfig)) http.Handler {
 	cfg := routerConfig{
-		addrs:  []*net.TCPAddr{testAddr()},
-		token:  testToken,
-		files:  builtFiles(),
-		logger: discardLogger(),
+		answers: answering(testAddr()),
+		token:   testToken,
+		files:   builtFiles(),
+		logger:  discardLogger(),
 	}
 	for _, change := range changes {
 		change(&cfg)
@@ -78,13 +88,12 @@ func withReadOnly(cfg *routerConfig) { cfg.readOnly = true }
 // onBothAddresses is a listener that holds testPort on 127.0.0.1 and on
 // ::1, as the name localhost has it bound.
 func onBothAddresses(cfg *routerConfig) {
-	cfg.addrs = []*net.TCPAddr{testAddr(), {IP: net.IPv6loopback, Port: testPort}}
+	cfg.answers = answering(testAddr(), netip.AddrPortFrom(netip.IPv6Loopback(), testPort))
 }
 
 // onSocket is a listener on a unix socket, which is bound to no address.
 func onSocket(cfg *routerConfig) {
-	cfg.addrs = nil
-	cfg.socket = true
+	cfg.answers = (&localweb.Bound{Socket: "/run/user/1000/sdash/sdash.sock"}).Answers
 }
 
 func withAPI(api http.Handler) func(*routerConfig) {
@@ -180,4 +189,10 @@ func await[T any](t *testing.T, ch <-chan T, what string) T {
 	}
 	var zero T
 	return zero
+}
+
+// systemBind binds on the machine the test runs on.
+func systemBind(ctx context.Context, network, address string) (net.Listener, error) {
+	var lc net.ListenConfig
+	return lc.Listen(ctx, network, address)
 }

@@ -249,13 +249,13 @@ func TestASocketThatCannotBeNamedIsAUsageError(t *testing.T) {
 		{
 			name:   "a path that is too long for a socket",
 			listen: "unix:/" + strings.Repeat("long/", 30) + "sdash.sock",
-			says:   "bytes long, and a unix socket on this system takes",
+			says:   "bytes long, and a Unix socket on this system takes",
 		},
 		{
 			name:   "a default socket that is too long",
 			listen: "unix:",
 			env:    map[string]string{"XDG_RUNTIME_DIR": "/" + strings.Repeat("long/", 30)},
-			says:   "bytes long, and a unix socket on this system takes",
+			says:   "bytes long, and a Unix socket on this system takes",
 		},
 	}
 	for _, tt := range tests {
