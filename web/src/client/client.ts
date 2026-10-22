@@ -13,6 +13,8 @@
 import {
   ErrorCode,
   type Error as ErrorBody,
+  type GetSessionData,
+  type GetSessionResponse,
   type GetStatusData,
   type GetStatusResponse,
 } from "../api/types.gen";
@@ -22,12 +24,23 @@ export { ErrorCode };
 /** What the status operation answers. */
 export type Status = GetStatusResponse;
 
+/** What the session operation answers. */
+export type Session = GetSessionResponse;
+
 /**
  * The base path of the API, the server of api/openapi.yaml. It is relative,
  * so the requests go to whichever address the page was loaded from.
  * client.test.ts holds it to the document.
  */
 export const basePath = "/api/v1";
+
+/**
+ * The header that carries the CSRF token of the session on a request that
+ * could change something. The server refuses such a request without it,
+ * before any operation sees it. client.test.ts holds the name to the
+ * document.
+ */
+export const csrfHeader = "X-Sdash-CSRF";
 
 /**
  * A request that the server answered, but not with what was asked for. The
@@ -64,6 +77,83 @@ export interface Client {
    * clusters it is configured for.
    */
   getStatus(options?: CallOptions): Promise<Status>;
+  /**
+   * Gives the CSRF token of the session. The transport sends it by itself on
+   * a request that could change something; a view has no use for it.
+   */
+  getSession(options?: CallOptions): Promise<Session>;
+}
+
+/** Sends a request to the API, and rejects with an ApiError if it fails. */
+export interface Transport {
+  /**
+   * Sends a request of method to url, relative to the base path. A request
+   * that could change something, which is any but GET and HEAD, carries the
+   * CSRF token of the session in csrfHeader. The token is read once with
+   * the session operation and kept. When the server refuses a request for
+   * lacking it, the kept token is dropped, so that the next request reads it
+   * again; the refusal is still the caller's to see.
+   */
+  send(url: string, options?: CallOptions, method?: string): Promise<Response>;
+}
+
+/**
+ * Makes the transport of the calls on the given fetch: the headers every
+ * request carries, the CSRF token of the ones that could change something,
+ * and the rejection of an answer that is a failure.
+ */
+export function createTransport(fetch: typeof globalThis.fetch): Transport {
+  async function request(
+    method: string,
+    url: string,
+    headers: Record<string, string>,
+    signal: AbortSignal | undefined,
+  ): Promise<Response> {
+    const response = await fetch(basePath + url, {
+      method,
+      headers: { Accept: "application/json", ...headers },
+      signal: signal ?? null,
+    });
+    if (!response.ok) {
+      throw await errorOf(response);
+    }
+    return response;
+  }
+
+  // The token is kept as the promise of it, so that requests that start
+  // together read it once.
+  let token: Promise<string> | undefined;
+  function csrfToken(signal: AbortSignal | undefined): Promise<string> {
+    const url: GetSessionData["url"] = "/session";
+    token ??= request("GET", url, {}, signal)
+      .then(
+        async (response) =>
+          ((await bodyOf(response)) as GetSessionResponse).csrfToken,
+      )
+      .catch((error: unknown) => {
+        // A token that could not be read is read again by the next request.
+        token = undefined;
+        throw error;
+      });
+    return token;
+  }
+
+  return {
+    async send(url, options = {}, method = "GET") {
+      const headers: Record<string, string> = {};
+      if (method !== "GET" && method !== "HEAD") {
+        headers[csrfHeader] = await csrfToken(options.signal);
+      }
+      try {
+        return await request(method, url, headers, options.signal);
+      } catch (error) {
+        if (error instanceof ApiError && error.code === ErrorCode.CSRF) {
+          token = undefined;
+        }
+        throw error;
+      }
+    },
+  };
 }
 
 /**
@@ -77,22 +167,18 @@ export interface Client {
  * the request was aborted, or sdash is not running any more.
  */
 export function createClient(fetch: typeof globalThis.fetch): Client {
-  async function send(url: string, options: CallOptions): Promise<Response> {
-    const response = await fetch(basePath + url, {
-      headers: { Accept: "application/json" },
-      signal: options.signal ?? null,
-    });
-    if (!response.ok) {
-      throw await errorOf(response);
-    }
-    return response;
-  }
+  const transport = createTransport(fetch);
 
   return {
     async getStatus(options = {}) {
       const url: GetStatusData["url"] = "/status";
-      const response = await send(url, options);
+      const response = await transport.send(url, options);
       return (await bodyOf(response)) as GetStatusResponse;
+    },
+    async getSession(options = {}) {
+      const url: GetSessionData["url"] = "/session";
+      const response = await transport.send(url, options);
+      return (await bodyOf(response)) as GetSessionResponse;
     },
   };
 }

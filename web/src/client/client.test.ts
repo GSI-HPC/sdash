@@ -4,7 +4,14 @@
 import { expect, test } from "vitest";
 
 import openapi from "../../../api/openapi.yaml?raw";
-import { ApiError, basePath, createClient, ErrorCode } from "./client";
+import {
+  ApiError,
+  basePath,
+  createClient,
+  createTransport,
+  csrfHeader,
+  ErrorCode,
+} from "./client";
 
 /** A request as the fake server saw it. */
 interface Seen {
@@ -214,3 +221,151 @@ test("a request that gets no answer rejects with what fetch rejected with", asyn
 
   await expect(client.getStatus()).rejects.toBe(gone);
 });
+
+// The header is written down in the document, in the server and here, and the
+// generated types carry it only in a sentence. Nothing but a test ties this
+// copy to the document.
+test("the CSRF header is the one of the document", () => {
+  expect(openapi).toContain(`\`${csrfHeader}\``);
+});
+
+test("a call for the session resolves with the session", async () => {
+  const { client, seen } = clientOf(() => json(200, { csrfToken: "T0KEN" }));
+
+  await expect(client.getSession()).resolves.toEqual({ csrfToken: "T0KEN" });
+
+  expect(seen.map(({ url }) => url)).toEqual(["/api/v1/session"]);
+});
+
+/** The headers of a request, whichever form fetch was given them in. */
+function headersOf(init: RequestInit | undefined): Headers {
+  return new Headers(init?.headers);
+}
+
+// A read changes nothing, so it sends no token and does not ask for one.
+test.each(["GET", "HEAD"])("a %s sends no CSRF token", async (method) => {
+  const { transport, seen } = transportOf(() => json(200, {}));
+
+  await transport.send("/status", {}, method);
+
+  expect(seen).toHaveLength(1);
+  expect(headersOf(seen[0]?.init).has(csrfHeader)).toBe(false);
+});
+
+// No operation of the API changes anything yet; the rule is held to the
+// transport, which the first one will use.
+test.each(["POST", "PUT", "PATCH", "DELETE"])(
+  "a %s reads the token of the session and sends it",
+  async (method) => {
+    const { transport, seen } = transportOf((url) =>
+      url.endsWith("/session")
+        ? json(200, { csrfToken: "T0KEN" })
+        : json(200, {}),
+    );
+
+    await transport.send("/jobs", {}, method);
+
+    expect(seen.map(({ url, init }) => [init?.method, url])).toEqual([
+      ["GET", "/api/v1/session"],
+      [method, "/api/v1/jobs"],
+    ]);
+    expect(headersOf(seen[1]?.init).get(csrfHeader)).toBe("T0KEN");
+    expect(headersOf(seen[0]?.init).has(csrfHeader)).toBe(false);
+  },
+);
+
+test("the token is read once for requests that follow each other or start together", async () => {
+  const { transport, seen } = transportOf((url) =>
+    url.endsWith("/session")
+      ? json(200, { csrfToken: "T0KEN" })
+      : json(200, {}),
+  );
+
+  await Promise.all([
+    transport.send("/jobs", {}, "POST"),
+    transport.send("/jobs", {}, "DELETE"),
+  ]);
+  await transport.send("/jobs", {}, "POST");
+
+  expect(seen.filter(({ url }) => url.endsWith("/session"))).toHaveLength(1);
+  expect(seen).toHaveLength(4);
+});
+
+// A request that cannot be sent without a token is not sent without one.
+test("a token that cannot be read fails the request before it is sent, and is read again next time", async () => {
+  let answer = () => json(500, { code: "internal", message: "no" });
+  const { transport, seen } = transportOf((url) =>
+    url.endsWith("/session") ? answer() : json(200, {}),
+  );
+
+  await expect(transport.send("/jobs", {}, "POST")).rejects.toMatchObject({
+    status: 500,
+  });
+  expect(seen.map(({ url }) => url)).toEqual(["/api/v1/session"]);
+
+  answer = () => json(200, { csrfToken: "T0KEN" });
+  await transport.send("/jobs", {}, "POST");
+
+  expect(seen.map(({ url }) => url)).toEqual([
+    "/api/v1/session",
+    "/api/v1/session",
+    "/api/v1/jobs",
+  ]);
+});
+
+// The server forgets the token when it restarts, or the page is of an older
+// run: the refusal says so, and the next request reads the token again.
+test("a refusal for the token drops it, so that the next request reads it again", async () => {
+  let tokens = 0;
+  let refuse = true;
+  const { transport, seen } = transportOf((url) => {
+    if (url.endsWith("/session")) {
+      tokens += 1;
+      return json(200, { csrfToken: `T0KEN${String(tokens)}` });
+    }
+    return refuse
+      ? json(403, { code: "csrf", message: "reload the page" })
+      : json(200, {});
+  });
+
+  await expect(transport.send("/jobs", {}, "POST")).rejects.toMatchObject({
+    status: 403,
+    code: ErrorCode.CSRF,
+  });
+  refuse = false;
+  await transport.send("/jobs", {}, "POST");
+
+  expect(headersOf(seen[1]?.init).get(csrfHeader)).toBe("T0KEN1");
+  expect(headersOf(seen[3]?.init).get(csrfHeader)).toBe("T0KEN2");
+});
+
+// Another refusal does not say the token is wrong.
+test("a refusal of another kind keeps the token", async () => {
+  const { transport, seen } = transportOf((url) =>
+    url.endsWith("/session")
+      ? json(200, { csrfToken: "T0KEN" })
+      : json(403, { code: "read_only", message: "read-only" }),
+  );
+
+  await expect(transport.send("/jobs", {}, "POST")).rejects.toMatchObject({
+    code: ErrorCode.READ_ONLY,
+  });
+  await expect(transport.send("/jobs", {}, "POST")).rejects.toMatchObject({
+    code: ErrorCode.READ_ONLY,
+  });
+
+  expect(seen.filter(({ url }) => url.endsWith("/session"))).toHaveLength(1);
+});
+
+/** A transport whose requests go to a function that stands in for the server. */
+function transportOf(respond: (url: string) => Response | Promise<Response>) {
+  const seen: Seen[] = [];
+  const transport = createTransport((input, init) => {
+    if (typeof input !== "string") {
+      throw new TypeError("the transport was expected to pass a string");
+    }
+    seen.push({ url: input, init });
+    return Promise.resolve(respond(input));
+  });
+  return { transport, seen };
+}
