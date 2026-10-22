@@ -4,13 +4,28 @@
 package server
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
-	"regexp"
+	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/GSI-HPC/go-clikit/localweb/localwebtest"
+	"github.com/GSI-HPC/go-clikit/localweb/session"
+
+	"github.com/GSI-HPC/sdash/internal/api"
 )
+
+// What the session does is localweb/session's to test: the cookie's
+// attributes, the redirect, the comparison of secrets and the CSRF token. These
+// tests hold what sdash adds to it: the name of the cookie and of the header,
+// the words of a refusal and the Error that carries it under /api/, and the
+// operation that gives the page its CSRF token.
 
 // The token signs a browser in once; from then on the cookie does, and the
 // token leaves the address bar, where a screen share, a screenshot or a
@@ -28,7 +43,10 @@ func TestTheFirstNavigationTradesTheTokenForTheSessionCookie(t *testing.T) {
 	cookie, err := http.ParseSetCookie(got.Header().Get("Set-Cookie"))
 	require.NoError(t, err)
 	assert.Equal(t, "sdash_session_7374", cookie.Name)
-	assert.Equal(t, testToken, cookie.Value)
+	// The session has an identifier of its own: the cookie never holds the
+	// secret that the address printed.
+	assert.NotEmpty(t, cookie.Value)
+	assert.NotEqual(t, testToken, cookie.Value)
 	assert.Equal(t, "/", cookie.Path)
 	// No script may read it, and no request another site causes may carry
 	// it.
@@ -63,7 +81,6 @@ func TestTheExchangeKeepsThePathAndTheRestOfTheQuery(t *testing.T) {
 			target: "//evil.example/?token=" + testToken,
 			want:   "/evil.example/",
 		},
-		{name: "a backslash, which a browser reads as a slash", target: `/\evil.example/?token=` + testToken, want: "/%5Cevil.example/"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -78,8 +95,9 @@ func TestTheExchangeKeepsThePathAndTheRestOfTheQuery(t *testing.T) {
 }
 
 // A bookmark of an earlier launch, or a guess, signs nobody in, and says
-// why instead of showing an interface that then fails on every request.
-func TestATokenThatIsNotThisLaunchsIsRefused(t *testing.T) {
+// why and what to do instead of showing an interface that then fails on
+// every request.
+func TestATokenThatIsNotThisLaunchsIsRefusedWithTheWayIn(t *testing.T) {
 	t.Parallel()
 
 	for name, token := range map[string]string{
@@ -94,27 +112,30 @@ func TestATokenThatIsNotThisLaunchsIsRefused(t *testing.T) {
 
 			assert.Equal(t, http.StatusForbidden, got.Code)
 			assert.Empty(t, got.Header().Get("Set-Cookie"))
-			assert.Contains(t, got.Body.String(), "earlier run")
+			assert.Contains(t, got.Body.String(), "old or wrong token")
+			assert.Contains(t, got.Body.String(), openTheAddress)
 		})
 	}
 }
 
-// The exchange belongs to a navigation to a page. Under /api/ a parameter
-// called token is the API's own business, and a POST is no navigation.
-func TestOnlyANavigationToAPageExchangesTheToken(t *testing.T) {
+// A browser that has not been signed in is not served the interface, and is
+// told how to get in. The page it would get is of no use without the API.
+func TestAPageIsRefusedToABrowserThatIsNotSignedInAndSaysHowToGetIn(t *testing.T) {
 	t.Parallel()
 
-	stub := &apiStub{}
-	router := testRouter(withAPI(stub))
+	for _, target := range []string{"/", "/jobs", "/assets/index-BfK3x9Qa.js", "/favicon.svg"} {
+		t.Run(target, func(t *testing.T) {
+			t.Parallel()
 
-	underAPI := serve(router, request(http.MethodGet, "/api/v1/status?token="+testToken))
-	assert.Equal(t, http.StatusUnauthorized, underAPI.Code)
-	assert.Empty(t, underAPI.Header().Get("Set-Cookie"))
-	assert.Empty(t, stub.seen())
+			got := serve(testRouter(), request(http.MethodGet, target))
 
-	posted := serve(router, request(http.MethodPost, "/?token="+testToken))
-	assert.Equal(t, http.StatusMethodNotAllowed, posted.Code)
-	assert.Empty(t, posted.Header().Get("Set-Cookie"))
+			assert.Equal(t, http.StatusForbidden, got.Code)
+			assert.Equal(t, "text/plain; charset=utf-8", got.Header().Get("Content-Type"))
+			assert.Contains(t, got.Body.String(), "not signed in")
+			assert.Contains(t, got.Body.String(), openTheAddress)
+			assert.NotContains(t, got.Body.String(), "<div")
+		})
+	}
 }
 
 // Any local process and any page can send a request to the port. The cookie
@@ -122,21 +143,23 @@ func TestOnlyANavigationToAPageExchangesTheToken(t *testing.T) {
 func TestTheAPIServesOnlyTheSessionOfThisLaunch(t *testing.T) {
 	t.Parallel()
 
+	signedInCookie, _ := signIn(testHost)
 	tests := []struct {
 		name   string
 		cookie *http.Cookie
 		want   int
 	}{
-		{name: "the cookie of this launch", cookie: &http.Cookie{Name: "sdash_session_7374", Value: testToken}, want: http.StatusOK},
+		{name: "a session of this launch", cookie: signedInCookie, want: http.StatusOK},
 		{name: "no cookie", want: http.StatusUnauthorized},
-		{name: "the cookie of an earlier launch", cookie: &http.Cookie{Name: "sdash_session_7374", Value: "EARLIERLAUNCHEARLIERLAUNCH"}, want: http.StatusUnauthorized},
+		{name: "a session that was never made", cookie: &http.Cookie{Name: "sdash_session_7374", Value: "EARLIERLAUNCHEARLIERLAUNCH"}, want: http.StatusUnauthorized},
+		{name: "the launch token in place of a session", cookie: &http.Cookie{Name: "sdash_session_7374", Value: testToken}, want: http.StatusUnauthorized},
 		{name: "an empty cookie", cookie: &http.Cookie{Name: "sdash_session_7374", Value: ""}, want: http.StatusUnauthorized},
 		{
 			// Cookies are kept per host name, whatever the port: the
 			// cookie of a second sdash arrives here as well, under its own
 			// name.
-			name:   "the right value under another port's name",
-			cookie: &http.Cookie{Name: "sdash_session_7375", Value: testToken},
+			name:   "a session under another port's name",
+			cookie: &http.Cookie{Name: "sdash_session_7375", Value: signedInCookie.Value},
 			want:   http.StatusUnauthorized,
 		},
 	}
@@ -155,51 +178,35 @@ func TestTheAPIServesOnlyTheSessionOfThisLaunch(t *testing.T) {
 			assert.Equal(t, tt.want, got.Code)
 			if tt.want == http.StatusOK {
 				assert.Equal(t, []string{"GET /api/v1/status"}, stub.seen())
-			} else {
-				assert.Empty(t, stub.seen())
-				assert.NotContains(t, got.Body.String(), "stub")
+				return
 			}
+			assert.Empty(t, stub.seen())
+			body := apiError(t, got)
+			assert.Equal(t, api.ErrorCodeNotSignedIn, body.Code)
+			assert.NotContains(t, got.Body.String(), "stub")
 		})
 	}
 }
 
-// A router put together without a token must not treat "no token" as the
-// right one: an empty cookie would then sign anyone in.
-func TestAnEmptySecretMatchesNothing(t *testing.T) {
+// The session is checked before the router looks at the address, so a
+// request without one learns nothing about which addresses exist.
+func TestARequestWithoutASessionLearnsNothingAboutTheAddresses(t *testing.T) {
 	t.Parallel()
 
-	assert.False(t, sameSecret("", ""))
-	assert.False(t, sameSecret("anything", ""))
-	assert.True(t, sameSecret(testToken, testToken))
+	router := testRouter(withAPI(&apiStub{}))
 
-	router := testRouter(withAPI(&apiStub{}), func(cfg *routerConfig) { cfg.token = "" })
-	r := request(http.MethodGet, "/api/v1/status")
-	r.AddCookie(&http.Cookie{Name: "sdash_session_7374", Value: ""})
-	assert.Equal(t, http.StatusUnauthorized, serve(router, r).Code)
-	assert.Equal(t, http.StatusForbidden, serve(router, request(http.MethodGet, "/?token=")).Code)
-}
+	known := serve(router, request(http.MethodGet, "/api/v1/status"))
+	unknown := serve(router, request(http.MethodGet, "/api/v2/nothing"))
+	bare := serve(router, request(http.MethodGet, "/api"))
 
-// The token goes into an address and into a cookie as it is, and it is all
-// that stands between a local process and the user's Slurm identity.
-func TestATokenIsLongRandomAndSafeInAnAddress(t *testing.T) {
-	t.Parallel()
-
-	first, second := newToken(), newToken()
-
-	assert.NotEqual(t, first, second)
-	// 26 characters of base32 hold 130 bits.
-	assert.Regexp(t, regexp.MustCompile(`^[A-Z2-7]{26,}$`), first)
+	for _, got := range []*httptest.ResponseRecorder{known, unknown, bare} {
+		assert.Equal(t, http.StatusUnauthorized, got.Code)
+		assert.Equal(t, api.ErrorCodeNotSignedIn, apiError(t, got).Code)
+	}
 }
 
 // Two sdash processes on one machine share the browser's cookies for
 // 127.0.0.1; a name without the port would have each sign the other out.
-func TestTheCookieIsNamedAfterThePort(t *testing.T) {
-	t.Parallel()
-
-	assert.Equal(t, "sdash_session_7374", cookieName("7374"))
-	assert.NotEqual(t, cookieName("7374"), cookieName("41233"))
-}
-
 // The port in the name is the one the browser sent the request to, which it
 // states in the Host header. A listener on a unix socket has no port of its
 // own to go by: the browser names the port of whatever forward the user put
@@ -260,12 +267,103 @@ func TestTheCookieOfAnotherPortDoesNotSignInBehindAForward(t *testing.T) {
 
 	stub := &apiStub{}
 	router := testRouter(withAPI(stub), onSocket)
+	cookie, _ := signIn("127.0.0.1:7374")
 	r := request(http.MethodGet, "/api/v1/status")
 	r.Host = "127.0.0.1:18080"
-	r.AddCookie(&http.Cookie{Name: "sdash_session_7374", Value: testToken})
+	r.AddCookie(cookie)
 
 	assert.Equal(t, http.StatusUnauthorized, serve(router, r).Code)
 	assert.Empty(t, stub.seen())
+}
+
+// A request that could change something must name the CSRF token of its
+// session, which a page of another site cannot read. The session sees to it
+// before any handler runs, so an operation added later is covered without
+// anybody having to remember.
+func TestARequestThatCouldChangeSomethingNeedsTheTokenOfItsSession(t *testing.T) {
+	t.Parallel()
+
+	cookie, csrf := signIn(testHost)
+	_, otherCSRF := signIn(testHost)
+	tests := []struct {
+		name   string
+		header string
+		want   int
+		code   api.ErrorCode
+	}{
+		{name: "the token of the session", header: csrf, want: http.StatusOK},
+		{name: "no token", want: http.StatusForbidden, code: api.ErrorCodeCsrf},
+		{name: "a wrong token", header: "WRONGWRONGWRONG", want: http.StatusForbidden, code: api.ErrorCodeCsrf},
+		{name: "the token of another session", header: otherCSRF, want: http.StatusForbidden, code: api.ErrorCodeCsrf},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			stub := &apiStub{}
+			r := request(http.MethodPost, "/api/v1/jobs")
+			r.AddCookie(cookie)
+			if tt.header != "" {
+				r.Header.Set(csrfHeader, tt.header)
+			}
+
+			got := serve(testRouter(withAPI(stub)), r)
+
+			assert.Equal(t, tt.want, got.Code)
+			if tt.want == http.StatusOK {
+				assert.Equal(t, []string{"POST /api/v1/jobs"}, stub.seen())
+				return
+			}
+			assert.Empty(t, stub.seen())
+			assert.Equal(t, tt.code, apiError(t, got).Code)
+		})
+	}
+}
+
+// A read changes nothing, so it needs no token: the page asks for the token
+// with one.
+func TestAReadNeedsNoToken(t *testing.T) {
+	t.Parallel()
+
+	cookie, _ := signIn(testHost)
+	r := request(http.MethodGet, "/api/v1/status")
+	r.AddCookie(cookie)
+
+	assert.Equal(t, http.StatusOK, serve(testRouter(withAPI(&apiStub{})), r).Code)
+}
+
+// What the session refuses in a form is answered as the Error of the
+// document, with the status the session gave.
+func TestAFormTheSessionCannotTakeIsABadRequestOfTheAPI(t *testing.T) {
+	t.Parallel()
+
+	cookie, csrf := signIn(testHost)
+	tests := []struct {
+		name string
+		body string
+		want int
+	}{
+		{name: "a form that is larger than the session takes", body: "a=" + strings.Repeat("x", 65<<10), want: http.StatusRequestEntityTooLarge},
+		{name: "a form that is malformed", body: "a=%zz", want: http.StatusBadRequest},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			stub := &apiStub{}
+			r := request(http.MethodPost, "/api/v1/jobs")
+			r.AddCookie(cookie)
+			r.Header.Set(csrfHeader, csrf)
+			r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			r.Body = io.NopCloser(strings.NewReader(tt.body))
+
+			got := serve(testRouter(withAPI(stub)), r)
+
+			assert.Equal(t, tt.want, got.Code)
+			assert.Empty(t, stub.seen())
+			assert.Equal(t, api.ErrorCodeBadRequest, apiError(t, got).Code)
+		})
+	}
 }
 
 // A log is copied into issues and read by more people than a terminal is.
@@ -273,13 +371,86 @@ func TestTheLogNeverHoldsTheToken(t *testing.T) {
 	t.Parallel()
 
 	log := &logBuffer{}
-	router := testRouter(withAPI(&apiStub{}), withLogger(log.logger()))
+	router, signedIn := loggedRouter(log, withAPI(&apiStub{}))
 
-	serve(router, request(http.MethodGet, "/jobs?token="+testToken))
+	serve(router, request(http.MethodGet, "/jobs?token="+testToken+"x"))
 	serve(router, request(http.MethodGet, "/?token="+testToken+"x"))
 	serve(router, signedIn(request(http.MethodGet, "/api/v1/status?token="+testToken)))
 	serve(router, request(http.MethodGet, "/api/v1/status?token="+testToken))
 
 	assert.Contains(t, log.String(), "path=/jobs")
 	assert.NotContains(t, log.String(), testToken)
+}
+
+// Without a session, a request is refused as a matter of course: a tab left
+// open across a restart asks again and again. A token that is wrong is not.
+func TestOnlyAWrongTokenIsAWarning(t *testing.T) {
+	t.Parallel()
+
+	log := &logBuffer{}
+	router, _ := loggedRouter(log, withAPI(&apiStub{}))
+
+	serve(router, request(http.MethodGet, "/api/v1/status"))
+	assert.NotContains(t, log.String(), "level=WARN")
+	assert.Contains(t, log.String(), "level=DEBUG msg=\"refusing a request without a valid session\"")
+
+	serve(router, request(http.MethodGet, "/?token=wrong"))
+	assert.Contains(t, log.String(), "level=WARN msg=\"refusing a request without a valid session\"")
+}
+
+// The page reads its CSRF token with the operation getSession and sends it
+// back in the header on the requests that could change something. This runs
+// the whole way over a real connection, as a browser that signed in would,
+// with the client of localwebtest.
+func TestThePageReadsItsTokenAndSendsItBack(t *testing.T) {
+	t.Parallel()
+
+	for _, readOnly := range []bool{false, true} {
+		t.Run(map[bool]string{false: "read-write", true: "read-only"}[readOnly], func(t *testing.T) {
+			t.Parallel()
+
+			srv := start(t, Config{API: NewAPI(APIConfig{ReadOnly: readOnly}), ReadOnly: readOnly})
+			printed, err := url.Parse(srv.URL())
+			require.NoError(t, err)
+			base := "http://" + printed.Host
+			page := localwebtest.Login(t, base, printed.Query().Get(session.TokenParam))
+
+			answer := page.Get(t, APIPrefix+"/session")
+			defer func() { _ = answer.Body.Close() }()
+			require.Equal(t, http.StatusOK, answer.StatusCode)
+			var got api.Session
+			require.NoError(t, decode(answer.Body, &got))
+			require.NotEmpty(t, got.CsrfToken)
+			assert.Equal(t, "no-store", answer.Header.Get("Cache-Control"))
+
+			// Without the token the session refuses the change, before the
+			// mode or the API is asked.
+			refused := page.PostForm(t, APIPrefix+"/status", nil)
+			defer func() { _ = refused.Body.Close() }()
+			assert.Equal(t, http.StatusForbidden, refused.StatusCode)
+			var refusal api.Error
+			require.NoError(t, decode(refused.Body, &refusal))
+			assert.Equal(t, api.ErrorCodeCsrf, refusal.Code)
+
+			// With it the request gets as far as the mode, and as far as the
+			// API without it.
+			page.Header.Set(csrfHeader, got.CsrfToken)
+			sent := page.PostForm(t, APIPrefix+"/status", nil)
+			defer func() { _ = sent.Body.Close() }()
+			var outcome api.Error
+			require.NoError(t, decode(sent.Body, &outcome))
+			if readOnly {
+				assert.Equal(t, http.StatusForbidden, sent.StatusCode)
+				assert.Equal(t, api.ErrorCodeReadOnly, outcome.Code)
+			} else {
+				assert.Equal(t, http.StatusMethodNotAllowed, sent.StatusCode)
+				assert.Equal(t, api.ErrorCodeMethodNotAllowed, outcome.Code)
+			}
+		})
+	}
+}
+
+// decode reads the JSON a body holds into v.
+func decode(body io.Reader, v any) error {
+	return json.NewDecoder(body).Decode(v)
 }

@@ -196,7 +196,7 @@ func TestThePagesAreServedToANavigationFromAnotherSite(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := serve(testRouter(), request(http.MethodGet, "/jobs", tt.headers...))
+			got := serve(testRouter(), signedIn(request(http.MethodGet, "/jobs", tt.headers...)))
 
 			assert.Equal(t, tt.want, got.Code)
 			if tt.want == http.StatusOK {

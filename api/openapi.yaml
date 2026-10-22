@@ -25,7 +25,9 @@ info:
     The server answers a request only if it comes from a page of the
     server's own origin and carries the session cookie. The server gives
     that cookie to the browser that opens the address sdash printed when it
-    started.
+    started. A request that changes anything, which is never a GET, also
+    carries the CSRF token of its session in the header `X-Sdash-CSRF`; the
+    page reads it with `getSession`.
 
     Every answer is JSON, and every answer that is not a success is an
     Error. The one exception lies outside the API: a request that names the
@@ -71,6 +73,27 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Status"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /session:
+    get:
+      operationId: getSession
+      summary: The CSRF token of the session that asks
+      description: |
+        Gives the CSRF token of the session the request belongs to. A request
+        that changes anything sends it back in the header `X-Sdash-CSRF`, and
+        the server refuses one that does not with the Error `csrf`. The token
+        is the session's: it differs from one browser to the next and ends
+        with the run of sdash. Only a page of the server's own origin can read
+        this answer, which is why a page of another site cannot send the token.
+      responses:
+        "200":
+          description: The token of the session.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
         default:
           $ref: "#/components/responses/Error"
 
@@ -127,6 +150,18 @@ components:
           items:
             $ref: "#/components/schemas/Cluster"
 
+    Session:
+      description: The session that a browser signed in with.
+      type: object
+      required:
+        - csrfToken
+      properties:
+        csrfToken:
+          description: |
+            The token a request that changes anything sends in the header
+            `X-Sdash-CSRF`.
+          type: string
+
     # A cluster has a name and nothing else for now. What sdash says about a
     # cluster is defined from what its slurmrestd serves, and that waits,
     # with everything that speaks to Slurm, for
@@ -166,6 +201,9 @@ components:
         - `bad_request`: the request is not one the operation accepts.
         - `not_signed_in`: the request does not carry the session cookie of
           this run of sdash.
+        - `csrf`: the request could change something and lacks the CSRF
+          token of its session. The page reads the token again with
+          `getSession`, or is reloaded.
         - `cross_origin`: the request comes from a page of another origin.
         - `read_only`: sdash was started with --read-only, and the request
           has a method other than GET, HEAD and OPTIONS, which could change
@@ -178,6 +216,7 @@ components:
       enum:
         - bad_request
         - not_signed_in
+        - csrf
         - cross_origin
         - read_only
         - not_found

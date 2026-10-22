@@ -49,11 +49,47 @@ func refuseCrossSite(logger *slog.Logger) localweb.Refuser {
 	return func(w http.ResponseWriter, r *http.Request, f localweb.Refusal) {
 		logger.Warn("refusing a request from another origin",
 			"reason", f.Reason, "method", r.Method, "path", r.URL.Path)
-		if strings.HasPrefix(r.URL.Path, "/api/") || r.URL.Path == "/api" {
+		if underAPI(r.URL.Path) {
 			writeError(w, f.Status, api.ErrorCodeCrossOrigin, f.Message)
 			return
 		}
 		localweb.Refuse(w, r, f)
+	}
+}
+
+// underAPI reports whether path is the API's: the bare prefix or an address
+// below it. The router registers the same two patterns, so a check that goes
+// by the path and the route that is taken agree.
+func underAPI(path string) bool {
+	return path == "/api" || strings.HasPrefix(path, "/api/")
+}
+
+// sameOrigin refuses every request that a page of another site caused, by
+// the rule that suits the address. A page of the interface may be navigated
+// to from anywhere, as a link in a mail is. Under /api/ nothing is a page:
+// the request comes from a page of the server's own origin, whatever its
+// method, and a navigation to an address of the API is refused too. Reads are
+// checked like writes: the answer to a GET shows the cluster as the signed-in
+// user sees it, and no CORS header relaxes this for anyone.
+//
+// With dev, the origins of the Vite dev server pass for the API.
+func sameOrigin(dev bool, logger *slog.Logger) func(http.Handler) http.Handler {
+	refuse := refuseCrossSite(logger)
+	apiOrigin := localweb.Origin{Refuse: refuse}
+	if dev {
+		apiOrigin.Others = viteOrigins
+	}
+	forAPI := localweb.SameOrigin(apiOrigin)
+	forPages := localweb.SameOrigin(localweb.Origin{Navigate: true, Refuse: refuse})
+	return func(next http.Handler) http.Handler {
+		checkAPI, checkPages := forAPI(next), forPages(next)
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if underAPI(r.URL.Path) {
+				checkAPI.ServeHTTP(w, r)
+				return
+			}
+			checkPages.ServeHTTP(w, r)
+		})
 	}
 }
 

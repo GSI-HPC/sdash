@@ -63,6 +63,16 @@ func TestTheServedStatusDescribesThisBinaryAndItsFlags(t *testing.T) {
 			assert.Equal(t, tt.readOnly, status.ReadOnly)
 			assert.Empty(t, status.Clusters)
 
+			// A page reads the CSRF token of its session with the API and
+			// sends it back on a request that could change something.
+			session, err := client.Get("http://" + address.Host + server.APIPrefix + "/session")
+			require.NoError(t, err)
+			defer func() { _ = session.Body.Close() }()
+			require.Equal(t, http.StatusOK, session.StatusCode)
+			var token api.Session
+			require.NoError(t, json.NewDecoder(session.Body).Decode(&token))
+			require.NotEmpty(t, token.CsrfToken)
+
 			// The mode the status reports is the mode the server keeps:
 			// with --read-only a request that could change something is
 			// refused for that reason, and without it the request gets as
@@ -73,6 +83,7 @@ func TestTheServedStatusDescribesThisBinaryAndItsFlags(t *testing.T) {
 				"http://"+address.Host+server.APIPrefix+"/status", nil)
 			require.NoError(t, err)
 			post.Header.Set("Origin", "http://"+address.Host)
+			post.Header.Set("X-Sdash-CSRF", token.CsrfToken)
 			changed, err := client.Do(post)
 			require.NoError(t, err)
 			defer func() { _ = changed.Body.Close() }()

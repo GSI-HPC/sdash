@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/GSI-HPC/go-clikit/localweb"
+	"github.com/GSI-HPC/go-clikit/localweb/session"
 )
 
 // running is a Server whose Run is under way in a goroutine.
@@ -120,7 +121,7 @@ func TestTheAddressNamesTheBoundPortAndTheToken(t *testing.T) {
 
 	srv := start(t, Config{})
 
-	assert.Regexp(t, regexp.MustCompile(`^http://127\.0\.0\.1:[1-9][0-9]*/\?token=[A-Z2-7]{26,}$`), srv.URL())
+	assert.Regexp(t, regexp.MustCompile(`^http://127\.0\.0\.1:[1-9][0-9]*/\?token=[A-Za-z0-9_-]{43}$`), srv.URL())
 }
 
 // Each launch has a secret of its own, so the address of one sdash opens no
@@ -183,6 +184,25 @@ func fetch(t *testing.T, dial, host, target string, cookies ...*http.Cookie) (in
 	return resp.StatusCode, string(body)
 }
 
+// signInAt trades the launch token for the session cookie at dial, under the
+// name host, and returns the cookie.
+func signInAt(t *testing.T, dial, host, token string) *http.Cookie {
+	t.Helper()
+	r, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+dial+"/?token="+token, nil)
+	require.NoError(t, err)
+	r.Host = host
+	client := &http.Client{
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+	}
+	t.Cleanup(client.CloseIdleConnections)
+	resp, err := client.Do(r)
+	require.NoError(t, err)
+	require.NoError(t, resp.Body.Close())
+	require.Equal(t, http.StatusSeeOther, resp.StatusCode, "%s as %s signs in", dial, host)
+	require.Len(t, resp.Cookies(), 1)
+	return resp.Cookies()[0]
+}
+
 // The default: sdash holds its port on 127.0.0.1 and on ::1, one handler
 // answers on both, and with both held it answers to the name localhost,
 // which a browser may take to either. The test binds real addresses, so the
@@ -197,7 +217,6 @@ func TestLocalhostIsServedOnBothLoopbackAddressesUnderEveryNameOfTheirs(t *testi
 	require.NoError(t, err)
 	port := printed.Port()
 	token := printed.Query().Get("token")
-	session := &http.Cookie{Name: "sdash_session_" + port, Value: token}
 
 	// The address the user is given keeps the literal form, which leads to
 	// sdash whatever a resolver makes of the name.
@@ -207,14 +226,13 @@ func TestLocalhostIsServedOnBothLoopbackAddressesUnderEveryNameOfTheirs(t *testi
 
 	for _, address := range []string{"127.0.0.1:" + port, "[::1]:" + port} {
 		for _, name := range []string{address, "localhost:" + port} {
-			status, body := fetch(t, address, name, "/")
+			cookie := signInAt(t, address, name, token)
+
+			status, body := fetch(t, address, name, "/", cookie)
 			assert.Equal(t, http.StatusOK, status, "%s as %s", address, name)
 			assert.Equal(t, indexBody, body)
 
-			status, _ = fetch(t, address, name, "/?token="+token)
-			assert.Equal(t, http.StatusSeeOther, status, "%s as %s signs in", address, name)
-
-			status, body = fetch(t, address, name, "/api/v1/status", session)
+			status, body = fetch(t, address, name, "/api/v1/status", cookie)
 			assert.Equal(t, http.StatusOK, status, "%s as %s reaches the API", address, name)
 			assert.JSONEq(t, `{"stub":true}`, body)
 		}
@@ -251,8 +269,10 @@ func TestAPortHeldOnOneLoopbackAddressIsLeftForOneFreeOnBoth(t *testing.T) {
 			assert.NotEqual(t, busy, port)
 			assert.Equal(t, "127.0.0.1:"+port, srv.listeners[0].Addr().String())
 			assert.Equal(t, "[::1]:"+port, srv.listeners[1].Addr().String())
+			token := printed.Query().Get("token")
 			for _, address := range []string{"127.0.0.1:" + port, "[::1]:" + port} {
-				status, _ := fetch(t, address, "localhost:"+port, "/")
+				cookie := signInAt(t, address, "localhost:"+port, token)
+				status, _ := fetch(t, address, "localhost:"+port, "/", cookie)
 				assert.Equal(t, http.StatusOK, status, address)
 			}
 			assert.Contains(t, log.String(), "level=WARN")
@@ -314,9 +334,10 @@ func TestALiteralAddressIsNotServedUnderTheNameLocalhost(t *testing.T) {
 	printed, err := url.Parse(srv.URL())
 	require.NoError(t, err)
 
-	status, _ := fetch(t, printed.Host, printed.Host, "/")
+	cookie := signInAt(t, printed.Host, printed.Host, printed.Query().Get("token"))
+	status, _ := fetch(t, printed.Host, printed.Host, "/", cookie)
 	assert.Equal(t, http.StatusOK, status)
-	status, _ = fetch(t, printed.Host, "localhost:"+printed.Port(), "/")
+	status, _ = fetch(t, printed.Host, "localhost:"+printed.Port(), "/", cookie)
 	assert.Equal(t, http.StatusMisdirectedRequest, status)
 }
 
@@ -331,7 +352,16 @@ func TestAReadOnlyServerRefusesAChangeAndAnswersARead(t *testing.T) {
 			t.Parallel()
 
 			stub := &apiStub{}
-			srv := start(t, Config{API: stub, ReadOnly: readOnly})
+			// A page reads its CSRF token with an operation of the API; the
+			// stub has none, so this one stands in for it.
+			withToken := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == APIPrefix+"/token" {
+					_, _ = io.WriteString(w, session.CSRF(r.Context()))
+					return
+				}
+				stub.ServeHTTP(w, r)
+			})
+			srv := start(t, Config{API: withToken, ReadOnly: readOnly})
 			client := browser(t)
 			status, _ := get(t, client, srv.URL())
 			require.Equal(t, http.StatusOK, status)
@@ -341,12 +371,15 @@ func TestAReadOnlyServerRefusesAChangeAndAnswersARead(t *testing.T) {
 
 			status, _ = get(t, client, jobs)
 			assert.Equal(t, http.StatusOK, status)
+			status, csrf := get(t, client, "http://"+printed.Host+APIPrefix+"/token")
+			require.Equal(t, http.StatusOK, status)
 
 			// A browser names the origin of the page on a request that may
 			// change something; the client of the standard library does not.
 			post, err := http.NewRequestWithContext(t.Context(), http.MethodPost, jobs, strings.NewReader("{}"))
 			require.NoError(t, err)
 			post.Header.Set("Origin", "http://"+printed.Host)
+			post.Header.Set(csrfHeader, csrf)
 			resp, err := client.Do(post)
 			require.NoError(t, err)
 			body, err := io.ReadAll(resp.Body)

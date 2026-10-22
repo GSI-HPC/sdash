@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/GSI-HPC/go-clikit/localweb"
+	"github.com/GSI-HPC/go-clikit/localweb/session"
 )
 
 // Config is what a Server is built from.
@@ -105,14 +106,19 @@ func newOn(ctx context.Context, cfg Config, bind bindFunc) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	token := newToken()
+	token := session.NewToken()
+	sessions, err := newSessions(token, logger)
+	if err != nil {
+		_ = opened.Close()
+		return nil, err
+	}
 	for _, listener := range listeners {
 		logger.Info("listening", "address", listener.Addr().String(), "dev", cfg.Dev)
 	}
 
 	srv := newServer(listeners, newRouter(routerConfig{
 		answers:  opened.Answers,
-		token:    token,
+		sessions: sessions,
 		dev:      cfg.Dev,
 		readOnly: cfg.ReadOnly,
 		files:    cfg.Files,
@@ -120,7 +126,7 @@ func newOn(ctx context.Context, cfg Config, bind bindFunc) (*Server, error) {
 		logger:   logger,
 	}), logger)
 	srv.socket = opened.Socket
-	srv.url = "http://" + forwardHost(opened) + "/?" + tokenParameter + "=" + token
+	srv.url = "http://" + forwardHost(opened) + "/?" + session.TokenParam + "=" + token
 	return srv, nil
 }
 

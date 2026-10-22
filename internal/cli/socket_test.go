@@ -95,7 +95,7 @@ func TestOnASocketTheForwardIsExplainedAndNoBrowserIsOpened(t *testing.T) {
 		Hostname: func() (string, error) { return "login1.example.org", nil },
 	})
 
-	address := regexp.MustCompile(`http://127\.0\.0\.1:7374/\?token=[A-Z2-7]{26,}`).FindString(hint)
+	address := regexp.MustCompile(`http://127\.0\.0\.1:7374/\?token=[A-Za-z0-9_-]{43}`).FindString(hint)
 	require.NotEmpty(t, address, hint)
 	assert.Equal(t, `sdash is serving on the unix socket `+path+`
 
@@ -176,7 +176,7 @@ func TestASocketPathThatSSHCannotBeGivenGetsItsReasonAndNoCommand(t *testing.T) 
 				Hostname: func() (string, error) { return "login1.example.org", nil },
 			})
 
-			address := regexp.MustCompile(`http://127\.0\.0\.1:7374/\?token=[A-Z2-7]{26,}`).FindString(hint)
+			address := regexp.MustCompile(`http://127\.0\.0\.1:7374/\?token=[A-Za-z0-9_-]{43}`).FindString(hint)
 			require.NotEmpty(t, address, hint)
 			assert.Equal(t, `sdash is serving on the unix socket `+path+`
 

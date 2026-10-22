@@ -131,14 +131,14 @@ func TestReadOnlyLeavesThePagesAlone(t *testing.T) {
 
 	router := testRouter(withReadOnly)
 
-	page := serve(router, request(http.MethodGet, "/jobs"))
+	page := serve(router, signedIn(request(http.MethodGet, "/jobs")))
 	assert.Equal(t, http.StatusOK, page.Code)
 	assert.Equal(t, indexBody, page.Body.String())
 
 	exchange := serve(router, request(http.MethodGet, "/?token="+testToken))
 	assert.Equal(t, http.StatusSeeOther, exchange.Code)
 
-	posted := serve(router, request(http.MethodPost, "/jobs"))
+	posted := serve(router, signedIn(request(http.MethodPost, "/jobs")))
 	assert.Equal(t, http.StatusMethodNotAllowed, posted.Code)
 }
 
@@ -148,7 +148,7 @@ func TestARefusalInReadOnlyModeIsLoggedButNotAsAWarning(t *testing.T) {
 	t.Parallel()
 
 	log := &logBuffer{}
-	router := testRouter(withAPI(&apiStub{}), withReadOnly, withLogger(log.logger()))
+	router, signedIn := loggedRouter(log, withAPI(&apiStub{}), withReadOnly)
 
 	serve(router, signedIn(request(http.MethodDelete, "/api/v1/jobs/4711")))
 
