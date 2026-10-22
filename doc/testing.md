@@ -51,17 +51,25 @@ locally with the `go.mod` line.
 The Go tests need neither Node nor a built UI. Without one the binary embeds
 a placeholder, and the tests of the server bring their own files.
 
-The tests of the listener ([0023](adr/0023-the-listeners-as-built.md)) bind
-real ports on 127.0.0.1 and on ::1 and create unix sockets below the
-temporary directory, so they need an IPv6 loopback address on the machine
-and fail without one. What sdash does on a machine that has none is tested
-all the same: the function that binds is handed in, and a test stands in
-for such a machine.
+The binding of the listeners, the rules of the socket and its directories,
+the Host allow-list, the same-origin check, the headers and the session
+belong to go-clikit's `localweb` and are tested there
+([0026](adr/0026-go-clikit-localweb-for-the-listener-and-the-guard.md)).
+The tests of `internal/server` hold what sdash adds: what it logs, the words
+of its refusals and the Error that carries them under `/api/`, the order of
+the checks, and the wiring of the session, which `localwebtest` signs in for.
+
+Two tests of the server bind real ports on 127.0.0.1 and on ::1 to hold that
+`localhost` is served on both, so they need an IPv6 loopback address on the
+machine and fail without one. What sdash does on a machine that has none is
+tested all the same: the function that binds is handed in, and a test stands
+in for such a machine. The test of the connections of another user reads
+`/proc` and runs on Linux only.
 
 A socket path takes about a hundred bytes and no more. A test gets the
 directory for its socket from `internal/server/servertest`, which makes one
 directly below `/tmp` where the temporary directory is too long for a
-socket, as that of a build root can be. sdash refuses a socket below a
+socket, as that of a build root can be. localweb refuses a socket below a
 directory that others could rearrange, so these tests also need a temporary
 directory, or failing that a `/tmp`, without a directory above it that its
 group or everyone may write to, unless that directory has the sticky bit.
