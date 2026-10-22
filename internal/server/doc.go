@@ -34,6 +34,11 @@
 // server adds what it says in its log when the port it was asked for is
 // taken or the host has no IPv6 loopback address (listen).
 //
+// On TCP, and on a system that can tell whose a connection is (Linux), a
+// connection that a process of another user opened is closed before a request
+// is read (guardPeers). The other users of a shared host can connect to a
+// loopback port, and have nothing to try once they are closed out.
+//
 // On either, a request is served only if it passes these checks, in this
 // order. The first three are localweb's (Headers, Hosts and SameOrigin); the
 // server words their refusals and logs them (guard.go).

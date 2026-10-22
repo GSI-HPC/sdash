@@ -51,6 +51,11 @@ type Config struct {
 	// mounted and every address under /api/ answers 404 behind the same
 	// checks.
 	API http.Handler
+	// UID returns the ID of the user sdash runs as, as os.Getuid does. With
+	// it, a listener on TCP closes the connections that a process of another
+	// user opened, before a request is read, on a system that can tell whose
+	// a connection is (guardPeers). Without it, nobody is kept out this way.
+	UID func() int
 	// Logger receives the server's log. Nothing is logged without one.
 	Logger *slog.Logger
 }
@@ -96,12 +101,16 @@ func newOn(ctx context.Context, cfg Config, bind bindFunc) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	listeners, err := guardPeers(opened, cfg.UID, localweb.PeerListener, logger)
+	if err != nil {
+		return nil, err
+	}
 	token := newToken()
-	for _, listener := range opened.Listeners {
+	for _, listener := range listeners {
 		logger.Info("listening", "address", listener.Addr().String(), "dev", cfg.Dev)
 	}
 
-	srv := newServer(opened.Listeners, newRouter(routerConfig{
+	srv := newServer(listeners, newRouter(routerConfig{
 		answers:  opened.Answers,
 		token:    token,
 		dev:      cfg.Dev,
