@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/GSI-HPC/sdash/internal/api"
-	"github.com/GSI-HPC/sdash/internal/exitcode"
 	"github.com/GSI-HPC/sdash/internal/server"
 	"github.com/GSI-HPC/sdash/internal/version"
 )
@@ -81,7 +80,7 @@ func TestTheServedStatusDescribesThisBinaryAndItsFlags(t *testing.T) {
 				assert.Equal(t, api.ErrorCodeMethodNotAllowed, refusal.Code)
 			}
 
-			assert.Equal(t, exitcode.OK, sdash.stop())
+			assert.Equal(t, exitOK, sdash.stop())
 		})
 	}
 }

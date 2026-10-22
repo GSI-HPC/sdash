@@ -16,7 +16,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/GSI-HPC/sdash/internal/exitcode"
+	"github.com/GSI-HPC/go-clikit/cobratree"
+
 	"github.com/GSI-HPC/sdash/internal/version"
 )
 
@@ -59,7 +60,7 @@ func TestWithoutFlagsTheServerRunsOnItsDefaults(t *testing.T) {
 
 	got, code, stderr := parse(t)
 
-	assert.Equal(t, exitcode.OK, code)
+	assert.Equal(t, exitOK, code)
 	assert.Empty(t, stderr.String())
 	assert.Equal(t, options{listen: "localhost:7374"}, got)
 }
@@ -101,7 +102,7 @@ func TestEachFlagReachesTheServer(t *testing.T) {
 
 			got, code, stderr := parse(t, tt.args...)
 
-			assert.Equal(t, exitcode.OK, code)
+			assert.Equal(t, exitOK, code)
 			assert.Empty(t, stderr.String())
 			assert.Equal(t, tt.want, got)
 		})
@@ -122,7 +123,7 @@ func TestAMistakeOnTheCommandLineIsAUsageError(t *testing.T) {
 		{name: "an unknown flag", args: []string{"--nonsense"}, says: "unknown flag: --nonsense"},
 		{name: "a flag without its value", args: []string{"--listen"}, says: "flag needs an argument: --listen"},
 		{name: "an argument the root command does not take", args: []string{"serve"}, says: `unknown command "serve" for "sdash"`},
-		{name: "an argument version does not take", args: []string{"version", "extra"}, says: `unknown command "extra" for "sdash version"`},
+		{name: "an argument version does not take", args: []string{"version", "extra"}, says: `unknown command "extra" for "sdash version" (usage: sdash version)`},
 		{name: "an unknown flag of version", args: []string{"version", "--nonsense"}, says: "unknown flag: --nonsense"},
 		{
 			// The flags of the server are not flags of every command.
@@ -143,7 +144,7 @@ func TestAMistakeOnTheCommandLineIsAUsageError(t *testing.T) {
 					return nil
 				})
 
-			assert.Equal(t, exitcode.Usage, code)
+			assert.Equal(t, exitUsage, code)
 			assert.False(t, started, "nothing is started")
 			assert.Equal(t, "sdash: "+tt.says+"\n", stderr.String())
 			assert.Empty(t, stdout.String())
@@ -169,7 +170,7 @@ func TestAnAddressBeyondThisMachineIsAUsageError(t *testing.T) {
 				Stderr: stderr,
 			}, serve)
 
-			assert.Equal(t, exitcode.Usage, code)
+			assert.Equal(t, exitUsage, code)
 			assert.True(t, strings.HasPrefix(stderr.String(), "sdash: --listen: "), stderr.String())
 			assert.Empty(t, stdout.String(), "no address is printed")
 		})
@@ -239,7 +240,7 @@ func TestASocketThatCannotBeNamedIsAUsageError(t *testing.T) {
 				Getenv: func(name string) string { return tt.env[name] },
 			})
 
-			assert.Equal(t, exitcode.Usage, code)
+			assert.Equal(t, exitUsage, code)
 			assert.True(t, strings.HasPrefix(stderr.String(), "sdash: --listen: "), stderr.String())
 			assert.Contains(t, stderr.String(), tt.says)
 			assert.Empty(t, stdout.String(), "nothing is printed to open")
@@ -258,9 +259,9 @@ func TestTheErrorOfTheServerBecomesTheExitCode(t *testing.T) {
 		code   int
 		stderr string
 	}{
-		{name: "a clean stop", err: nil, code: exitcode.OK},
-		{name: "a failure", err: errors.New("open the listener: permission denied"), code: exitcode.Failure, stderr: "sdash: open the listener: permission denied\n"},
-		{name: "a failure that names its code", err: exitcode.Wrap(exitcode.Usage, errors.New("no such profile")), code: exitcode.Usage, stderr: "sdash: no such profile\n"},
+		{name: "a clean stop", err: nil, code: exitOK},
+		{name: "a failure", err: errors.New("open the listener: permission denied"), code: exitFailure, stderr: "sdash: open the listener: permission denied\n"},
+		{name: "a failure that names its code", err: cobratree.Usage(errors.New("no such profile")), code: exitUsage, stderr: "sdash: no such profile\n"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -284,7 +285,7 @@ func TestVersionPrintsTheProvenanceOnOneLine(t *testing.T) {
 
 	code := run(t.Context(), Process{Args: []string{"version"}, Stdout: stdout, Stderr: stderr}, serve)
 
-	assert.Equal(t, exitcode.OK, code)
+	assert.Equal(t, exitOK, code)
 	assert.Equal(t, version.Get().String()+"\n", stdout.String())
 	assert.Empty(t, stderr.String())
 }
@@ -297,7 +298,7 @@ func TestVersionAsJSONHoldsTheSameProvenance(t *testing.T) {
 
 	code := run(t.Context(), Process{Args: []string{"version", "--json"}, Stdout: stdout, Stderr: stderr}, serve)
 
-	require.Equal(t, exitcode.OK, code)
+	require.Equal(t, exitOK, code)
 	assert.Empty(t, stderr.String())
 	var got version.Info
 	require.NoError(t, json.Unmarshal([]byte(stdout.String()), &got))
