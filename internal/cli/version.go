@@ -4,12 +4,12 @@
 package cli
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/spf13/cobra"
 
+	"github.com/GSI-HPC/go-clikit/cliout"
 	"github.com/GSI-HPC/sdash/internal/version"
 )
 
@@ -35,9 +35,7 @@ takes it from the signed git tag, and any other build reports "devel".`),
 				}
 				return nil
 			}
-			encoder := json.NewEncoder(p.Stdout)
-			encoder.SetIndent("", "  ")
-			if err := encoder.Encode(info); err != nil {
+			if err := cliout.WriteJSON(p.Stdout, info); err != nil {
 				return fmt.Errorf("print the version: %w", err)
 			}
 			return nil

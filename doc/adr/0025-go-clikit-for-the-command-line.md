@@ -18,8 +18,9 @@ errors are an interface its other users compare in tests.
 ## Decision
 
 - **Requirement.** sdash requires `github.com/GSI-HPC/go-clikit`, and
-  imports `cobratree` and `termtext` from it. It does not import the
-  packages for progress yet, because it has no run to report.
+  imports `cobratree`, `termtext` and `cliout` from it. It does not import
+  the packages for progress (`progress`, `progress/cliprogress`) yet,
+  because it has no run to report.
 - **Command tree.** `cobratree.Strict` makes the tree strict, so that a
   word that names no command, a bad argument and a flag that cannot be
   parsed are usage errors. `cobratree.IsUsage` tells them from a failure,
@@ -32,6 +33,9 @@ errors are an interface its other users compare in tests.
 - **Build info.** `internal/version` reads the build info with
   `cobratree.ReadBuildInfo`. What it adds is the release build's values
   from the signed tag, `devel`, and the rendering.
+- **JSON output.** `sdash version --json` is written with
+  `cliout.WriteJSON`, which escapes every rune that acts on a terminal as a
+  JSON escape. The output is the same for the values a build records.
 - **The error line.** The error that ends a command is escaped with
   `termtext.Escape` before it is written, since it can quote what the user
   typed or the system returned.
