@@ -93,7 +93,9 @@ and need Docker and sind.
   in `REUSE.toml`. The year stays 2026.
 - Wrap errors with `fmt.Errorf("context: %w", err)`; messages are lower-case
   without a full stop. A deliberate discard is `_ = f()` with its reason.
-  Exit codes are the constants of `internal/exitcode`.
+  Exit codes are the constants of `internal/cli`; a usage error is made
+  with `cobratree.Usage` and told by `cobratree.IsUsage`
+  (`0025-go-clikit-for-the-command-line`).
 - Logging is `log/slog`: the logger is handed in, never `slog.Default()`;
   messages are lower-case and present tense; nothing process-wide is set.
 - A package comment says what the package owns and why it exists, not what
