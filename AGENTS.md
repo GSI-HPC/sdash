@@ -27,17 +27,21 @@ no Slurm-facing code and take fixtures from nowhere else.
 
 - `cmd/sdash/main.go`: signal handling and the one `os.Exit`, nothing more.
 - `internal/`: everything else; there is no `pkg/`. `cli` is the command
-  line, `server` the listener, on both loopback addresses or on a unix
-  socket, and its checks (`0023-the-listeners-as-built`), `static` the
-  embedded UI. A test-support package is named `xxxtest`. `internal/slurm/`
-  and a root `e2e/` come with the Slurm-facing work.
+  line, `server` the handler tree and the words of its refusals, on the
+  listeners and the checks of go-clikit's `localweb`
+  (`0026-go-clikit-localweb-for-the-listener-and-the-guard`, which builds on
+  `0023-the-listeners-as-built`), `static` the embedded UI. A test-support
+  package is named `xxxtest`. `internal/slurm/` and a root `e2e/` come with
+  the Slurm-facing work.
 - `internal/static/dist/`: what the binary embeds. `make build` copies the UI
   build there; a tracked placeholder lets `go build ./...` work without Node.
 - `api/openapi.yaml`: the browser API (OpenAPI 3.0.3, base path `/api/v1`),
   the one source of the generated `internal/api/` (Go) and `web/src/api/`
   (TypeScript), which are committed (`0011-openapi-first-browser-api`). An
   operation that changes anything is never a GET: `--read-only` refuses a
-  request by its method alone (`0023-the-listeners-as-built`).
+  request by its method alone (`0023-the-listeners-as-built`), and the
+  session refuses one without the CSRF token of its session
+  (`0026-go-clikit-localweb-for-the-listener-and-the-guard`).
 - `web/`: the frontend, one npm package with its lockfile; `e2e/` the
   Playwright tests; `dist/` the build output, which is ignored.
 - `web/src/`: `routing/` (the view table, the routes, state in the query
