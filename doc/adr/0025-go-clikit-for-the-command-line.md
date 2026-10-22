@@ -33,6 +33,10 @@ errors are an interface its other users compare in tests.
 - **Build info.** `internal/version` reads the build info with
   `cobratree.ReadBuildInfo`. What it adds is the release build's values
   from the signed tag, `devel`, and the rendering.
+- **Flag values.** `cobratree.FlagError` is the root's `FlagErrorFunc`, so
+  a value that a flag cannot parse is worded by the flag's type, as
+  `invalid --no-browser value "maybe": want true or false`, and not with
+  the text of Go's parser.
 - **JSON output.** `sdash version --json` is written with
   `cliout.WriteJSON`, which escapes every rune that acts on a terminal as a
   JSON escape. The output is the same for the values a build records.
@@ -51,6 +55,9 @@ errors are an interface its other users compare in tests.
 
 ## Cost
 
+- The error for a flag value that cannot be parsed changes its words, from
+  pflag's `invalid argument "maybe" for "--no-browser" flag: strconv.ParseBool: parsing "maybe": invalid syntax`
+  to the kit's. The exit code stays 2.
 - The error of a command that holds no subcommands now ends with its usage
   line, as the kit words it: `unknown command "extra" for "sdash version"
   (usage: sdash version)`.
