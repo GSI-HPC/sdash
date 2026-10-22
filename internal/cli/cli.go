@@ -172,6 +172,11 @@ below a directory in which others may rename what is yours.`),
 	flags.CountVarP(&o.verbosity, "verbose", "v",
 		"log more to standard error: -v adds what sdash does, -vv every request (default: warnings and errors)")
 
+	// A value that a flag cannot parse is worded by the flag's type, as
+	// "invalid --no-browser value \"x\": want true or false". The root's
+	// function serves every command below it.
+	cmd.SetFlagErrorFunc(cobratree.FlagError)
+
 	cmd.AddCommand(newVersionCommand(p))
 	// Every error of the command line is a usage error, which run maps to
 	// exitUsage: a flag that cannot be parsed, an argument check, and a word

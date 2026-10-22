@@ -124,6 +124,21 @@ func TestAMistakeOnTheCommandLineIsAUsageError(t *testing.T) {
 		{name: "a flag without its value", args: []string{"--listen"}, says: "flag needs an argument: --listen"},
 		{name: "an argument the root command does not take", args: []string{"serve"}, says: `unknown command "serve" for "sdash"`},
 		{name: "an argument version does not take", args: []string{"version", "extra"}, says: `unknown command "extra" for "sdash version" (usage: sdash version)`},
+		{
+			name: "a boolean flag given a word",
+			args: []string{"--no-browser=maybe"},
+			says: `invalid --no-browser value "maybe": want true or false`,
+		},
+		{
+			name: "a count flag given a word",
+			args: []string{"--verbose=lots"},
+			says: `invalid --verbose value "lots": want a whole number`,
+		},
+		{
+			name: "a boolean flag of version given a word",
+			args: []string{"version", "--json=maybe"},
+			says: `invalid --json value "maybe": want true or false`,
+		},
 		{name: "an unknown flag of version", args: []string{"version", "--nonsense"}, says: "unknown flag: --nonsense"},
 		{
 			// The flags of the server are not flags of every command.
