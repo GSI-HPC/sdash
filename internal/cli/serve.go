@@ -152,6 +152,7 @@ func serve(ctx context.Context, p Process, o options) error {
 		// API report the mode to the interface.
 		ReadOnly: o.readOnly,
 		Files:    files,
+		UID:      p.Getuid,
 		// The browser API that api/openapi.yaml defines
 		// (doc/adr/0011-openapi-first-browser-api.md). It is handed over as
 		// one handler so that the server mounts it behind its checks and

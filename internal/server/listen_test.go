@@ -5,10 +5,8 @@ package server
 
 import (
 	"context"
-	"maps"
 	"net"
 	"os"
-	"slices"
 	"strconv"
 	"sync"
 	"syscall"
@@ -180,22 +178,6 @@ func (f *fakeLoopback) withoutIPv6(call string, errno syscall.Errno) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.noIPv6 = os.NewSyscallError(call, errno)
-}
-
-// asked returns the addresses that were asked for, in order.
-func (f *fakeLoopback) asked() []string {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	return slices.Clone(f.binds)
-}
-
-// held returns the addresses the code under test holds, those of 127.0.0.1
-// before those of ::1.
-func (f *fakeLoopback) held() []string {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	// A digit sorts before a bracket.
-	return slices.Sorted(maps.Keys(f.ours))
 }
 
 // bind is the bindFunc of the fake.

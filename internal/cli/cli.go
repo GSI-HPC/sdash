@@ -66,6 +66,9 @@ type Process struct {
 	// Hostname returns the name of the machine, as os.Hostname does. Without
 	// it the name is unknown.
 	Hostname func() (string, error)
+	// Getuid returns the ID of the user, as os.Getuid does. Without it the
+	// server does not look at whose a connection is.
+	Getuid func() int
 }
 
 // options are the flags of the root command.
@@ -100,6 +103,7 @@ func Execute(ctx context.Context) int {
 		Browser:  browser.System(),
 		Getenv:   os.Getenv,
 		Hostname: os.Hostname,
+		Getuid:   os.Getuid,
 	}, serve)
 }
 
