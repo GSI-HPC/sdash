@@ -20,9 +20,26 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/GSI-HPC/go-clikit/cobratree"
 	"github.com/GSI-HPC/sdash/internal/browser"
-	"github.com/GSI-HPC/sdash/internal/exitcode"
 	"github.com/GSI-HPC/sdash/internal/server"
+)
+
+// The exit codes of sdash. Scripts and service managers branch on them, so
+// they may be added to but never renumbered.
+const (
+	// exitOK means sdash did what it was asked. A server that SIGINT, SIGTERM
+	// or SIGHUP stopped exits exitOK after a clean shutdown: a signal is the
+	// normal way to stop it, where a command that runs to an end would
+	// report 130.
+	exitOK = 0
+	// exitFailure means the command line was accepted and sdash then could
+	// not do its work: the listener could not be opened, or the shutdown had
+	// to cut requests off.
+	exitFailure = 1
+	// exitUsage means the command line or the configuration was rejected
+	// before anything was started.
+	exitUsage = 2
 )
 
 // defaultListen is where sdash listens unless told otherwise: its port on
@@ -73,7 +90,7 @@ type options struct {
 type serveFunc func(ctx context.Context, p Process, o options) error
 
 // Execute runs the command line of the process and returns its exit code
-// (internal/exitcode). ctx is cancelled by the signal that stops the server.
+// (exitOK, exitFailure and exitUsage). ctx is cancelled by the signal that stops the server.
 func Execute(ctx context.Context) int {
 	return run(ctx, Process{
 		Args:     os.Args[1:],
@@ -94,9 +111,12 @@ func run(ctx context.Context, p Process, serve serveFunc) int {
 		// The exit code is what a caller acts on; a message that cannot
 		// be written changes nothing about it.
 		_, _ = fmt.Fprintf(p.Stderr, "sdash: %s\n", err)
-		return exitcode.From(err)
+		if cobratree.IsUsage(err) {
+			return exitUsage
+		}
+		return exitFailure
 	}
-	return exitcode.OK
+	return exitOK
 }
 
 // newRootCommand builds the command tree on the streams and arguments of p.
@@ -133,12 +153,6 @@ below a directory in which others may rename what is yours.`),
 	cmd.SetArgs(append([]string{}, p.Args...))
 	cmd.SetOut(p.Stdout)
 	cmd.SetErr(p.Stderr)
-	// A flag that cannot be parsed is a usage error, whichever command it
-	// was given to: the subcommands ask their parent for this function.
-	cmd.SetFlagErrorFunc(func(_ *cobra.Command, err error) error {
-		return exitcode.Wrap(exitcode.Usage, err)
-	})
-
 	// The flags belong to the root command alone: "sdash version --listen"
 	// is a mistake worth reporting, not a flag to ignore.
 	flags := cmd.Flags()
@@ -156,22 +170,9 @@ below a directory in which others may rename what is yours.`),
 		"log more to standard error: -v adds what sdash does, -vv every request (default: warnings and errors)")
 
 	cmd.AddCommand(newVersionCommand(p))
-	usageArgs(cmd)
+	// Every error of the command line is a usage error, which run maps to
+	// exitUsage: a flag that cannot be parsed, an argument check, and a word
+	// that names no command.
+	cobratree.Strict(cmd, nil)
 	return cmd
-}
-
-// usageArgs makes every argument check in the tree report a usage error.
-// cobra's own checks, such as cobra.NoArgs, return plain errors, which would
-// otherwise exit 1, the code for a server that failed.
-//
-// Adapted from GSI-HPC/clusterctl internal/cli/root.go.
-func usageArgs(cmd *cobra.Command) {
-	if check := cmd.Args; check != nil {
-		cmd.Args = func(c *cobra.Command, args []string) error {
-			return exitcode.Wrap(exitcode.Usage, check(c, args))
-		}
-	}
-	for _, sub := range cmd.Commands() {
-		usageArgs(sub)
-	}
 }

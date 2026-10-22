@@ -28,7 +28,7 @@ func main() {
 // interruptContext returns a context that the first of the signals that
 // stop the server cancels (stopSignals). A signal is the normal way to stop
 // this server: the listener closes, the requests in flight get a moment to
-// finish, and the process exits 0 (internal/exitcode).
+// finish, and the process exits 0 (internal/cli).
 //
 // The handler is removed as soon as the first signal arrives, so a second
 // one gets the default action and ends the process at once, even while a

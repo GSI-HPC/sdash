@@ -20,7 +20,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/GSI-HPC/sdash/internal/exitcode"
 	"github.com/GSI-HPC/sdash/internal/server"
 	"github.com/GSI-HPC/sdash/internal/server/servertest"
 )
@@ -130,7 +129,7 @@ command and in the address alike.
 		assert.Contains(t, body, `"version"`)
 	}
 
-	require.Equal(t, exitcode.OK, sdash.stop())
+	require.Equal(t, exitOK, sdash.stop())
 	assert.Empty(t, d.opened, "the opener was not started")
 	assert.NoFileExists(t, path, "the socket goes when sdash does")
 	assert.Empty(t, sdash.stderr.String())
@@ -204,7 +203,7 @@ forward and in the address alike.
 			_, contentType, _ := openThrough(t, forwarded(t, path), address)
 			assert.Contains(t, contentType, "text/html")
 
-			require.Equal(t, exitcode.OK, sdash.stop())
+			require.Equal(t, exitOK, sdash.stop())
 			assert.NoFileExists(t, path)
 			assert.Empty(t, sdash.stderr.String())
 		})
@@ -276,7 +275,7 @@ func TestUnixWithoutAPathIsTheSocketInTheRuntimeDirectory(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, fs.ModeSocket|0o600, info.Mode())
 
-	require.Equal(t, exitcode.OK, sdash.stop())
+	require.Equal(t, exitOK, sdash.stop())
 	assert.NoFileExists(t, path)
 }
 
@@ -300,7 +299,7 @@ func TestTheForwardCommandNamesTheSocketWithoutALink(t *testing.T) {
 
 	assert.True(t, strings.HasPrefix(hint, "sdash is serving on the unix socket "+path+"\n"), hint)
 	assert.Contains(t, hint, "    ssh -L 7374:"+path+" <this host>\n")
-	require.Equal(t, exitcode.OK, sdash.stop())
+	require.Equal(t, exitOK, sdash.stop())
 	assert.NoFileExists(t, path)
 }
 
@@ -351,7 +350,7 @@ func TestASocketThatCannotBeOpenedEndsSdashWithTheReason(t *testing.T) {
 				Stderr: stderr,
 			})
 
-			assert.Equal(t, exitcode.Failure, code)
+			assert.Equal(t, exitFailure, code)
 			assert.True(t, strings.HasPrefix(stderr.String(), "sdash: "), stderr.String())
 			assert.Contains(t, stderr.String(), tt.says)
 			assert.Empty(t, stdout.String())

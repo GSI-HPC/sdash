@@ -13,7 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GSI-HPC/sdash/internal/exitcode"
+	"github.com/GSI-HPC/go-clikit/cobratree"
+
 	"github.com/GSI-HPC/sdash/internal/server"
 	"github.com/GSI-HPC/sdash/internal/static"
 	"github.com/GSI-HPC/sdash/internal/version"
@@ -134,7 +135,7 @@ func serve(ctx context.Context, p Process, o options) error {
 		err = server.CheckListen(listen)
 	}
 	if err != nil {
-		return exitcode.Wrap(exitcode.Usage, fmt.Errorf("--listen: %w", err))
+		return cobratree.Usagef("--listen: %w", err)
 	}
 	logger := newLogger(p.Stderr, o.verbosity)
 	files, err := interfaceFiles(o.dev)

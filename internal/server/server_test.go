@@ -387,7 +387,7 @@ func TestOneListenerThatFailsStopsTheOther(t *testing.T) {
 }
 
 // A signal is the normal way to stop this server, so stopping is no error:
-// the process exits 0 (internal/exitcode).
+// the process exits 0 (internal/cli).
 func TestRunReturnsNilAfterACleanStop(t *testing.T) {
 	t.Parallel()
 

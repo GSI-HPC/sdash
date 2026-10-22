@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/GSI-HPC/sdash/internal/browser"
-	"github.com/GSI-HPC/sdash/internal/exitcode"
 	"github.com/GSI-HPC/sdash/internal/server"
 )
 
@@ -216,7 +215,7 @@ func TestTheServerRunsUntilItIsInterruptedAndExitsZero(t *testing.T) {
 	assert.NotEmpty(t, got.header.Get("Content-Security-Policy"))
 	assert.Empty(t, got.query, "the token has left the address")
 
-	assert.Equal(t, exitcode.OK, sdash.stop())
+	assert.Equal(t, exitOK, sdash.stop())
 	assert.Empty(t, sdash.stderr.String())
 }
 
@@ -237,7 +236,7 @@ func TestTheBrowserIsOpenedOnAFileThatIsRemovedAtTheEnd(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, string(page), sdash.address)
 
-	require.Equal(t, exitcode.OK, sdash.stop())
+	require.Equal(t, exitOK, sdash.stop())
 	assert.NoFileExists(t, file)
 }
 
@@ -274,7 +273,7 @@ func TestNoBrowserIsOpenedWhereTheUserWouldNotSeeIt(t *testing.T) {
 			got := open(t, sdash.address)
 			assert.Contains(t, got.header.Get("Content-Type"), "text/html")
 
-			require.Equal(t, exitcode.OK, sdash.stop())
+			require.Equal(t, exitOK, sdash.stop())
 			assert.Empty(t, d.opened, "the opener was not started")
 			assert.Contains(t, sdash.stderr.String(), tt.says)
 		})
@@ -293,7 +292,7 @@ func TestAnOpenerThatFailsDoesNotStopTheServer(t *testing.T) {
 	got := open(t, sdash.address)
 	assert.Contains(t, got.header.Get("Content-Type"), "text/html")
 
-	require.Equal(t, exitcode.OK, sdash.stop())
+	require.Equal(t, exitOK, sdash.stop())
 	assert.Contains(t, sdash.stderr.String(), `level=WARN msg="cannot open a browser"`)
 	assert.Contains(t, sdash.stderr.String(), "executable file not found")
 }
@@ -317,7 +316,7 @@ func TestABusyPortIsReportedWithoutAnyVFlag(t *testing.T) {
 	got := open(t, sdash.address)
 	assert.Contains(t, got.header.Get("Content-Type"), "text/html")
 
-	require.Equal(t, exitcode.OK, sdash.stop())
+	require.Equal(t, exitOK, sdash.stop())
 	assert.Contains(t, sdash.stderr.String(), "level=WARN")
 	assert.Contains(t, sdash.stderr.String(), "wanted="+busy)
 	assert.Contains(t, sdash.stderr.String(), "address="+u.Host)
@@ -343,7 +342,7 @@ func TestDevServesTheInterfaceFromWebDistOnDisk(t *testing.T) {
 	// With --dev a request the Vite dev server proxies is accepted.
 	assert.Equal(t, http.StatusOK, proxiedByVite(t, sdash))
 
-	assert.Equal(t, exitcode.OK, sdash.stop())
+	assert.Equal(t, exitOK, sdash.stop())
 }
 
 // Without --dev the same request is one from another origin.
@@ -354,7 +353,7 @@ func TestWithoutDevARequestFromTheViteDevServerIsRefused(t *testing.T) {
 
 	assert.Equal(t, http.StatusForbidden, proxiedByVite(t, sdash))
 
-	assert.Equal(t, exitcode.OK, sdash.stop())
+	assert.Equal(t, exitOK, sdash.stop())
 }
 
 // proxiedByVite signs a browser in and returns the status of a call to the
@@ -398,7 +397,7 @@ func TestLocalhostIsPrintedAsTheLiteralLoopbackAddress(t *testing.T) {
 	got := open(t, sdash.address)
 	assert.Contains(t, got.header.Get("Content-Type"), "text/html")
 
-	assert.Equal(t, exitcode.OK, sdash.stop())
+	assert.Equal(t, exitOK, sdash.stop())
 	// Nothing to warn about, on a machine with an IPv6 loopback address
 	// or without one.
 	assert.Empty(t, sdash.stderr.String())
