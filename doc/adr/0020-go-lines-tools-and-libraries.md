@@ -43,7 +43,8 @@ are command-line tools.
 - **Errors** are wrapped with `fmt.Errorf("context: %w", err)`, lower-case
   and without a full stop. A deliberate discard is `_ = f()` with its
   reason.
-- **Exit codes** are named constants in one package: 0 for success, which
+- **Exit codes** (superseded by [0025](0025-go-clikit-for-the-command-line.md)
+  as to the package) are named constants in one package: 0 for success, which
   includes a clean shutdown on SIGINT or SIGTERM, 1 for a failure, 2 for a
   usage or configuration error.
 - **Layout.** `cmd/sdash/main.go` holds signal handling and the one
