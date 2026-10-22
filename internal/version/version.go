@@ -16,8 +16,9 @@ import (
 	"cmp"
 	"fmt"
 	"runtime"
-	"runtime/debug"
 	"strings"
+
+	"github.com/GSI-HPC/go-clikit/cobratree"
 )
 
 // Values injected by the release build. Keep the names in sync with the
@@ -58,38 +59,21 @@ func Get() Info {
 		GoVersion: runtime.Version(),
 		Platform:  runtime.GOOS + "/" + runtime.GOARCH,
 	}
-	bi, _ := debug.ReadBuildInfo()
-	return fromBuildInfo(info, bi)
+	return fromBuildInfo(info, cobratree.ReadBuildInfo())
 }
 
 // fromBuildInfo fills what the release build did not inject from the build
-// info the toolchain embedded; bi may be nil.
+// info the toolchain embedded, as cobratree.ReadBuildInfo read it.
 //
-// A build from a checkout reports devel with its revision. The toolchain
-// derives a module version from the checkout too, a pseudo-version or a tag
-// the commit carries, but a local tag is not a signed release, so that is
-// ignored. A module version is taken only from a build that carries no VCS
-// stamps: "go install ...@v1.4.0", whose version the checksum database
-// vouches for.
-func fromBuildInfo(info Info, bi *debug.BuildInfo) Info {
-	if bi != nil {
-		checkout := false
-		for _, s := range bi.Settings {
-			switch s.Key {
-			case "vcs.revision":
-				checkout = true
-				info.Commit = cmp.Or(info.Commit, s.Value)
-			case "vcs.time":
-				info.Date = cmp.Or(info.Date, s.Value)
-			case "vcs.modified":
-				info.Dirty = s.Value == "true"
-			}
-		}
-		if info.Version == "" && !checkout && bi.Main.Version != "" && bi.Main.Version != "(devel)" {
-			info.Version = bi.Main.Version
-		}
-	}
-
+// A build from a checkout reports devel with its revision, and a build of a
+// module version from the proxy reports that version: cobratree leaves the
+// version empty for a checkout, whose pseudo-version or local tag is not a
+// signed release (doc/adr/0019-version-in-a-signed-tag.md).
+func fromBuildInfo(info Info, bi cobratree.BuildInfo) Info {
+	info.Version = cmp.Or(info.Version, bi.Version)
+	info.Commit = cmp.Or(info.Commit, bi.Commit)
+	info.Date = cmp.Or(info.Date, bi.Time)
+	info.Dirty = bi.Dirty
 	info.Version = cmp.Or(info.Version, "devel")
 	return info
 }
