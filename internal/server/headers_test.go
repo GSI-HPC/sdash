@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/GSI-HPC/go-clikit/localweb"
 )
 
 // The headers protect a response wherever it comes from. A refusal written
@@ -39,7 +41,7 @@ func TestEveryResponseCarriesTheSecurityHeaders(t *testing.T) {
 				r.Host = "rebind.example:7374"
 				return r
 			}(),
-			status: http.StatusForbidden,
+			status: http.StatusMisdirectedRequest,
 		},
 		{name: "a method the interface does not take", request: request(http.MethodPost, "/"), status: http.StatusMethodNotAllowed},
 		{name: "a token exchange", request: request(http.MethodGet, "/?token="+testToken), status: http.StatusSeeOther},
@@ -51,24 +53,30 @@ func TestEveryResponseCarriesTheSecurityHeaders(t *testing.T) {
 			got := serve(router, tt.request)
 
 			assert.Equal(t, tt.status, got.Code)
-			assert.Equal(t, contentSecurityPolicy, got.Header().Get("Content-Security-Policy"))
+			assert.Equal(t, localweb.ContentSecurityPolicy, got.Header().Get("Content-Security-Policy"))
 			assert.Equal(t, "nosniff", got.Header().Get("X-Content-Type-Options"))
-			assert.Equal(t, "no-referrer", got.Header().Get("Referrer-Policy"))
+			assert.Equal(t, "same-origin", got.Header().Get("Referrer-Policy"))
+			assert.Equal(t, "DENY", got.Header().Get("X-Frame-Options"))
+			assert.Equal(t, "same-origin", got.Header().Get("Cross-Origin-Opener-Policy"))
+			assert.Equal(t, "same-origin", got.Header().Get("Cross-Origin-Resource-Policy"))
 		})
 	}
 }
 
 // The policy is a decision (doc/adr/0012-local-listener-security.md), spelt
 // out here a second time so that loosening it takes a change to this test
-// as well as to the constant.
+// as well as to localweb. It is localweb's default, stricter than the
+// policy sdash sent before: default-src is 'none', so a worker, a frame or a
+// media element of the interface would have to be allowed by a directive of
+// its own.
 func TestThePolicyAllowsTheOwnOriginAndNothingElse(t *testing.T) {
 	t.Parallel()
 
 	assert.Equal(t,
-		"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "+
-			"font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; "+
-			"frame-ancestors 'none'; form-action 'self'",
-		contentSecurityPolicy)
+		"default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; "+
+			"font-src 'self'; connect-src 'self'; manifest-src 'self'; form-action 'self'; "+
+			"base-uri 'none'; frame-ancestors 'none'",
+		localweb.ContentSecurityPolicy)
 }
 
 // What the API answers shows the cluster as the signed-in user sees it; a

@@ -67,7 +67,13 @@ func TestTheServedStatusDescribesThisBinaryAndItsFlags(t *testing.T) {
 			// with --read-only a request that could change something is
 			// refused for that reason, and without it the request gets as
 			// far as the API, which has nothing for it at this address.
-			changed, err := client.Post("http://"+address.Host+server.APIPrefix+"/status", "application/json", nil)
+			// A browser names the origin of its page on a request that may
+			// change something; the client of the standard library does not.
+			post, err := http.NewRequestWithContext(t.Context(), http.MethodPost,
+				"http://"+address.Host+server.APIPrefix+"/status", nil)
+			require.NoError(t, err)
+			post.Header.Set("Origin", "http://"+address.Host)
+			changed, err := client.Do(post)
 			require.NoError(t, err)
 			defer func() { _ = changed.Body.Close() }()
 			var refusal api.Error

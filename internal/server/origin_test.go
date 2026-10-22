@@ -26,10 +26,17 @@ func TestTheAPIServesOnlyRequestsOfItsOwnOrigin(t *testing.T) {
 	}{
 		{name: "a fetch from the interface", headers: []string{"Sec-Fetch-Site", "same-origin", "Sec-Fetch-Mode", "cors"}, want: http.StatusOK},
 		{name: "a fetch from the interface that names its origin", headers: []string{"Sec-Fetch-Site", "same-origin", "Origin", own}, want: http.StatusOK},
-		{name: "an address the user typed", headers: []string{"Sec-Fetch-Site", "none", "Sec-Fetch-Mode", "navigate"}, want: http.StatusOK},
-		{name: "a client that is no browser", want: http.StatusOK},
 		{name: "a browser without Sec-Fetch-Site that names the own origin", headers: []string{"Origin", own}, want: http.StatusOK},
 
+		{
+			// An address typed into the bar is no page: the answer of the
+			// API is data for the interface, and a navigation to it from
+			// anywhere shows another site nothing, so it is refused like
+			// the rest (doc/adr/0026-go-clikit-localweb-for-the-listener-and-the-guard.md).
+			name:    "an address the user typed",
+			headers: []string{"Sec-Fetch-Site", "none", "Sec-Fetch-Mode", "navigate", "Sec-Fetch-Dest", "document"},
+			want:    http.StatusForbidden,
+		},
 		{name: "a page of another site", headers: []string{"Sec-Fetch-Site", "cross-site", "Sec-Fetch-Mode", "cors"}, want: http.StatusForbidden},
 		{
 			// Another port of localhost: another program, or on a shared
@@ -133,15 +140,68 @@ func TestNoResponseCarriesCORSHeaders(t *testing.T) {
 	}
 }
 
+// A client that is no browser sends neither fetch metadata nor, for a read,
+// an Origin, and a read of it passes to the session check. A request that
+// may change something has to name the page it comes from, as every browser
+// does, so that one without the name is refused (localweb.CrossSite).
+func TestAClientThatIsNoBrowserMayReadButMustNameAnOriginToChange(t *testing.T) {
+	t.Parallel()
+
+	stub := &apiStub{}
+	router := testRouter(withAPI(stub))
+
+	read := serve(router, signedIn(request(http.MethodGet, "/api/v1/status")))
+	change := serve(router, signedIn(withoutOrigin(request(http.MethodPost, "/api/v1/jobs"))))
+
+	assert.Equal(t, http.StatusOK, read.Code)
+	assert.Equal(t, http.StatusForbidden, change.Code)
+	assert.Equal(t, []string{"GET /api/v1/status"}, stub.seen())
+}
+
 // A link on another site, or in a mail, that leads to the interface is an
 // ordinary navigation. The pages hold nothing secret; what they show comes
-// from the API, which the checks above guard.
+// from the API, which the checks above guard. What a page asks for itself,
+// such as a file it loads, comes from the page, so another site's request
+// for one is no navigation.
 func TestThePagesAreServedToANavigationFromAnotherSite(t *testing.T) {
 	t.Parallel()
 
-	got := serve(testRouter(), request(http.MethodGet, "/jobs",
-		"Sec-Fetch-Site", "cross-site", "Sec-Fetch-Mode", "navigate"))
+	tests := []struct {
+		name    string
+		headers []string
+		want    int
+	}{
+		{
+			name:    "a link",
+			headers: []string{"Sec-Fetch-Site", "cross-site", "Sec-Fetch-Mode", "navigate", "Sec-Fetch-Dest", "document"},
+			want:    http.StatusOK,
+		},
+		{
+			name:    "an address the user typed",
+			headers: []string{"Sec-Fetch-Site", "none", "Sec-Fetch-Mode", "navigate", "Sec-Fetch-Dest", "document"},
+			want:    http.StatusOK,
+		},
+		{
+			name:    "a script of another site's page",
+			headers: []string{"Sec-Fetch-Site", "cross-site", "Sec-Fetch-Mode", "no-cors", "Sec-Fetch-Dest", "script"},
+			want:    http.StatusForbidden,
+		},
+		{
+			name:    "a frame of another site's page",
+			headers: []string{"Sec-Fetch-Site", "cross-site", "Sec-Fetch-Mode", "navigate", "Sec-Fetch-Dest", "iframe"},
+			want:    http.StatusForbidden,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	assert.Equal(t, http.StatusOK, got.Code)
-	assert.Equal(t, indexBody, got.Body.String())
+			got := serve(testRouter(), request(http.MethodGet, "/jobs", tt.headers...))
+
+			assert.Equal(t, tt.want, got.Code)
+			if tt.want == http.StatusOK {
+				assert.Equal(t, indexBody, got.Body.String())
+			}
+		})
+	}
 }

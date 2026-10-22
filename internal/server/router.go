@@ -11,6 +11,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+
+	"github.com/GSI-HPC/go-clikit/localweb"
 )
 
 // APIPrefix is the base path of the browser API, as api/openapi.yaml
@@ -40,11 +42,14 @@ type routerConfig struct {
 
 // newRouter builds the handler tree of the listener.
 //
-// Every request passes the security headers and the Host allow-list. What
-// lies under /api/ then passes the guarded chain: no caching, same origin,
-// session cookie and, in read-only mode, a method that changes nothing. The
-// API handler sits behind that chain and is reachable through it alone, so
-// an operation added to the API cannot be registered around the checks.
+// Every request passes the security headers, the Host allow-list and a
+// check that no page of another site caused it. A page of the interface may
+// be navigated to from anywhere, as a link in a mail is; what lies under
+// /api/ is not a page, and passes the guarded chain: no caching, a same-origin
+// check that lets no navigation in, session cookie and, in read-only mode, a
+// method that changes nothing. The API handler sits behind that chain and is
+// reachable through it alone, so an operation added to the API cannot be
+// registered around the checks.
 //
 // The read-only check comes after the session check, so that a request
 // without a session is answered as it is in every mode and learns nothing
@@ -53,9 +58,15 @@ type routerConfig struct {
 // The handler in cfg.api receives each request with its full path, the
 // /api/v1 prefix included; the router does not strip it.
 func newRouter(cfg routerConfig) http.Handler {
+	// Reads are checked like writes: the answer to a GET shows the cluster as
+	// the signed-in user sees it, and no CORS header relaxes this for anyone.
+	apiOrigin := localweb.Origin{Refuse: refuseCrossSite(cfg.logger)}
+	if cfg.dev {
+		apiOrigin.Others = viteOrigins
+	}
 	checks := chi.Middlewares{
-		noStore,
-		sameOrigin(cfg.dev, cfg.logger),
+		localweb.NoStore,
+		localweb.SameOrigin(apiOrigin),
 		requireSession(cfg.token, cfg.logger),
 	}
 	if cfg.readOnly {
@@ -66,8 +77,8 @@ func newRouter(cfg routerConfig) http.Handler {
 	r := chi.NewRouter()
 	r.Use(
 		logRequests(cfg.logger),
-		securityHeaders,
-		allowHosts(cfg.answers, cfg.logger),
+		localweb.Headers(""),
+		localweb.Hosts(cfg.answers, refuseHost(cfg.logger)),
 	)
 	if cfg.api != nil {
 		r.Handle(APIPrefix+"/*", guarded.Handler(cfg.api))
@@ -80,7 +91,8 @@ func newRouter(cfg routerConfig) http.Handler {
 	// it for the same reason.
 	r.Handle("/api", guarded.HandlerFunc(apiNotFound))
 	r.Handle("/api/*", guarded.HandlerFunc(apiNotFound))
-	r.Handle("/*", exchangeToken(cfg.token, cfg.logger)(static{files: cfg.files}))
+	pages := localweb.SameOrigin(localweb.Origin{Navigate: true, Refuse: refuseCrossSite(cfg.logger)})
+	r.Handle("/*", pages(exchangeToken(cfg.token, cfg.logger)(static{files: cfg.files})))
 	return r
 }
 
