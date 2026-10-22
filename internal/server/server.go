@@ -13,6 +13,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/GSI-HPC/go-clikit/localweb"
 )
 
 // The limits of the HTTP server. Its only intended client is a browser on
@@ -42,8 +44,8 @@ const (
 
 // Config is what a Server is built from.
 type Config struct {
-	// Listen says where to listen (CheckListen): a loopback host and a
-	// port, or UnixScheme and the path of a unix socket.
+	// Listen says where to listen (localweb.CheckAddr): a loopback host and
+	// a port, or localweb.UnixPrefix and the path of a unix socket.
 	//
 	// The name localhost binds the port on 127.0.0.1 and on ::1, or on
 	// 127.0.0.1 alone on a host without an IPv6 loopback address; a literal
@@ -101,12 +103,13 @@ type Server struct {
 //
 // ctx bounds the binding only.
 func New(ctx context.Context, cfg Config) (*Server, error) {
-	return newOn(ctx, cfg, systemBind)
+	return newOn(ctx, cfg, nil)
 }
 
-// newOn is New with the function that binds, which a test replaces.
+// newOn is New with the function that binds, which a test replaces; nil
+// binds on this machine.
 func newOn(ctx context.Context, cfg Config, bind bindFunc) (*Server, error) {
-	if err := CheckListen(cfg.Listen); err != nil {
+	if err := localweb.CheckAddr(cfg.Listen); err != nil {
 		return nil, err
 	}
 	if cfg.Files == nil {
@@ -117,18 +120,17 @@ func newOn(ctx context.Context, cfg Config, bind bindFunc) (*Server, error) {
 		logger = slog.New(slog.DiscardHandler)
 	}
 
-	opened, err := open(ctx, bind, cfg.Listen, logger)
+	opened, err := listen(ctx, bind, cfg.Listen, logger)
 	if err != nil {
 		return nil, err
 	}
 	token := newToken()
-	for _, listener := range opened.listeners {
+	for _, listener := range opened.Listeners {
 		logger.Info("listening", "address", listener.Addr().String(), "dev", cfg.Dev)
 	}
 
-	srv := newServer(opened.listeners, newRouter(routerConfig{
-		addrs:    opened.addrs,
-		socket:   opened.socket != "",
+	srv := newServer(opened.Listeners, newRouter(routerConfig{
+		answers:  opened.Answers,
 		token:    token,
 		dev:      cfg.Dev,
 		readOnly: cfg.ReadOnly,
@@ -136,8 +138,8 @@ func newOn(ctx context.Context, cfg Config, bind bindFunc) (*Server, error) {
 		api:      cfg.API,
 		logger:   logger,
 	}), logger)
-	srv.socket = opened.socket
-	srv.url = "http://" + opened.host() + "/?" + tokenParameter + "=" + token
+	srv.socket = opened.Socket
+	srv.url = "http://" + forwardHost(opened) + "/?" + tokenParameter + "=" + token
 	return srv, nil
 }
 

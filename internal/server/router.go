@@ -7,9 +7,7 @@ import (
 	"cmp"
 	"io/fs"
 	"log/slog"
-	"net"
 	"net/http"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -22,14 +20,9 @@ const APIPrefix = "/api/v1"
 
 // routerConfig is what the handler tree is built from.
 type routerConfig struct {
-	// addrs are the TCP addresses the listeners are bound to. The allowed
-	// values of the Host header are made of them (allowedHosts).
-	addrs []*net.TCPAddr
-	// socket says that the listener is a unix socket, which has no address
-	// of that kind: it answers to the loopback names under whatever port
-	// the forward in front of it has (forwardedHost). With neither addrs
-	// nor socket, no Host is answered.
-	socket bool
+	// answers says which values of the Host header the listeners answer to
+	// (localweb.Bound.Answers).
+	answers func(host string) bool
 	// token is the secret of this launch.
 	token string
 	// dev accepts the requests the Vite dev server proxies.
@@ -70,17 +63,11 @@ func newRouter(cfg routerConfig) http.Handler {
 	}
 	guarded := chi.Chain(checks...)
 
-	answers := forwardedHost
-	if !cfg.socket {
-		hosts := allowedHosts(cfg.addrs)
-		answers = func(host string) bool { return hosts[strings.ToLower(host)] }
-	}
-
 	r := chi.NewRouter()
 	r.Use(
 		logRequests(cfg.logger),
 		securityHeaders,
-		allowHosts(answers, cfg.logger),
+		allowHosts(cfg.answers, cfg.logger),
 	)
 	if cfg.api != nil {
 		r.Handle(APIPrefix+"/*", guarded.Handler(cfg.api))

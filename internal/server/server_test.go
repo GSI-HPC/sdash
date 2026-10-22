@@ -45,7 +45,7 @@ func (r *running) stop() error {
 // ends or stop is called.
 func start(t *testing.T, cfg Config) *running {
 	t.Helper()
-	return startOn(t, cfg, systemBind)
+	return startOn(t, cfg, nil)
 }
 
 // startOn is start on a machine of the test's making: bind stands in for
@@ -478,7 +478,7 @@ func (l *pipeListener) Close() error {
 	return nil
 }
 
-func (l *pipeListener) Addr() net.Addr { return testAddr() }
+func (l *pipeListener) Addr() net.Addr { return net.TCPAddrFromAddrPort(testAddr()) }
 
 // dial returns the client's end of a new connection to the server.
 func (l *pipeListener) dial() net.Conn {
