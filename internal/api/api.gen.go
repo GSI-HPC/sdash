@@ -17,6 +17,7 @@ import (
 const (
 	ErrorCodeBadRequest       ErrorCode = "bad_request"
 	ErrorCodeCrossOrigin      ErrorCode = "cross_origin"
+	ErrorCodeCsrf             ErrorCode = "csrf"
 	ErrorCodeInternal         ErrorCode = "internal"
 	ErrorCodeMethodNotAllowed ErrorCode = "method_not_allowed"
 	ErrorCodeNotFound         ErrorCode = "not_found"
@@ -30,6 +31,8 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeBadRequest:
 		return true
 	case ErrorCodeCrossOrigin:
+		return true
+	case ErrorCodeCsrf:
 		return true
 	case ErrorCodeInternal:
 		return true
@@ -59,6 +62,9 @@ type Error struct {
 	// - `bad_request`: the request is not one the operation accepts.
 	// - `not_signed_in`: the request does not carry the session cookie of
 	//   this run of sdash.
+	// - `csrf`: the request could change something and lacks the CSRF
+	//   token of its session. The page reads the token again with
+	//   `getSession`, or is reloaded.
 	// - `cross_origin`: the request comes from a page of another origin.
 	// - `read_only`: sdash was started with --read-only, and the request
 	//   has a method other than GET, HEAD and OPTIONS, which could change
@@ -78,6 +84,9 @@ type Error struct {
 //   - `bad_request`: the request is not one the operation accepts.
 //   - `not_signed_in`: the request does not carry the session cookie of
 //     this run of sdash.
+//   - `csrf`: the request could change something and lacks the CSRF
+//     token of its session. The page reads the token again with
+//     `getSession`, or is reloaded.
 //   - `cross_origin`: the request comes from a page of another origin.
 //   - `read_only`: sdash was started with --read-only, and the request
 //     has a method other than GET, HEAD and OPTIONS, which could change
@@ -87,6 +96,13 @@ type Error struct {
 //     not for this method.
 //   - `internal`: sdash failed while answering; its log says why.
 type ErrorCode string
+
+// Session The session that a browser signed in with.
+type Session struct {
+	// CsrfToken The token a request that changes anything sends in the header
+	// `X-Sdash-CSRF`.
+	CsrfToken string `json:"csrfToken"`
+}
 
 // Status The running sdash and the clusters it is configured for.
 type Status struct {
@@ -121,6 +137,9 @@ type Status struct {
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// GetSession The CSRF token of the session that asks
+	// (GET /session)
+	GetSession(w http.ResponseWriter, r *http.Request)
 	// GetStatus The running sdash and the clusters it is configured for
 	// (GET /status)
 	GetStatus(w http.ResponseWriter, r *http.Request)
@@ -129,6 +148,12 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// GetSession The CSRF token of the session that asks
+// (GET /session)
+func (_ Unimplemented) GetSession(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // GetStatus The running sdash and the clusters it is configured for
 // (GET /status)
@@ -144,6 +169,20 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetSession operation middleware
+func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSession(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // GetStatus operation middleware
 func (siw *ServerInterfaceWrapper) GetStatus(w http.ResponseWriter, r *http.Request) {
@@ -275,11 +314,52 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/status", wrapper.GetStatus)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/session", wrapper.GetSession)
+	})
 
 	return r
 }
 
 type ErrorJSONResponse Error
+
+type GetSessionRequestObject struct {
+}
+
+type GetSessionResponseObject interface {
+	VisitGetSessionResponse(w http.ResponseWriter) error
+}
+
+type GetSession200JSONResponse Session
+
+func (response GetSession200JSONResponse) VisitGetSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSessiondefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetSessiondefaultJSONResponse) VisitGetSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type GetStatusRequestObject struct {
 }
@@ -321,6 +401,9 @@ func (response GetStatusdefaultJSONResponse) VisitGetStatusResponse(w http.Respo
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// GetSession The CSRF token of the session that asks
+	// (GET /session)
+	GetSession(ctx context.Context, request GetSessionRequestObject) (GetSessionResponseObject, error)
 	// GetStatus The running sdash and the clusters it is configured for
 	// (GET /status)
 	GetStatus(ctx context.Context, request GetStatusRequestObject) (GetStatusResponseObject, error)
@@ -363,6 +446,30 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// GetSession operation middleware
+func (sh *strictHandler) GetSession(w http.ResponseWriter, r *http.Request) {
+	var request GetSessionRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSession(ctx, request.(GetSessionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSession")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetSessionResponseObject); ok {
+		if err := validResponse.VisitGetSessionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // GetStatus operation middleware

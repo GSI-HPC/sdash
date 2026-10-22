@@ -132,9 +132,9 @@ func TestEveryRequestIsLoggedAtDebugLevel(t *testing.T) {
 	t.Parallel()
 
 	log := &logBuffer{}
-	router := testRouter(withAPI(&apiStub{}), withLogger(log.logger()))
+	router, signedIn := loggedRouter(log, withAPI(&apiStub{}))
 
-	serve(router, request(http.MethodGet, "/assets/index-BfK3x9Qa.js"))
+	serve(router, signedIn(request(http.MethodGet, "/assets/index-BfK3x9Qa.js")))
 	serve(router, signedIn(request(http.MethodPost, "/api/v1/jobs")))
 	serve(router, request(http.MethodGet, "/api/v1/jobs"))
 

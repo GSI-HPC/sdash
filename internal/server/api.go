@@ -13,6 +13,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/GSI-HPC/go-clikit/localweb/session"
+
 	"github.com/GSI-HPC/sdash/internal/api"
 	"github.com/GSI-HPC/sdash/internal/version"
 )
@@ -106,6 +108,10 @@ func apiNotFound(w http.ResponseWriter, _ *http.Request) {
 // interface.
 func writeError(w http.ResponseWriter, status int, code api.ErrorCode, message string) {
 	w.Header().Set("Content-Type", "application/json")
+	// The checks that guard the API answer before the chain that keeps its
+	// answers out of every cache, and a refusal is not kept either: the same
+	// address answers differently once the browser is signed in.
+	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(status)
 	// A body that cannot be written means the client has gone, and there is
 	// nobody left to tell.
@@ -117,6 +123,12 @@ type operations struct {
 	// status is the answer of GetStatus. Nothing in it changes while the
 	// process runs, so it is put together once.
 	status api.Status
+}
+
+// GetSession gives the CSRF token of the session that asks. The session check
+// has put it in the context of the request.
+func (operations) GetSession(ctx context.Context, _ api.GetSessionRequestObject) (api.GetSessionResponseObject, error) {
+	return api.GetSession200JSONResponse{CsrfToken: session.CSRF(ctx)}, nil
 }
 
 // GetStatus says which sdash is running.

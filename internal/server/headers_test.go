@@ -25,8 +25,8 @@ func TestEveryResponseCarriesTheSecurityHeaders(t *testing.T) {
 		request *http.Request
 		status  int
 	}{
-		{name: "a page", request: request(http.MethodGet, "/"), status: http.StatusOK},
-		{name: "a file of the interface", request: request(http.MethodGet, "/assets/index-BfK3x9Qa.js"), status: http.StatusOK},
+		{name: "a page", request: signedIn(request(http.MethodGet, "/")), status: http.StatusOK},
+		{name: "a file of the interface", request: signedIn(request(http.MethodGet, "/assets/index-BfK3x9Qa.js")), status: http.StatusOK},
 		{name: "an answer of the API", request: signedIn(request(http.MethodGet, "/api/v1/status")), status: http.StatusOK},
 		{name: "a request without a session", request: request(http.MethodGet, "/api/v1/status"), status: http.StatusUnauthorized},
 		{
@@ -43,7 +43,7 @@ func TestEveryResponseCarriesTheSecurityHeaders(t *testing.T) {
 			}(),
 			status: http.StatusMisdirectedRequest,
 		},
-		{name: "a method the interface does not take", request: request(http.MethodPost, "/"), status: http.StatusMethodNotAllowed},
+		{name: "a method the interface does not take", request: signedIn(request(http.MethodPost, "/")), status: http.StatusMethodNotAllowed},
 		{name: "a token exchange", request: request(http.MethodGet, "/?token="+testToken), status: http.StatusSeeOther},
 	}
 	for _, tt := range tests {

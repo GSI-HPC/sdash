@@ -55,6 +55,18 @@ export type Status = {
 };
 
 /**
+ * The session that a browser signed in with.
+ */
+export type Session = {
+    /**
+     * The token a request that changes anything sends in the header
+     * `X-Sdash-CSRF`.
+     *
+     */
+    csrfToken: string;
+};
+
+/**
  * A Slurm cluster sdash is configured for.
  */
 export type Cluster = {
@@ -81,6 +93,9 @@ export type Error = {
  * - `bad_request`: the request is not one the operation accepts.
  * - `not_signed_in`: the request does not carry the session cookie of
  * this run of sdash.
+ * - `csrf`: the request could change something and lacks the CSRF
+ * token of its session. The page reads the token again with
+ * `getSession`, or is reloaded.
  * - `cross_origin`: the request comes from a page of another origin.
  * - `read_only`: sdash was started with --read-only, and the request
  * has a method other than GET, HEAD and OPTIONS, which could change
@@ -94,6 +109,7 @@ export type Error = {
 export const ErrorCode = {
     BAD_REQUEST: 'bad_request',
     NOT_SIGNED_IN: 'not_signed_in',
+    CSRF: 'csrf',
     CROSS_ORIGIN: 'cross_origin',
     READ_ONLY: 'read_only',
     NOT_FOUND: 'not_found',
@@ -107,6 +123,9 @@ export const ErrorCode = {
  * - `bad_request`: the request is not one the operation accepts.
  * - `not_signed_in`: the request does not carry the session cookie of
  * this run of sdash.
+ * - `csrf`: the request could change something and lacks the CSRF
+ * token of its session. The page reads the token again with
+ * `getSession`, or is reloaded.
  * - `cross_origin`: the request comes from a page of another origin.
  * - `read_only`: sdash was started with --read-only, and the request
  * has a method other than GET, HEAD and OPTIONS, which could change
@@ -145,3 +164,30 @@ export type GetStatusResponses = {
 };
 
 export type GetStatusResponse = GetStatusResponses[keyof GetStatusResponses];
+
+export type GetSessionData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/session';
+};
+
+export type GetSessionErrors = {
+    /**
+     * The request was not answered with what it asked for. The status says
+     * what kind of failure it is, and the body what caused it.
+     *
+     */
+    default: Error;
+};
+
+export type GetSessionError = GetSessionErrors[keyof GetSessionErrors];
+
+export type GetSessionResponses = {
+    /**
+     * The token of the session.
+     */
+    200: Session;
+};
+
+export type GetSessionResponse = GetSessionResponses[keyof GetSessionResponses];

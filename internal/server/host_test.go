@@ -61,7 +61,7 @@ func TestDevAddsNoHostToTheOnesAnswered(t *testing.T) {
 
 	router := testRouter(withDev)
 
-	own := request(http.MethodGet, "/")
+	own := signedIn(request(http.MethodGet, "/"))
 	assert.Equal(t, http.StatusOK, serve(router, own).Code)
 
 	for _, host := range []string{"localhost:5173", "127.0.0.1:5173"} {

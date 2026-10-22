@@ -6,6 +6,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -19,6 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/GSI-HPC/go-clikit/localweb"
+	"github.com/GSI-HPC/go-clikit/localweb/session"
 )
 
 const (
@@ -26,8 +28,6 @@ const (
 	// to, and testHost the Host header a browser sends to it.
 	testPort = 7374
 	testHost = "127.0.0.1:7374"
-	// testCookie is the session cookie of a request to testHost.
-	testCookie = "sdash_session_7374"
 	// testToken stands in for the secret of a launch.
 	testToken = "LAUNCHTOKENLAUNCHTOKENLAUNCH"
 
@@ -70,10 +70,10 @@ func discardLogger() *slog.Logger {
 // change adjusts that.
 func testRouter(changes ...func(*routerConfig)) http.Handler {
 	cfg := routerConfig{
-		answers: answering(testAddr()),
-		token:   testToken,
-		files:   builtFiles(),
-		logger:  discardLogger(),
+		answers:  answering(testAddr()),
+		sessions: testSessions(),
+		files:    builtFiles(),
+		logger:   discardLogger(),
 	}
 	for _, change := range changes {
 		change(&cfg)
@@ -130,10 +130,79 @@ func withoutOrigin(r *http.Request) *http.Request {
 	return r
 }
 
-// signedIn adds the session cookie of the launch to a request.
+// sharedSessions are the sessions every router under test is put together
+// with, so that a request can be signed in without a reference to the
+// router that serves it.
+var sharedSessions = sync.OnceValue(func() *session.Sessions {
+	sessions, err := newSessions(testToken, discardLogger())
+	if err != nil {
+		panic(err)
+	}
+	return sessions
+})
+
+func testSessions() *session.Sessions { return sharedSessions() }
+
+// signIn trades the launch token for a session of the shared sessions, as
+// the first navigation of a browser does, and returns the cookie and the CSRF
+// token of the session. It signs in under the Host of the request, which
+// names the cookie.
+func signIn(host string) (*http.Cookie, string) {
+	return signInOn(testSessions(), host)
+}
+
+// signInOn is signIn for the sessions of a router of the test's own. A
+// router that does not let the exchange through is a mistake of the test, so
+// it panics rather than fail a test it has no handle on.
+func signInOn(sessions *session.Sessions, host string) (*http.Cookie, string) {
+	var csrf string
+	exchanged := sessions.Middleware(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		csrf = session.CSRF(r.Context())
+	}))
+	first := request(http.MethodGet, "/?"+session.TokenParam+"="+testToken)
+	first.Host = host
+	got := serve(exchanged, first)
+	cookies := got.Result().Cookies()
+	if got.Code != http.StatusSeeOther || len(cookies) != 1 {
+		panic(fmt.Sprintf("the launch token did not sign in: %d, %d cookies", got.Code, len(cookies)))
+	}
+
+	// The session tells its token to a request that has the cookie.
+	second := request(http.MethodGet, "/")
+	second.Host = host
+	second.AddCookie(cookies[0])
+	if serve(exchanged, second); csrf == "" {
+		panic("the session told no CSRF token")
+	}
+	return cookies[0], csrf
+}
+
+// signedIn gives a request the session of a browser that has signed in: its
+// cookie and, for a request that may change something, the CSRF token that
+// the page's script sends.
 func signedIn(r *http.Request) *http.Request {
-	r.AddCookie(&http.Cookie{Name: testCookie, Value: testToken})
+	return signedInOn(testSessions(), r)
+}
+
+// signedInOn is signedIn for the sessions of a router of the test's own.
+func signedInOn(sessions *session.Sessions, r *http.Request) *http.Request {
+	cookie, csrf := signInOn(sessions, r.Host)
+	r.AddCookie(cookie)
+	if !localweb.SafeMethod(r.Method) {
+		r.Header.Set(csrfHeader, csrf)
+	}
 	return r
+}
+
+// loggedRouter is a router whose log, and its sessions', goes to log, and
+// the function that signs a request in to it.
+func loggedRouter(log *logBuffer, changes ...func(*routerConfig)) (http.Handler, func(*http.Request) *http.Request) {
+	sessions, err := newSessions(testToken, log.logger())
+	if err != nil {
+		panic(err)
+	}
+	changes = append(changes, withLogger(log.logger()), func(cfg *routerConfig) { cfg.sessions = sessions })
+	return testRouter(changes...), func(r *http.Request) *http.Request { return signedInOn(sessions, r) }
 }
 
 // serve answers a request with a handler and returns what it wrote.

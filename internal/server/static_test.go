@@ -20,7 +20,7 @@ import (
 func TestTheIndexIsServedAndRevalidatedEachTime(t *testing.T) {
 	t.Parallel()
 
-	got := serve(testRouter(), request(http.MethodGet, "/"))
+	got := serve(testRouter(), signedIn(request(http.MethodGet, "/")))
 
 	assert.Equal(t, http.StatusOK, got.Code)
 	assert.Equal(t, indexBody, got.Body.String())
@@ -45,7 +45,7 @@ func TestAnAddressOfTheAppGetsTheIndex(t *testing.T) {
 		t.Run(target, func(t *testing.T) {
 			t.Parallel()
 
-			got := serve(testRouter(), request(http.MethodGet, target))
+			got := serve(testRouter(), signedIn(request(http.MethodGet, target)))
 
 			assert.Equal(t, http.StatusOK, got.Code)
 			assert.Equal(t, indexBody, got.Body.String())
@@ -59,7 +59,7 @@ func TestAnAddressOfTheAppGetsTheIndex(t *testing.T) {
 func TestAHashedFileIsCachedForGood(t *testing.T) {
 	t.Parallel()
 
-	got := serve(testRouter(), request(http.MethodGet, "/assets/index-BfK3x9Qa.js"))
+	got := serve(testRouter(), signedIn(request(http.MethodGet, "/assets/index-BfK3x9Qa.js")))
 
 	assert.Equal(t, http.StatusOK, got.Code)
 	assert.Equal(t, scriptBody, got.Body.String())
@@ -79,7 +79,7 @@ func TestAMissingFileUnderAssetsIsNotFound(t *testing.T) {
 		t.Run(target, func(t *testing.T) {
 			t.Parallel()
 
-			got := serve(testRouter(), request(http.MethodGet, target))
+			got := serve(testRouter(), signedIn(request(http.MethodGet, target)))
 
 			assert.Equal(t, http.StatusNotFound, got.Code)
 			assert.NotContains(t, got.Body.String(), indexBody)
@@ -95,7 +95,7 @@ func TestAMissingFileUnderAssetsIsNotFound(t *testing.T) {
 func TestAFileBesideTheIndexIsServedAndRevalidated(t *testing.T) {
 	t.Parallel()
 
-	got := serve(testRouter(), request(http.MethodGet, "/favicon.svg"))
+	got := serve(testRouter(), signedIn(request(http.MethodGet, "/favicon.svg")))
 
 	assert.Equal(t, http.StatusOK, got.Code)
 	assert.Contains(t, got.Body.String(), "<svg")
@@ -114,7 +114,7 @@ func TestABinaryWithoutTheInterfaceSaysHowToBuildIt(t *testing.T) {
 		t.Run(target, func(t *testing.T) {
 			t.Parallel()
 
-			got := serve(router, request(http.MethodGet, target))
+			got := serve(router, signedIn(request(http.MethodGet, target)))
 
 			assert.Equal(t, http.StatusNotFound, got.Code)
 			assert.Contains(t, got.Body.String(), "not part of this build")
@@ -135,11 +135,11 @@ func TestAnInterfaceBuiltLaterIsServedWithoutARestart(t *testing.T) {
 
 	files := unbuiltFiles()
 	router := testRouter(withFiles(files))
-	require.Equal(t, http.StatusNotFound, serve(router, request(http.MethodGet, "/")).Code)
+	require.Equal(t, http.StatusNotFound, serve(router, signedIn(request(http.MethodGet, "/"))).Code)
 
 	files["index.html"] = &fstest.MapFile{Data: []byte(indexBody)}
 
-	got := serve(router, request(http.MethodGet, "/"))
+	got := serve(router, signedIn(request(http.MethodGet, "/")))
 	assert.Equal(t, http.StatusOK, got.Code)
 	assert.Equal(t, indexBody, got.Body.String())
 }
@@ -149,12 +149,12 @@ func TestTheInterfaceIsReadWithGETAndHEADOnly(t *testing.T) {
 
 	router := testRouter()
 
-	head := serve(router, request(http.MethodHead, "/"))
+	head := serve(router, signedIn(request(http.MethodHead, "/")))
 	assert.Equal(t, http.StatusOK, head.Code)
 	assert.Empty(t, head.Body.String())
 
 	for _, method := range []string{http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions} {
-		got := serve(router, request(method, "/"))
+		got := serve(router, signedIn(request(method, "/")))
 		assert.Equal(t, http.StatusMethodNotAllowed, got.Code, method)
 		assert.Equal(t, "GET, HEAD", got.Header().Get("Allow"), method)
 	}
@@ -181,7 +181,7 @@ func TestNoAddressReachesOutsideTheInterface(t *testing.T) {
 		t.Run(target, func(t *testing.T) {
 			t.Parallel()
 
-			got := serve(handler, request(http.MethodGet, target))
+			got := serve(handler, signedIn(request(http.MethodGet, target)))
 
 			assert.NotContains(t, got.Body.String(), "TOP SECRET")
 		})

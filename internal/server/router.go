@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/GSI-HPC/go-clikit/localweb"
+	"github.com/GSI-HPC/go-clikit/localweb/session"
 )
 
 // APIPrefix is the base path of the browser API, as api/openapi.yaml
@@ -25,8 +26,8 @@ type routerConfig struct {
 	// answers says which values of the Host header the listeners answer to
 	// (localweb.Bound.Answers).
 	answers func(host string) bool
-	// token is the secret of this launch.
-	token string
+	// sessions are the sessions of this launch.
+	sessions *session.Sessions
 	// dev accepts the requests the Vite dev server proxies.
 	dev bool
 	// readOnly refuses every request under /api/ that could change
@@ -42,11 +43,12 @@ type routerConfig struct {
 
 // newRouter builds the handler tree of the listener.
 //
-// Every request passes the security headers, the Host allow-list and a
-// check that no page of another site caused it. A page of the interface may
-// be navigated to from anywhere, as a link in a mail is; what lies under
-// /api/ is not a page, and passes the guarded chain: no caching, a same-origin
-// check that lets no navigation in, session cookie and, in read-only mode, a
+// Every request passes the security headers, the Host allow-list, a check
+// that no page of another site caused it (sameOrigin) and the session: the
+// cookie that only the browser the launch token signed in has. The session
+// is checked before the router looks at the address, so that a request
+// without one learns nothing about which addresses exist. What lies under
+// /api/ then passes the guarded chain: no caching and, in read-only mode, a
 // method that changes nothing. The API handler sits behind that chain and is
 // reachable through it alone, so an operation added to the API cannot be
 // registered around the checks.
@@ -58,17 +60,7 @@ type routerConfig struct {
 // The handler in cfg.api receives each request with its full path, the
 // /api/v1 prefix included; the router does not strip it.
 func newRouter(cfg routerConfig) http.Handler {
-	// Reads are checked like writes: the answer to a GET shows the cluster as
-	// the signed-in user sees it, and no CORS header relaxes this for anyone.
-	apiOrigin := localweb.Origin{Refuse: refuseCrossSite(cfg.logger)}
-	if cfg.dev {
-		apiOrigin.Others = viteOrigins
-	}
-	checks := chi.Middlewares{
-		localweb.NoStore,
-		localweb.SameOrigin(apiOrigin),
-		requireSession(cfg.token, cfg.logger),
-	}
+	checks := chi.Middlewares{localweb.NoStore}
 	if cfg.readOnly {
 		checks = append(checks, readsOnly(cfg.logger))
 	}
@@ -79,20 +71,19 @@ func newRouter(cfg routerConfig) http.Handler {
 		logRequests(cfg.logger),
 		localweb.Headers(""),
 		localweb.Hosts(cfg.answers, refuseHost(cfg.logger)),
+		sameOrigin(cfg.dev, cfg.logger),
+		cfg.sessions.Middleware,
 	)
 	if cfg.api != nil {
 		r.Handle(APIPrefix+"/*", guarded.Handler(cfg.api))
 	}
 	// Registered whether or not an API is mounted, so that an address under
 	// /api/ never falls through to the user interface, which would answer
-	// it with the index page, and so that a request without a session
-	// learns nothing about which addresses exist. The pattern with the
-	// wildcard does not match the bare prefix, which is registered beside
-	// it for the same reason.
+	// it with the index page. The pattern with the wildcard does not match
+	// the bare prefix, which is registered beside it for the same reason.
 	r.Handle("/api", guarded.HandlerFunc(apiNotFound))
 	r.Handle("/api/*", guarded.HandlerFunc(apiNotFound))
-	pages := localweb.SameOrigin(localweb.Origin{Navigate: true, Refuse: refuseCrossSite(cfg.logger)})
-	r.Handle("/*", pages(exchangeToken(cfg.token, cfg.logger)(static{files: cfg.files})))
+	r.Handle("/*", static{files: cfg.files})
 	return r
 }
 

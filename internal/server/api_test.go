@@ -245,6 +245,10 @@ type failingOperations struct {
 	err error
 }
 
+func (f failingOperations) GetSession(context.Context, api.GetSessionRequestObject) (api.GetSessionResponseObject, error) {
+	return nil, f.err
+}
+
 func (f failingOperations) GetStatus(context.Context, api.GetStatusRequestObject) (api.GetStatusResponseObject, error) {
 	return nil, f.err
 }

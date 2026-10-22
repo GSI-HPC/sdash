@@ -40,8 +40,9 @@
 // loopback port, and have nothing to try once they are closed out.
 //
 // On either, a request is served only if it passes these checks, in this
-// order. The first three are localweb's (Headers, Hosts and SameOrigin); the
-// server words their refusals and logs them (guard.go).
+// order. They are localweb's (Headers, Hosts, SameOrigin and the sessions of
+// localweb/session); the server words their refusals and logs them (guard.go
+// and session.go).
 //
 //   - Every answer carries the Content-Security-Policy of localweb, which
 //     allows the origin itself and nothing else, so a flaw in the user
@@ -62,17 +63,20 @@
 //     server's own origin, for every method, since a read tells another page
 //     as much as a write changes, and a navigation to an address of the API
 //     is refused too.
-//   - Under /api/, it carries the session cookie, which the server gives
-//     only to a browser that presents the token of this launch. The cookie
-//     is named after the port in the Host header, so that each sdash a
-//     browser knows on one host name has a cookie of its own.
+//   - It carries the session cookie, which the server gives only to a
+//     browser that presents the token of this launch
+//     (localweb/session). The cookie is named after the port in the Host
+//     header, so that each sdash a browser knows on one host name has a
+//     cookie of its own. A request that could change something also carries
+//     the CSRF token of its session, which the page reads with the operation
+//     getSession.
 //   - Under /api/, in read-only mode (Config.ReadOnly), its method is GET,
 //     HEAD or OPTIONS. This is enough to keep sdash from changing anything,
 //     because no operation of the browser API changes something on a GET
 //     (readsOnly).
 //
 // A route registered outside newRouter's guarded chain would skip the last
-// three. That is why the browser API is not registered by its own package
+// check. That is why the browser API is not registered by its own package
 // but handed in as one handler (Config.API), which the router wraps.
 //
 // The server holds no package-level state, and sets nothing that belongs to
