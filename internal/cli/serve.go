@@ -142,7 +142,7 @@ func serve(ctx context.Context, p Process, o options) error {
 		return cobratree.Usagef("--listen: %w", err)
 	}
 	logger := newLogger(p.Stderr, o.verbosity)
-	instance := acquireInstance(p, logger, o)
+	instance := acquireInstance(ctx, p, logger, o)
 	if instance != nil {
 		// Held from here to the record below: a second start waits for it,
 		// so that two cannot both find no server and both start one.
@@ -202,7 +202,7 @@ func serve(ctx context.Context, p Process, o options) error {
 			logger.Warn("cannot record the server for a second start", "error", err)
 		} else {
 			defer func() {
-				if err := instance.Retire(); err != nil {
+				if err := instance.Retire(ctx); err != nil {
 					logger.Warn("cannot remove the record of the server", "error", err)
 				}
 			}()
@@ -228,7 +228,7 @@ func serve(ctx context.Context, p Process, o options) error {
 // line asks for a server of its own, the runtime directory is not usable or
 // the system cannot lock. None of these stops the server. A start that is
 // not under the guard behaves as it did before there was one.
-func acquireInstance(p Process, logger *slog.Logger, o options) *launch.Instance {
+func acquireInstance(ctx context.Context, p Process, logger *slog.Logger, o options) *launch.Instance {
 	if o.ownServer {
 		return nil
 	}
@@ -239,7 +239,7 @@ func acquireInstance(p Process, logger *slog.Logger, o options) *launch.Instance
 		logger.Info("not looking for a running sdash", "reason", runtimeDirVariable+" is not set to an absolute path")
 		return nil
 	}
-	instance, err := launch.Acquire(runtimeDir, runtimeSubdir)
+	instance, err := launch.Acquire(ctx, runtimeDir, runtimeSubdir)
 	switch {
 	case errors.Is(err, errors.ErrUnsupported):
 		logger.Info("not looking for a running sdash", "reason", err)
