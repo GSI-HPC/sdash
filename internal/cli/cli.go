@@ -91,6 +91,11 @@ type options struct {
 	readOnly bool
 	// verbosity counts the -v flags.
 	verbosity int
+	// ownServer is set when the command line asks for a server of its own:
+	// it names --listen, --dev or --read-only. Such a start neither looks
+	// for the sdash that runs already nor leaves a record for the next
+	// one (doc/adr/0028-one-sdash-server-per-user.md).
+	ownServer bool
 }
 
 // serveFunc runs the server with the flags of the root command. It is a
@@ -147,6 +152,10 @@ sdash serves its user interface on the loopback addresses of this machine,
 prints its address and opens it in a browser. It runs until it is
 interrupted or its terminal hangs up, and exits 0 after a clean shutdown.
 
+Only one sdash serves each user. Started again, it prints the address of the
+one that runs, opens the browser on it and exits 0. A start with --listen,
+--dev or --read-only asks for a server of its own and is left alone.
+
 The printed address holds a token that signs the browser in. Whoever has it
 acts as you for as long as this sdash runs, so treat it like a password.
 
@@ -162,6 +171,9 @@ below a directory in which others may rename what is yours.`),
 		SilenceErrors: true,
 		Args:          cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			for _, name := range []string{"listen", "dev", "read-only"} {
+				o.ownServer = o.ownServer || cmd.Flags().Changed(name)
+			}
 			return serve(cmd.Context(), p, o)
 		},
 	}

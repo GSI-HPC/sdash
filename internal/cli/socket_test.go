@@ -36,7 +36,7 @@ const endOfTheHint = " and in the address alike.\n"
 func privateDir(t *testing.T) string {
 	t.Helper()
 	return servertest.SocketDir(t, func(dir string) bool {
-		return localweb.CheckAddr(localweb.UnixPrefix+filepath.Join(dir, socketDir, socketName)) == nil
+		return localweb.CheckAddr(localweb.UnixPrefix+filepath.Join(dir, runtimeSubdir, socketName)) == nil
 	})
 }
 

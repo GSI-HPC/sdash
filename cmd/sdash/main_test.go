@@ -62,12 +62,19 @@ type child struct {
 // and the cache of whoever runs the tests.
 func start(t *testing.T, mode string, args ...string) *child {
 	t.Helper()
-	return startThrough(t, mode, os.Args[0], args...)
+	return startIn(t, t.TempDir(), mode, args...)
 }
 
-// startThrough is start with the command that is run, which is the test
+// startIn is start with the runtime directory of the user that the process
+// runs as: processes that share one are of one user, to each other.
+func startIn(t *testing.T, runtimeDir, mode string, args ...string) *child {
+	t.Helper()
+	return startThrough(t, runtimeDir, mode, os.Args[0], args...)
+}
+
+// startThrough is startIn with the command that is run, which is the test
 // binary or a program that starts it, as nohup does.
-func startThrough(t *testing.T, mode, name string, args ...string) *child {
+func startThrough(t *testing.T, runtimeDir, mode, name string, args ...string) *child {
 	t.Helper()
 	dir := t.TempDir()
 	cmd := exec.Command(name, args...)
@@ -75,6 +82,7 @@ func startThrough(t *testing.T, mode, name string, args ...string) *child {
 		childEnv+"="+mode,
 		"HOME="+dir,
 		"XDG_CACHE_HOME="+filepath.Join(dir, "cache"),
+		"XDG_RUNTIME_DIR="+runtimeDir,
 	)
 	stderr := &bytes.Buffer{}
 	cmd.Stderr = stderr
@@ -199,7 +207,7 @@ func TestAHangupThatSdashWasStartedToIgnoreIsNotAmongTheSignalsThatStopIt(t *tes
 	assert.Equal(t, "stops on: [interrupt terminated hangup]", started.expect(t, "stops on:"))
 	require.NoError(t, started.wait(t, patience))
 
-	underNohup := startThrough(t, "signals", "nohup", os.Args[0])
+	underNohup := startThrough(t, t.TempDir(), "signals", "nohup", os.Args[0])
 	assert.Equal(t, "stops on: [interrupt terminated]", underNohup.expect(t, "stops on:"))
 	require.NoError(t, underNohup.wait(t, patience))
 }

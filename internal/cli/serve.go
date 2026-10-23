@@ -16,6 +16,7 @@ import (
 
 	"github.com/GSI-HPC/go-clikit/cobratree"
 	"github.com/GSI-HPC/go-clikit/localweb"
+	"github.com/GSI-HPC/go-clikit/localweb/launch"
 
 	"github.com/GSI-HPC/sdash/internal/server"
 	"github.com/GSI-HPC/sdash/internal/static"
@@ -27,12 +28,13 @@ import (
 // started.
 const devDist = "web/dist"
 
-// The default socket of "--listen unix:": a directory of sdash's own in the
-// user's runtime directory, which the system creates for the user alone and
-// removes at the last logout.
+// The directory of sdash's own in the user's runtime directory, which the
+// system creates for the user alone and removes at the last logout. It holds
+// the default socket of "--listen unix:" and the lock and the record of the
+// server that runs (doc/adr/0028-one-sdash-server-per-user.md).
 const (
 	runtimeDirVariable = "XDG_RUNTIME_DIR"
-	socketDir          = "sdash"
+	runtimeSubdir      = "sdash"
 	socketName         = "sdash.sock"
 )
 
@@ -140,6 +142,16 @@ func serve(ctx context.Context, p Process, o options) error {
 		return cobratree.Usagef("--listen: %w", err)
 	}
 	logger := newLogger(p.Stderr, o.verbosity)
+	instance := acquireInstance(p, logger, o)
+	if instance != nil {
+		// Held from here to the record below: a second start waits for it,
+		// so that two cannot both find no server and both start one.
+		defer instance.Release()
+		if running, ok := instance.Running(); ok {
+			logger.Info("an sdash of this user runs already", "pid", running.PID)
+			return attach(p, logger, o, running.URL)
+		}
+	}
 	files, err := interfaceFiles(o.dev)
 	if err != nil {
 		return err
@@ -180,6 +192,23 @@ func serve(ctx context.Context, p Process, o options) error {
 		return srv.Run(ctx)
 	}
 
+	// Recorded before the address is printed, so that a start that follows
+	// a script's reading of the address finds the server.
+	if instance != nil {
+		if err := instance.Publish(srv.URL()); err != nil {
+			// Publish drops the lock when it succeeds. The server still
+			// serves, but a start would wait for the lock until it ends.
+			instance.Release()
+			logger.Warn("cannot record the server for a second start", "error", err)
+		} else {
+			defer func() {
+				if err := instance.Retire(); err != nil {
+					logger.Warn("cannot remove the record of the server", "error", err)
+				}
+			}()
+		}
+	}
+
 	// Always printed, whether or not a browser opens: it is the only way in
 	// for a user whose browser is somewhere else. A terminal that cannot
 	// be written to does not stop a server whose browser may still open.
@@ -192,6 +221,44 @@ func serve(ctx context.Context, p Process, o options) error {
 		defer func() { _ = os.Remove(file) }()
 	}
 	return srv.Run(ctx)
+}
+
+// acquireInstance returns the guard that keeps one sdash server per user,
+// with its lock taken, or nil when this start is not under it: the command
+// line asks for a server of its own, the runtime directory is not usable or
+// the system cannot lock. None of these stops the server. A start that is
+// not under the guard behaves as it did before there was one.
+func acquireInstance(p Process, logger *slog.Logger, o options) *launch.Instance {
+	if o.ownServer {
+		return nil
+	}
+	runtimeDir := p.getenv(runtimeDirVariable)
+	if !filepath.IsAbs(runtimeDir) {
+		// Unset, or a relative path, which the XDG Base Directory
+		// specification has ignored. macOS sets none.
+		logger.Info("not looking for a running sdash", "reason", runtimeDirVariable+" is not set to an absolute path")
+		return nil
+	}
+	instance, err := launch.Acquire(runtimeDir, runtimeSubdir)
+	switch {
+	case errors.Is(err, errors.ErrUnsupported):
+		logger.Info("not looking for a running sdash", "reason", err)
+		return nil
+	case err != nil:
+		logger.Warn("cannot look for a running sdash", "error", err)
+		return nil
+	}
+	return instance
+}
+
+// attach is what a second start does: it prints the address of the sdash
+// that runs, as that one printed it, and opens the browser on it. The
+// redirect file it writes is the one of the running server, which is the
+// same port, and which that server removes when it stops.
+func attach(p Process, logger *slog.Logger, o options, address string) error {
+	_, _ = fmt.Fprintf(p.Stdout, "sdash is serving at %s\n", address)
+	_ = openBrowser(p, logger, o, address)
+	return nil
 }
 
 // listenAddress turns the value of --listen into the address the server is
@@ -221,7 +288,7 @@ func listenAddress(listen string, getenv func(string) string) (string, error) {
 				"not valid there and counts as not set; name one, as in %s/path/to/sdash.sock",
 				listen, runtimeDirVariable, runtimeDir, localweb.UnixPrefix)
 		}
-		path = filepath.Join(runtimeDir, socketDir, socketName)
+		path = filepath.Join(runtimeDir, runtimeSubdir, socketName)
 	}
 	if strings.HasPrefix(path, "~") {
 		// A shell expands ~ at the start of a word only, and here it
