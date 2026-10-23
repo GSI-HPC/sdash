@@ -70,7 +70,7 @@ func newRouter(cfg routerConfig) http.Handler {
 	r.Use(
 		logRequests(cfg.logger),
 		localweb.Headers(""),
-		localweb.Hosts(cfg.answers, refuseHost(cfg.logger)),
+		localweb.Hosts(cfg.answers, localweb.HostsOptions{Refuse: refuseHost(cfg.logger)}),
 		sameOrigin(cfg.dev, cfg.logger),
 		cfg.sessions.Middleware,
 	)

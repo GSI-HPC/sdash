@@ -15,7 +15,7 @@ go 1.26.0
 ignore node_modules
 
 require (
-	github.com/GSI-HPC/go-clikit v0.9.0
+	github.com/GSI-HPC/go-clikit v0.9.1-0.20261023233719-19b206c76a34
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
