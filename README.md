@@ -59,6 +59,11 @@ $ make build      # the UI, then bin/sdash with the UI embedded
 $ bin/sdash       # listens on port 7374 of 127.0.0.1 and ::1, and opens the browser
 ```
 
+Run again, `bin/sdash` opens the browser on the sdash that runs already and
+exits. Only a start with `--listen`, `--dev` or `--read-only` serves on its
+own
+([`doc/adr/0028-one-sdash-server-per-user.md`](doc/adr/0028-one-sdash-server-per-user.md)).
+
 On a host you share with other users, such as a login node, start it as
 `bin/sdash --listen unix:` instead: every user of the host can connect to a
 loopback port, and only you to the unix socket sdash then listens on. A
