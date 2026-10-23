@@ -21,14 +21,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/GSI-HPC/sdash/internal/browser"
+	"github.com/GSI-HPC/go-clikit/localweb/launch"
 	"github.com/GSI-HPC/sdash/internal/server"
 )
 
 // desktop stands in for the user's desktop: an environment, a cache
 // directory, and an opener that reports the file it was handed.
 type desktop struct {
-	browser.Opener
+	launch.Opener
+	cacheDir func() (string, error)
 	// opened receives the arguments of each start of the opener.
 	opened chan []string
 }
@@ -39,10 +40,11 @@ func newDesktop(t *testing.T, env map[string]string, startErr error) *desktop {
 	t.Helper()
 	cache := t.TempDir()
 	d := &desktop{opened: make(chan []string, 1)}
-	d.Opener = browser.Opener{
-		GOOS:     "linux",
-		Getenv:   func(name string) string { return env[name] },
-		CacheDir: func() (string, error) { return cache, nil },
+	d.cacheDir = func() (string, error) { return cache, nil }
+	d.Opener = launch.Opener{
+		Name:   "sdash",
+		GOOS:   "linux",
+		Getenv: func(name string) string { return env[name] },
 		Start: func(name string, args ...string) error {
 			d.opened <- append([]string{name}, args...)
 			return startErr
@@ -150,13 +152,14 @@ func runToItsEnd(t *testing.T, p Process) int {
 	return code
 }
 
-// launch starts sdash with args on a free loopback port and returns once it
+// runSdash starts sdash with args on a free loopback port and returns once it
 // has printed its address.
-func launch(t *testing.T, d *desktop, args ...string) *launched {
+func runSdash(t *testing.T, d *desktop, args ...string) *launched {
 	t.Helper()
 	l, stdout := begin(t, Process{
-		Args:    append([]string{"--listen", "127.0.0.1:0"}, args...),
-		Browser: d.Opener,
+		Args:     append([]string{"--listen", "127.0.0.1:0"}, args...),
+		Browser:  d.Opener,
+		CacheDir: d.cacheDir,
 	})
 
 	line := l.said(t, stdout, "\n")
@@ -200,7 +203,7 @@ func open(t *testing.T, address string) page {
 func TestTheServerRunsUntilItIsInterruptedAndExitsZero(t *testing.T) {
 	t.Parallel()
 
-	sdash := launch(t, newDesktop(t, nil, nil), "--no-browser")
+	sdash := runSdash(t, newDesktop(t, nil, nil), "--no-browser")
 
 	u, err := url.Parse(sdash.address)
 	require.NoError(t, err)
@@ -225,7 +228,7 @@ func TestTheBrowserIsOpenedOnAFileThatIsRemovedAtTheEnd(t *testing.T) {
 	t.Parallel()
 
 	d := newDesktop(t, withDisplay(), nil)
-	sdash := launch(t, d)
+	sdash := runSdash(t, d)
 
 	started := d.await(t)
 	require.Len(t, started, 2)
@@ -267,7 +270,7 @@ func TestNoBrowserIsOpenedWhereTheUserWouldNotSeeIt(t *testing.T) {
 			t.Parallel()
 
 			d := newDesktop(t, tt.env, nil)
-			sdash := launch(t, d, tt.args...)
+			sdash := runSdash(t, d, tt.args...)
 
 			// The address is printed all the same, and it works.
 			got := open(t, sdash.address)
@@ -286,7 +289,7 @@ func TestAnOpenerThatFailsDoesNotStopTheServer(t *testing.T) {
 	t.Parallel()
 
 	d := newDesktop(t, withDisplay(), errors.New("executable file not found in $PATH"))
-	sdash := launch(t, d)
+	sdash := runSdash(t, d)
 	d.await(t)
 
 	got := open(t, sdash.address)
@@ -295,6 +298,65 @@ func TestAnOpenerThatFailsDoesNotStopTheServer(t *testing.T) {
 	require.Equal(t, exitOK, sdash.stop())
 	assert.Contains(t, sdash.stderr.String(), `level=WARN msg="cannot open a browser"`)
 	assert.Contains(t, sdash.stderr.String(), "executable file not found")
+}
+
+// The redirect file holds the launch token, so the directory it lies in is
+// closed to the other users, whatever mode an earlier run or the user gave it.
+func TestTheRedirectFileLiesInADirectoryClosedToOtherUsers(t *testing.T) {
+	t.Parallel()
+
+	d := newDesktop(t, withDisplay(), nil)
+	cache, err := d.cacheDir()
+	require.NoError(t, err)
+	// Chmod, not the mode of Mkdir, which the umask would narrow.
+	dir := filepath.Join(cache, "sdash")
+	require.NoError(t, os.Mkdir(dir, 0o700))
+	require.NoError(t, os.Chmod(dir, 0o755))
+	sdash := runSdash(t, d)
+
+	file := d.await(t)[1]
+	assert.Equal(t, dir, filepath.Dir(file))
+	info, err := os.Stat(dir)
+	require.NoError(t, err)
+	assert.Equal(t, os.FileMode(0o700), info.Mode().Perm())
+
+	require.Equal(t, exitOK, sdash.stop())
+}
+
+// Without a cache directory there is nowhere to put the file, and that is as
+// little a reason to stop the server as an opener that fails.
+func TestNoCacheDirectoryIsNoReasonToStopTheServer(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		cacheDir func() (string, error)
+		says     string
+	}{
+		{name: "unknown", says: "no cache directory is known"},
+		{
+			name:     "refused",
+			cacheDir: func() (string, error) { return "", errors.New("neither $XDG_CACHE_HOME nor $HOME are defined") },
+			says:     "find the cache directory: neither $XDG_CACHE_HOME nor $HOME are defined",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			d := newDesktop(t, withDisplay(), nil)
+			d.cacheDir = tt.cacheDir
+			sdash := runSdash(t, d)
+
+			got := open(t, sdash.address)
+			assert.Contains(t, got.header.Get("Content-Type"), "text/html")
+
+			require.Equal(t, exitOK, sdash.stop())
+			assert.Empty(t, d.opened, "the opener was not started")
+			assert.Contains(t, sdash.stderr.String(), `level=WARN msg="cannot open a browser"`)
+			assert.Contains(t, sdash.stderr.String(), tt.says)
+		})
+	}
 }
 
 // The fallback changes the address the user has to open, so it is said
@@ -307,8 +369,8 @@ func TestABusyPortIsReportedWithoutAnyVFlag(t *testing.T) {
 	t.Cleanup(func() { _ = holder.Close() })
 	busy := holder.Addr().String()
 
-	// The later --listen wins over the one launch puts first.
-	sdash := launch(t, newDesktop(t, nil, nil), "--no-browser", "--listen", busy)
+	// The later --listen wins over the one runSdash puts first.
+	sdash := runSdash(t, newDesktop(t, nil, nil), "--no-browser", "--listen", busy)
 
 	u, err := url.Parse(sdash.address)
 	require.NoError(t, err)
@@ -333,7 +395,7 @@ func TestDevServesTheInterfaceFromWebDistOnDisk(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(root, "web", "dist", "index.html"), []byte(built), 0o644))
 	t.Chdir(root)
 
-	sdash := launch(t, newDesktop(t, nil, nil), "--dev", "--no-browser")
+	sdash := runSdash(t, newDesktop(t, nil, nil), "--dev", "--no-browser")
 
 	got := open(t, sdash.address)
 	assert.Equal(t, http.StatusOK, got.status)
@@ -349,7 +411,7 @@ func TestDevServesTheInterfaceFromWebDistOnDisk(t *testing.T) {
 func TestWithoutDevARequestFromTheViteDevServerIsRefused(t *testing.T) {
 	t.Parallel()
 
-	sdash := launch(t, newDesktop(t, nil, nil), "--no-browser")
+	sdash := runSdash(t, newDesktop(t, nil, nil), "--no-browser")
 
 	assert.Equal(t, http.StatusForbidden, proxiedByVite(t, sdash))
 
@@ -389,7 +451,7 @@ func proxiedByVite(t *testing.T, sdash *launched) int {
 func TestLocalhostIsPrintedAsTheLiteralLoopbackAddress(t *testing.T) {
 	t.Parallel()
 
-	sdash := launch(t, newDesktop(t, nil, nil), "--no-browser", "--listen", "localhost:0")
+	sdash := runSdash(t, newDesktop(t, nil, nil), "--no-browser", "--listen", "localhost:0")
 
 	u, err := url.Parse(sdash.address)
 	require.NoError(t, err)
