@@ -30,9 +30,11 @@ no Slurm-facing code and take fixtures from nowhere else.
   line, `server` the handler tree and the words of its refusals, on the
   listeners and the checks of go-clikit's `localweb`
   (`0026-go-clikit-localweb-for-the-listener-and-the-guard`, which builds on
-  `0023-the-listeners-as-built`), `static` the embedded UI. A test-support
-  package is named `xxxtest`. `internal/slurm/` and a root `e2e/` come with
-  the Slurm-facing work.
+  `0023-the-listeners-as-built`), `static` the embedded UI. `cli` opens the
+  browser with go-clikit's `localweb/launch`
+  (`0027-go-clikit-launch-for-the-browser`). A test-support package is named
+  `xxxtest`. `internal/slurm/` and a root `e2e/` come with the Slurm-facing
+  work.
 - `internal/static/dist/`: what the binary embeds. `make build` copies the UI
   build there; a tracked placeholder lets `go build ./...` work without Node.
 - `api/openapi.yaml`: the browser API (OpenAPI 3.0.3, base path `/api/v1`),
