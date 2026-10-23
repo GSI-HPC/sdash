@@ -133,7 +133,7 @@ func withoutOrigin(r *http.Request) *http.Request {
 // sharedSessions are the sessions every router under test is put together
 // with, so that a request can be signed in without a reference to the
 // router that serves it.
-var sharedSessions = sync.OnceValue(func() *session.Sessions {
+var sharedSessions = sync.OnceValue(func() *session.Manager {
 	sessions, err := newSessions(testToken, discardLogger())
 	if err != nil {
 		panic(err)
@@ -141,7 +141,7 @@ var sharedSessions = sync.OnceValue(func() *session.Sessions {
 	return sessions
 })
 
-func testSessions() *session.Sessions { return sharedSessions() }
+func testSessions() *session.Manager { return sharedSessions() }
 
 // signIn trades the launch token for a session of the shared sessions, as
 // the first navigation of a browser does, and returns the cookie and the CSRF
@@ -154,7 +154,7 @@ func signIn(host string) (*http.Cookie, string) {
 // signInOn is signIn for the sessions of a router of the test's own. A
 // router that does not let the exchange through is a mistake of the test, so
 // it panics rather than fail a test it has no handle on.
-func signInOn(sessions *session.Sessions, host string) (*http.Cookie, string) {
+func signInOn(sessions *session.Manager, host string) (*http.Cookie, string) {
 	var csrf string
 	exchanged := sessions.Middleware(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 		csrf = session.CSRF(r.Context())
@@ -185,7 +185,7 @@ func signedIn(r *http.Request) *http.Request {
 }
 
 // signedInOn is signedIn for the sessions of a router of the test's own.
-func signedInOn(sessions *session.Sessions, r *http.Request) *http.Request {
+func signedInOn(sessions *session.Manager, r *http.Request) *http.Request {
 	cookie, csrf := signInOn(sessions, r.Host)
 	r.AddCookie(cookie)
 	if !localweb.SafeMethod(r.Method) {

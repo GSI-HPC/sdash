@@ -27,7 +27,7 @@ type routerConfig struct {
 	// (localweb.Bound.Answers).
 	answers func(host string) bool
 	// sessions are the sessions of this launch.
-	sessions *session.Sessions
+	sessions *session.Manager
 	// dev accepts the requests the Vite dev server proxies.
 	dev bool
 	// readOnly refuses every request under /api/ that could change
@@ -70,7 +70,7 @@ func newRouter(cfg routerConfig) http.Handler {
 	r.Use(
 		logRequests(cfg.logger),
 		localweb.Headers(""),
-		localweb.Hosts(cfg.answers, refuseHost(cfg.logger)),
+		localweb.Hosts(cfg.answers, localweb.HostsOptions{Refuse: refuseHost(cfg.logger)}),
 		sameOrigin(cfg.dev, cfg.logger),
 		cfg.sessions.Middleware,
 	)

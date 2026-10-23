@@ -5,10 +5,12 @@ package cli
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -138,4 +140,31 @@ func TestADirectoryThatIsNotPrivateIsReportedAndTheServerRuns(t *testing.T) {
 	require.Equal(t, exitOK, sdash.stop())
 	assert.Contains(t, sdash.stderr.String(), `level=WARN msg="cannot look for a running sdash"`)
 	assert.Contains(t, sdash.stderr.String(), "it must be 0700")
+}
+
+// A start that waits for the lock of another start ends when it is
+// interrupted, as any stop does, and does not serve. Without a context,
+// go-clikit's Acquire waited without a limit and a signal did not reach it.
+func TestAStartThatWaitsForTheLockEndsWhenItIsInterrupted(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	held, err := launch.Acquire(t.Context(), dir, runtimeSubdir)
+	require.NoError(t, err)
+	defer held.Release()
+
+	sdash, stdout := begin(t, Process{Args: []string{"--no-browser"}, Getenv: withRuntimeDir(dir)})
+	sdash.cancel()
+
+	select {
+	case code := <-sdash.exit:
+		sdash.exit <- code
+		assert.Equal(t, exitOK, code)
+	case <-time.After(patience):
+		t.Fatalf("sdash still waited for the lock after it was interrupted: %s", sdash.stderr)
+	}
+	printed, err := io.ReadAll(stdout)
+	require.NoError(t, err)
+	assert.Empty(t, string(printed), "sdash did not serve")
+	assert.NotContains(t, sdash.stderr.String(), "cannot look for a running sdash")
 }
