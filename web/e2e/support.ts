@@ -9,6 +9,9 @@ import { expect, type Locator, type Page } from "@playwright/test";
 
 import { isApplePlatform } from "../src/shortcuts/keys.ts";
 
+/** A colour scheme a test can emulate, which is what the theme follows. */
+type ColorScheme = "light" | "dark";
+
 /**
  * The address sdash printed when it started, with the token of its launch.
  */
@@ -30,6 +33,7 @@ async function enter(
   page: Page,
   address: URL,
   until: "load" | "domcontentloaded",
+  colorScheme?: ColorScheme,
 ): Promise<string[]> {
   const problems: string[] = [];
   page.on("pageerror", (error) => problems.push(error.message));
@@ -44,13 +48,43 @@ async function enter(
   // says so; without this check a test would fail on a missing element and
   // hide the reason.
   expect(response?.status(), await response?.text()).toBe(200);
+  if (colorScheme) {
+    await keepColorScheme(page, colorScheme);
+  }
   return problems;
+}
+
+/**
+ * Has the page see the colour scheme the test emulates. The server sends
+ * Cross-Origin-Opener-Policy: same-origin, which has Firefox put the page in
+ * a new browsing context group, and the emulation the test set for the
+ * whole browser context does not follow it there: the page starts with
+ * "light" and chooses its theme from that. So the scheme is emulated again
+ * on the page that has arrived, and the page is loaded again, to choose
+ * its theme from the scheme the test wants. Where the page already sees it,
+ * as in Chromium and WebKit, nothing is done.
+ */
+async function keepColorScheme(
+  page: Page,
+  colorScheme: ColorScheme,
+): Promise<void> {
+  const seen = await page.evaluate(
+    () => matchMedia("(prefers-color-scheme: dark)").matches,
+  );
+  if (seen === (colorScheme === "dark")) {
+    return;
+  }
+  await page.emulateMedia({ colorScheme });
+  await reload(page);
 }
 
 /**
  * Opens sdash the way its user does, through the address it printed, token
  * included, and returns the list of what the browser reports as going wrong
  * from then on.
+ *
+ * `colorScheme` is the scheme the test emulates with test.use, which a page
+ * that is to follow it is told again (keepColorScheme).
  *
  * `until` is the event of the page that is waited for. A test that holds
  * back a file of the interface says "domcontentloaded": whether a page
@@ -59,9 +93,12 @@ async function enter(
  */
 export async function open(
   page: Page,
-  { until = "load" }: { until?: "load" | "domcontentloaded" } = {},
+  {
+    until = "load",
+    colorScheme,
+  }: { until?: "load" | "domcontentloaded"; colorScheme?: ColorScheme } = {},
 ): Promise<string[]> {
-  return enter(page, launchAddress(), until);
+  return enter(page, launchAddress(), until, colorScheme);
 }
 
 /**
@@ -87,13 +124,17 @@ export async function scan(page: Page) {
  * WebKit write each request a navigation cuts off to the console as an
  * error: the test's doing, and no fault of the page.
  */
-export async function openAt(page: Page, path: string): Promise<string[]> {
+export async function openAt(
+  page: Page,
+  path: string,
+  { colorScheme }: { colorScheme?: ColorScheme } = {},
+): Promise<string[]> {
   const launch = launchAddress();
   const address = new URL(path, launch);
   for (const [name, value] of launch.searchParams) {
     address.searchParams.set(name, value);
   }
-  return enter(page, address, "load");
+  return enter(page, address, "load", colorScheme);
 }
 
 /**
