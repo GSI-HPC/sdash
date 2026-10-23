@@ -48,12 +48,12 @@ const openTheAddress = "Open the address sdash printed when it started."
 // refuses what carries no session, and asks every request that may change
 // something for the CSRF token of its session
 // (doc/adr/0026-go-clikit-localweb-for-the-listener-and-the-guard.md).
-func newSessions(token string, logger *slog.Logger) (*session.Sessions, error) {
+func newSessions(token string, logger *slog.Logger) (*session.Manager, error) {
 	return session.New(session.Options{
-		Token:  token,
-		Cookie: cookiePrefix,
-		Header: csrfHeader,
-		Refuse: refuseSession(logger),
+		Token:        token,
+		CookiePrefix: cookiePrefix,
+		CSRFHeader:   csrfHeader,
+		Refuse:       refuseSession(logger),
 	})
 }
 

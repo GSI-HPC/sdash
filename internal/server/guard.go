@@ -75,12 +75,12 @@ func underAPI(path string) bool {
 // With dev, the origins of the Vite dev server pass for the API.
 func sameOrigin(dev bool, logger *slog.Logger) func(http.Handler) http.Handler {
 	refuse := refuseCrossSite(logger)
-	apiOrigin := localweb.Origin{Refuse: refuse}
+	apiOrigin := localweb.OriginPolicy{Refuse: refuse}
 	if dev {
 		apiOrigin.Others = viteOrigins
 	}
 	forAPI := localweb.SameOrigin(apiOrigin)
-	forPages := localweb.SameOrigin(localweb.Origin{Navigate: true, Refuse: refuse})
+	forPages := localweb.SameOrigin(localweb.OriginPolicy{Navigate: true, Refuse: refuse})
 	return func(next http.Handler) http.Handler {
 		checkAPI, checkPages := forAPI(next), forPages(next)
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
