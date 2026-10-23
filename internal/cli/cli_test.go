@@ -79,13 +79,13 @@ func TestEachFlagReachesTheServer(t *testing.T) {
 		args []string
 		want options
 	}{
-		{name: "another address", args: []string{"--listen", "[::1]:8000"}, want: with(func(o *options) { o.listen = "[::1]:8000" })},
-		{name: "another address with =", args: []string{"--listen=127.0.0.1:0"}, want: with(func(o *options) { o.listen = "127.0.0.1:0" })},
-		{name: "a unix socket", args: []string{"--listen", "unix:/run/user/1000/sdash.sock"}, want: with(func(o *options) { o.listen = "unix:/run/user/1000/sdash.sock" })},
-		{name: "the default unix socket", args: []string{"--listen", "unix:"}, want: with(func(o *options) { o.listen = "unix:" })},
+		{name: "another address", args: []string{"--listen", "[::1]:8000"}, want: with(func(o *options) { o.listen, o.ownServer = "[::1]:8000", true })},
+		{name: "another address with =", args: []string{"--listen=127.0.0.1:0"}, want: with(func(o *options) { o.listen, o.ownServer = "127.0.0.1:0", true })},
+		{name: "a unix socket", args: []string{"--listen", "unix:/run/user/1000/sdash.sock"}, want: with(func(o *options) { o.listen, o.ownServer = "unix:/run/user/1000/sdash.sock", true })},
+		{name: "the default unix socket", args: []string{"--listen", "unix:"}, want: with(func(o *options) { o.listen, o.ownServer = "unix:", true })},
 		{name: "no browser", args: []string{"--no-browser"}, want: with(func(o *options) { o.noBrowser = true })},
-		{name: "development", args: []string{"--dev"}, want: with(func(o *options) { o.dev = true })},
-		{name: "read-only", args: []string{"--read-only"}, want: with(func(o *options) { o.readOnly = true })},
+		{name: "development", args: []string{"--dev"}, want: with(func(o *options) { o.dev, o.ownServer = true, true })},
+		{name: "read-only", args: []string{"--read-only"}, want: with(func(o *options) { o.readOnly, o.ownServer = true, true })},
 		{name: "one -v", args: []string{"-v"}, want: with(func(o *options) { o.verbosity = 1 })},
 		{name: "-v twice in one word", args: []string{"-vv"}, want: with(func(o *options) { o.verbosity = 2 })},
 		{name: "-v twice in two words", args: []string{"-v", "-v"}, want: with(func(o *options) { o.verbosity = 2 })},
@@ -93,7 +93,7 @@ func TestEachFlagReachesTheServer(t *testing.T) {
 		{
 			name: "all of them",
 			args: []string{"--dev", "--no-browser", "--read-only", "-vv", "--listen", "127.0.0.1:0"},
-			want: options{listen: "127.0.0.1:0", noBrowser: true, dev: true, readOnly: true, verbosity: 2},
+			want: options{listen: "127.0.0.1:0", noBrowser: true, dev: true, readOnly: true, verbosity: 2, ownServer: true},
 		},
 	}
 	for _, tt := range tests {
