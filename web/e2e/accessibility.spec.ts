@@ -39,7 +39,7 @@ for (const theme of ["light", "dark"] as const) {
         for (const { path, title } of pages) {
           test(`${path} passes the axe scan`, async ({ page }) => {
             await withStored(page, sidebarKey, sidebar);
-            await openAt(page, path);
+            await openAt(page, path, { colorScheme: theme });
             await expect(page.locator("html")).toHaveAttribute(
               "data-theme",
               theme,

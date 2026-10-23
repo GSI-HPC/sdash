@@ -102,7 +102,7 @@ for (const theme of ["light", "dark"] as const) {
       page,
     }) => {
       await answerReadOnly(page);
-      await open(page);
+      await open(page, { colorScheme: theme });
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
       await expect(page.getByRole("status")).toContainText("Read-only");
 
@@ -118,7 +118,7 @@ for (const theme of ["light", "dark"] as const) {
       page,
     }) => {
       await page.route(statusOperation, (route) => route.abort());
-      await open(page);
+      await open(page, { colorScheme: theme });
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
       await expect(page.getByRole("alert")).toBeVisible();
 
