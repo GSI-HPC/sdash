@@ -16,13 +16,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/GSI-HPC/go-clikit/cobratree"
+	"github.com/GSI-HPC/go-clikit/localweb/launch"
 	"github.com/GSI-HPC/go-clikit/termtext"
-	"github.com/GSI-HPC/sdash/internal/browser"
 	"github.com/GSI-HPC/sdash/internal/server"
 )
 
@@ -58,8 +59,12 @@ type Process struct {
 	Stdout io.Writer
 	// Stderr receives the log and the error a command ends with.
 	Stderr io.Writer
-	// Browser opens the address of the server on the user's desktop.
-	Browser browser.Opener
+	// Browser opens the address of the server on the user's desktop. Its
+	// Dir is left empty: the redirect file lies below CacheDir.
+	Browser launch.Opener
+	// CacheDir returns the user's cache directory, as os.UserCacheDir does.
+	// Without it no browser is opened.
+	CacheDir func() (string, error)
 	// Getenv reads a variable of the environment, as os.Getenv does. Without
 	// it nothing is set.
 	Getenv func(string) string
@@ -97,10 +102,15 @@ type serveFunc func(ctx context.Context, p Process, o options) error
 // (exitOK, exitFailure and exitUsage). ctx is cancelled by the signal that stops the server.
 func Execute(ctx context.Context) int {
 	return run(ctx, Process{
-		Args:     os.Args[1:],
-		Stdout:   os.Stdout,
-		Stderr:   os.Stderr,
-		Browser:  browser.System(),
+		Args:   os.Args[1:],
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+		Browser: launch.Opener{
+			Name:   "sdash",
+			GOOS:   runtime.GOOS,
+			Getenv: os.Getenv,
+		},
+		CacheDir: os.UserCacheDir,
 		Getenv:   os.Getenv,
 		Hostname: os.Hostname,
 		Getuid:   os.Getuid,

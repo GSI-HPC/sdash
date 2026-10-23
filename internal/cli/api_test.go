@@ -37,7 +37,7 @@ func TestTheServedStatusDescribesThisBinaryAndItsFlags(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			sdash := launch(t, newDesktop(t, nil, nil), tt.args...)
+			sdash := runSdash(t, newDesktop(t, nil, nil), tt.args...)
 			jar, err := cookiejar.New(nil)
 			require.NoError(t, err)
 			client := &http.Client{Jar: jar}

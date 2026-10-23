@@ -92,6 +92,7 @@ func TestOnASocketTheForwardIsExplainedAndNoBrowserIsOpened(t *testing.T) {
 	sdash, hint := launchOnSocket(t, Process{
 		Args:     []string{"--listen", "unix:" + path},
 		Browser:  d.Opener,
+		CacheDir: d.cacheDir,
 		Hostname: func() (string, error) { return "login1.example.org", nil },
 	})
 

@@ -5,6 +5,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -289,12 +290,40 @@ func openBrowser(p Process, logger *slog.Logger, o options, address string) stri
 		logger.Info("not opening a browser", "reason", reason)
 		return ""
 	}
-	file, err := p.Browser.Open(address)
-	if err != nil {
-		logger.Warn("cannot open a browser", "error", err)
-		return ""
+	opener := p.Browser
+	dir, err := redirectDir(p)
+	if err == nil {
+		opener.Dir = dir
+		var file string
+		if file, err = opener.Open(address); err == nil {
+			return file
+		}
 	}
-	return file
+	logger.Warn("cannot open a browser", "error", err)
+	return ""
+}
+
+// redirectDir returns the directory the redirect file is written to, below
+// the user's cache directory and closed to the other users. The file holds
+// the launch token, and its name carries the port: a later run on the same
+// port replaces the file of an earlier one that could not remove its own.
+func redirectDir(p Process) (string, error) {
+	if p.CacheDir == nil {
+		return "", errors.New("no cache directory is known")
+	}
+	cache, err := p.CacheDir()
+	if err != nil {
+		return "", fmt.Errorf("find the cache directory: %w", err)
+	}
+	dir := filepath.Join(cache, "sdash")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", fmt.Errorf("create the directory of the redirect file: %w", err)
+	}
+	// MkdirAll leaves a directory that exists as it is, whatever its mode.
+	if err := os.Chmod(dir, 0o700); err != nil {
+		return "", fmt.Errorf("close the directory of the redirect file to other users: %w", err)
+	}
+	return dir, nil
 }
 
 // interfaceFiles returns the file system the user interface is served from:
