@@ -300,9 +300,10 @@ func TestAnOpenerThatFailsDoesNotStopTheServer(t *testing.T) {
 	assert.Contains(t, sdash.stderr.String(), "executable file not found")
 }
 
-// The redirect file holds the launch token, so the directory it lies in is
-// closed to the other users, whatever mode an earlier run or the user gave it.
-func TestTheRedirectFileLiesInADirectoryClosedToOtherUsers(t *testing.T) {
+// The redirect file holds the launch token, so a directory that is not closed
+// to the other users is refused, not repaired: nothing is written to it and the server
+// runs on.
+func TestADirectoryOpenToOtherUsersGetsNoRedirectFile(t *testing.T) {
 	t.Parallel()
 
 	d := newDesktop(t, withDisplay(), nil)
@@ -312,6 +313,31 @@ func TestTheRedirectFileLiesInADirectoryClosedToOtherUsers(t *testing.T) {
 	dir := filepath.Join(cache, "sdash")
 	require.NoError(t, os.Mkdir(dir, 0o700))
 	require.NoError(t, os.Chmod(dir, 0o755))
+	sdash := runSdash(t, d)
+
+	got := open(t, sdash.address)
+	assert.Contains(t, got.header.Get("Content-Type"), "text/html")
+	require.Equal(t, exitOK, sdash.stop())
+
+	assert.Contains(t, sdash.stderr.String(), `level=WARN msg="cannot open a browser"`)
+	assert.Contains(t, sdash.stderr.String(), "it must be 0700")
+	info, err := os.Stat(dir)
+	require.NoError(t, err)
+	assert.Equal(t, os.FileMode(0o755), info.Mode().Perm())
+	entries, err := os.ReadDir(dir)
+	require.NoError(t, err)
+	assert.Empty(t, entries)
+}
+
+// A directory of the right mode that is there already is used as it is.
+func TestTheRedirectFileLiesInADirectoryClosedToOtherUsers(t *testing.T) {
+	t.Parallel()
+
+	d := newDesktop(t, withDisplay(), nil)
+	cache, err := d.cacheDir()
+	require.NoError(t, err)
+	dir := filepath.Join(cache, "sdash")
+	require.NoError(t, os.Mkdir(dir, 0o700))
 	sdash := runSdash(t, d)
 
 	file := d.await(t)[1]

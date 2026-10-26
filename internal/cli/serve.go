@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/GSI-HPC/go-clikit/cobratree"
+	"github.com/GSI-HPC/go-clikit/fsutil"
 	"github.com/GSI-HPC/go-clikit/localweb"
 	"github.com/GSI-HPC/go-clikit/localweb/launch"
 
@@ -381,9 +382,12 @@ func openBrowser(p Process, logger *slog.Logger, o options, address string) stri
 }
 
 // redirectDir returns the directory the redirect file is written to, below
-// the user's cache directory and closed to the other users. The file holds
-// the launch token, and its name carries the port: a later run on the same
-// port replaces the file of an earlier one that could not remove its own.
+// the user's cache directory and closed to the other users. EnsureDir
+// refuses a directory that another user owns or can write, and the opener
+// refuses one that is not 0700; none is repaired, as the mode may be the
+// user's choice. The file holds the launch token, and its name carries the
+// port: a later run on the same port replaces the file of an earlier one
+// that could not remove its own.
 func redirectDir(p Process) (string, error) {
 	if p.CacheDir == nil {
 		return "", errors.New("no cache directory is known")
@@ -393,12 +397,8 @@ func redirectDir(p Process) (string, error) {
 		return "", fmt.Errorf("find the cache directory: %w", err)
 	}
 	dir := filepath.Join(cache, "sdash")
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return "", fmt.Errorf("create the directory of the redirect file: %w", err)
-	}
-	// MkdirAll leaves a directory that exists as it is, whatever its mode.
-	if err := os.Chmod(dir, 0o700); err != nil {
-		return "", fmt.Errorf("close the directory of the redirect file to other users: %w", err)
+	if err := fsutil.EnsureDir(dir); err != nil {
+		return "", fmt.Errorf("prepare the directory of the redirect file: %w", err)
 	}
 	return dir, nil
 }
