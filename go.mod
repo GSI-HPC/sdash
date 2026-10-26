@@ -16,7 +16,7 @@ ignore node_modules
 
 require (
 	github.com/GSI-HPC/go-clikit v0.10.0
-	github.com/go-chi/chi/v5 v5.3.2
+	github.com/go-chi/chi/v5 v5.5.0
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
 )
