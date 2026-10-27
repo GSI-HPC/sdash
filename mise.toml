@@ -25,7 +25,7 @@ node = "24"
 
 # The sind the end-to-end tests create their Slurm clusters with. It ships
 # Linux binaries only, and runs on Linux only, since its nodes are Docker
-# containers with systemd inside. Nothing but the end-to-end tests needs it,
-# and they wait for a sind release that runs slurmrestd, to which this pin
-# is then raised (doc/adr/0016-e2e-and-fixtures-on-sind.md).
-"github:GSI-HPC/sind" = { version = "0.10.0", os = ["linux"] }
+# containers with systemd inside. Nothing but the end-to-end tests needs it.
+# Its api node runs slurmrestd with JWT authentication, from v0.11.0 on and on
+# the Slurm 26.05 images only (doc/adr/0016-e2e-and-fixtures-on-sind.md).
+"github:GSI-HPC/sind" = { version = "0.15.0", os = ["linux"] }
