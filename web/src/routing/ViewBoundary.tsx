@@ -3,6 +3,7 @@
 
 import { Component, type ReactNode, useRef } from "react";
 
+import { Button } from "../primitives/Button";
 import { useArrival } from "./arrival";
 import { isLoadFailure } from "./loadFailure";
 
@@ -96,15 +97,13 @@ function Report({ title, text }: { title: string; text: string }) {
         {title}
       </h1>
       <p className="max-w-140 text-t2">{text}</p>
-      <button
-        type="button"
+      <Button
         onClick={() => {
           window.location.reload();
         }}
-        className="h-8 cursor-pointer rounded-md border border-bd bg-surface px-3.5 text-[0.78125rem] font-medium hover:bg-hover"
       >
         Reload
-      </button>
+      </Button>
     </div>
   );
 }
