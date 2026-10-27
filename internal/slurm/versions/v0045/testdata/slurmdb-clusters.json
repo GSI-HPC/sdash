@@ -1,0 +1,100 @@
+{
+  "clusters": [
+    {
+      "controller": {
+        "host": "172.19.0.7",
+        "port": 6817
+      },
+      "flags": [
+        "REGISTERING"
+      ],
+      "name": "default",
+      "nodes": "worker-[0-2]",
+      "associations": {
+        "root": {
+          "account": "root",
+          "cluster": "default",
+          "partition": "",
+          "user": "",
+          "id": 1
+        }
+      },
+      "rpc_version": 11520,
+      "tres": [
+        {
+          "type": "cpu",
+          "name": "",
+          "id": 1,
+          "count": 6
+        },
+        {
+          "type": "mem",
+          "name": "",
+          "id": 2,
+          "count": 1536
+        },
+        {
+          "type": "energy",
+          "name": "",
+          "id": 3,
+          "count": 0
+        },
+        {
+          "type": "node",
+          "name": "",
+          "id": 4,
+          "count": 3
+        },
+        {
+          "type": "billing",
+          "name": "",
+          "id": 5,
+          "count": 6
+        },
+        {
+          "type": "fs",
+          "name": "disk",
+          "id": 6,
+          "count": 0
+        },
+        {
+          "type": "vmem",
+          "name": "",
+          "id": 7,
+          "count": 0
+        },
+        {
+          "type": "pages",
+          "name": "",
+          "id": 8,
+          "count": 0
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "plugin": {
+      "type": "openapi\/slurmdbd",
+      "name": "Slurm OpenAPI slurmdbd",
+      "data_parser": "data_parser\/v0.0.45",
+      "accounting_storage": "accounting_storage\/slurmdbd"
+    },
+    "client": {
+      "source": "172.19.0.5:6820(fd:9)",
+      "user": "nobody",
+      "group": ""
+    },
+    "command": [],
+    "slurm": {
+      "version": {
+        "major": "26",
+        "micro": "5",
+        "minor": "05"
+      },
+      "release": "26.05.5",
+      "cluster": "default"
+    }
+  },
+  "errors": [],
+  "warnings": []
+}

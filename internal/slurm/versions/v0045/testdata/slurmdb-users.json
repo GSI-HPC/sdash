@@ -1,0 +1,101 @@
+{
+  "users": [
+    {
+      "administrator_level": [
+        "None"
+      ],
+      "associations": [],
+      "coordinators": [],
+      "default": {
+        "qos": 0,
+        "account": "",
+        "wckey": ""
+      },
+      "flags": [
+        "NONE"
+      ],
+      "name": "alice",
+      "old_name": "",
+      "wckeys": []
+    },
+    {
+      "administrator_level": [
+        "None"
+      ],
+      "associations": [],
+      "coordinators": [],
+      "default": {
+        "qos": 0,
+        "account": "",
+        "wckey": ""
+      },
+      "flags": [
+        "NONE"
+      ],
+      "name": "bob",
+      "old_name": "",
+      "wckeys": []
+    },
+    {
+      "administrator_level": [
+        "Operator"
+      ],
+      "associations": [],
+      "coordinators": [],
+      "default": {
+        "qos": 0,
+        "account": "",
+        "wckey": ""
+      },
+      "flags": [
+        "NONE"
+      ],
+      "name": "carol",
+      "old_name": "",
+      "wckeys": []
+    },
+    {
+      "administrator_level": [
+        "Administrator"
+      ],
+      "associations": [],
+      "coordinators": [],
+      "default": {
+        "qos": 0,
+        "account": "",
+        "wckey": ""
+      },
+      "flags": [
+        "NONE"
+      ],
+      "name": "root",
+      "old_name": "",
+      "wckeys": []
+    }
+  ],
+  "meta": {
+    "plugin": {
+      "type": "openapi\/slurmdbd",
+      "name": "Slurm OpenAPI slurmdbd",
+      "data_parser": "data_parser\/v0.0.45",
+      "accounting_storage": "accounting_storage\/slurmdbd"
+    },
+    "client": {
+      "source": "172.19.0.5:6820(fd:9)",
+      "user": "nobody",
+      "group": ""
+    },
+    "command": [],
+    "slurm": {
+      "version": {
+        "major": "26",
+        "micro": "5",
+        "minor": "05"
+      },
+      "release": "26.05.5",
+      "cluster": "default"
+    }
+  },
+  "errors": [],
+  "warnings": []
+}

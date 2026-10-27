@@ -1,0 +1,144 @@
+{
+  "nodes": [
+    {
+      "architecture": "x86_64",
+      "burstbuffer_network_address": "",
+      "boards": 1,
+      "boot_time": {
+        "set": true,
+        "infinite": false,
+        "number": 1793124350
+      },
+      "tls_cert_last_renewal": {
+        "set": true,
+        "infinite": false,
+        "number": 0
+      },
+      "cert_flags": [],
+      "cluster_name": "",
+      "cores": 1,
+      "specialized_cores": 0,
+      "cpu_binding": 0,
+      "cpu_load": 96,
+      "free_mem": {
+        "set": true,
+        "infinite": false,
+        "number": 10165
+      },
+      "cpus": 2,
+      "effective_cpus": 2,
+      "specialized_cpus": "",
+      "energy": {
+        "average_watts": 0,
+        "base_consumed_energy": 0,
+        "consumed_energy": 0,
+        "current_watts": {
+          "set": true,
+          "infinite": false,
+          "number": 0
+        },
+        "previous_consumed_energy": 0,
+        "last_collected": 0
+      },
+      "extra": "",
+      "features": [],
+      "active_features": [],
+      "gpu_spec": "",
+      "gres": "",
+      "gres_drained": "N\/A",
+      "gres_used": "",
+      "instance_id": "",
+      "instance_type": "",
+      "last_busy": {
+        "set": true,
+        "infinite": false,
+        "number": 1793124485
+      },
+      "mcs_label": "",
+      "specialized_memory": 0,
+      "name": "worker-2",
+      "next_state_after_reboot": [
+        "INVALID"
+      ],
+      "address": "worker-2",
+      "hostname": "worker-2",
+      "state": [
+        "IDLE",
+        "DRAIN"
+      ],
+      "operating_system": "Linux 6.17.0-1022-azure #22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026",
+      "owner": "",
+      "partitions": [
+        "all"
+      ],
+      "port": 6818,
+      "real_memory": 512,
+      "res_cores_per_gpu": 0,
+      "comment": "",
+      "reason": "e2e drained",
+      "reason_changed_at": {
+        "set": true,
+        "infinite": false,
+        "number": 1793124499
+      },
+      "reason_set_by_user": "root",
+      "resume_after": {
+        "set": true,
+        "infinite": false,
+        "number": 0
+      },
+      "reservation": "",
+      "suspend_time": {
+        "set": false,
+        "infinite": true,
+        "number": 0
+      },
+      "alloc_memory": 0,
+      "alloc_cpus": 0,
+      "alloc_idle_cpus": 2,
+      "tres_used": "",
+      "slurmd_start_time": {
+        "set": true,
+        "infinite": false,
+        "number": 1793124485
+      },
+      "sockets": 2,
+      "threads": 1,
+      "temporary_disk": 0,
+      "weight": 1,
+      "topology": "",
+      "tres": "cpu=2,mem=512M,billing=2",
+      "version": "26.05.5"
+    }
+  ],
+  "last_update": {
+    "set": true,
+    "infinite": false,
+    "number": 1793124504
+  },
+  "meta": {
+    "plugin": {
+      "type": "openapi\/slurmctld",
+      "name": "Slurm OpenAPI slurmctld",
+      "data_parser": "data_parser\/v0.0.45",
+      "accounting_storage": "accounting_storage\/slurmdbd"
+    },
+    "client": {
+      "source": "172.19.0.5:6820(fd:9)",
+      "user": "root",
+      "group": "root"
+    },
+    "command": [],
+    "slurm": {
+      "version": {
+        "major": "26",
+        "micro": "5",
+        "minor": "05"
+      },
+      "release": "26.05.5",
+      "cluster": "default"
+    }
+  },
+  "errors": [],
+  "warnings": []
+}

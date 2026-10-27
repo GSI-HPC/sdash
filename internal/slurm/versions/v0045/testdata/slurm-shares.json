@@ -1,0 +1,1298 @@
+{
+  "shares": {
+    "shares": [
+      {
+        "id": 1,
+        "cluster": "default",
+        "name": "root",
+        "parent": "",
+        "partition": "",
+        "shares_normalized": {
+          "set": true,
+          "infinite": false,
+          "number": 2.3283064376228985e-10
+        },
+        "shares": {
+          "set": false,
+          "infinite": false,
+          "number": 0
+        },
+        "tres": {
+          "run_seconds": [
+            {
+              "name": "cpu",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "mem",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "energy",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "node",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "billing",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "fs\/disk",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "vmem",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "pages",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            }
+          ],
+          "group_minutes": [
+            {
+              "name": "cpu",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "mem",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "energy",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "node",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "billing",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "fs\/disk",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "vmem",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "pages",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            }
+          ],
+          "usage": [
+            {
+              "name": "cpu",
+              "value": 0.0
+            },
+            {
+              "name": "mem",
+              "value": 0.0
+            },
+            {
+              "name": "energy",
+              "value": 0.0
+            },
+            {
+              "name": "node",
+              "value": 0.0
+            },
+            {
+              "name": "billing",
+              "value": 0.0
+            },
+            {
+              "name": "fs\/disk",
+              "value": 0.0
+            },
+            {
+              "name": "vmem",
+              "value": 0.0
+            },
+            {
+              "name": "pages",
+              "value": 0.0
+            }
+          ]
+        },
+        "effective_usage": {
+          "set": true,
+          "infinite": false,
+          "number": 1.0
+        },
+        "usage_normalized": {
+          "set": false,
+          "infinite": false,
+          "number": 0.0
+        },
+        "usage": 0,
+        "fairshare": {
+          "factor": {
+            "set": true,
+            "infinite": false,
+            "number": 0.0
+          },
+          "level": {
+            "set": false,
+            "infinite": false,
+            "number": 0.0
+          }
+        },
+        "type": [
+          "ASSOCIATION"
+        ]
+      },
+      {
+        "id": 2,
+        "cluster": "default",
+        "name": "root",
+        "parent": "root",
+        "partition": "",
+        "shares_normalized": {
+          "set": true,
+          "infinite": false,
+          "number": 0.5
+        },
+        "shares": {
+          "set": true,
+          "infinite": false,
+          "number": 1
+        },
+        "tres": {
+          "run_seconds": [
+            {
+              "name": "cpu",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "mem",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "energy",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "node",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "billing",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "fs\/disk",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "vmem",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "pages",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            }
+          ],
+          "group_minutes": [
+            {
+              "name": "cpu",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "mem",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "energy",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "node",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "billing",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "fs\/disk",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "vmem",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "pages",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            }
+          ],
+          "usage": [
+            {
+              "name": "cpu",
+              "value": 0.0
+            },
+            {
+              "name": "mem",
+              "value": 0.0
+            },
+            {
+              "name": "energy",
+              "value": 0.0
+            },
+            {
+              "name": "node",
+              "value": 0.0
+            },
+            {
+              "name": "billing",
+              "value": 0.0
+            },
+            {
+              "name": "fs\/disk",
+              "value": 0.0
+            },
+            {
+              "name": "vmem",
+              "value": 0.0
+            },
+            {
+              "name": "pages",
+              "value": 0.0
+            }
+          ]
+        },
+        "effective_usage": {
+          "set": true,
+          "infinite": false,
+          "number": 0.0
+        },
+        "usage_normalized": {
+          "set": true,
+          "infinite": false,
+          "number": 0.0
+        },
+        "usage": 0,
+        "fairshare": {
+          "factor": {
+            "set": true,
+            "infinite": false,
+            "number": 1.0
+          },
+          "level": {
+            "set": false,
+            "infinite": true,
+            "number": 0.0
+          }
+        },
+        "type": [
+          "USER"
+        ]
+      },
+      {
+        "id": 3,
+        "cluster": "default",
+        "name": "physics",
+        "parent": "root",
+        "partition": "",
+        "shares_normalized": {
+          "set": true,
+          "infinite": false,
+          "number": 0.5
+        },
+        "shares": {
+          "set": true,
+          "infinite": false,
+          "number": 1
+        },
+        "tres": {
+          "run_seconds": [
+            {
+              "name": "cpu",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "mem",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "energy",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "node",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "billing",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "fs\/disk",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "vmem",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "pages",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            }
+          ],
+          "group_minutes": [
+            {
+              "name": "cpu",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "mem",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "energy",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "node",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "billing",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "fs\/disk",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "vmem",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "pages",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            }
+          ],
+          "usage": [
+            {
+              "name": "cpu",
+              "value": 0.0
+            },
+            {
+              "name": "mem",
+              "value": 0.0
+            },
+            {
+              "name": "energy",
+              "value": 0.0
+            },
+            {
+              "name": "node",
+              "value": 0.0
+            },
+            {
+              "name": "billing",
+              "value": 0.0
+            },
+            {
+              "name": "fs\/disk",
+              "value": 0.0
+            },
+            {
+              "name": "vmem",
+              "value": 0.0
+            },
+            {
+              "name": "pages",
+              "value": 0.0
+            }
+          ]
+        },
+        "effective_usage": {
+          "set": true,
+          "infinite": false,
+          "number": 0.0
+        },
+        "usage_normalized": {
+          "set": false,
+          "infinite": false,
+          "number": 0.0
+        },
+        "usage": 0,
+        "fairshare": {
+          "factor": {
+            "set": true,
+            "infinite": false,
+            "number": 0.0
+          },
+          "level": {
+            "set": true,
+            "infinite": false,
+            "number": 0.0
+          }
+        },
+        "type": [
+          "ASSOCIATION"
+        ]
+      },
+      {
+        "id": 4,
+        "cluster": "default",
+        "name": "alice",
+        "parent": "physics",
+        "partition": "",
+        "shares_normalized": {
+          "set": true,
+          "infinite": false,
+          "number": 0.33333333333333331
+        },
+        "shares": {
+          "set": true,
+          "infinite": false,
+          "number": 1
+        },
+        "tres": {
+          "run_seconds": [
+            {
+              "name": "cpu",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "mem",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "energy",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "node",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "billing",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "fs\/disk",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "vmem",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "pages",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            }
+          ],
+          "group_minutes": [
+            {
+              "name": "cpu",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "mem",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "energy",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "node",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "billing",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "fs\/disk",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "vmem",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "pages",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            }
+          ],
+          "usage": [
+            {
+              "name": "cpu",
+              "value": 0.0
+            },
+            {
+              "name": "mem",
+              "value": 0.0
+            },
+            {
+              "name": "energy",
+              "value": 0.0
+            },
+            {
+              "name": "node",
+              "value": 0.0
+            },
+            {
+              "name": "billing",
+              "value": 0.0
+            },
+            {
+              "name": "fs\/disk",
+              "value": 0.0
+            },
+            {
+              "name": "vmem",
+              "value": 0.0
+            },
+            {
+              "name": "pages",
+              "value": 0.0
+            }
+          ]
+        },
+        "effective_usage": {
+          "set": true,
+          "infinite": false,
+          "number": 0.0
+        },
+        "usage_normalized": {
+          "set": false,
+          "infinite": false,
+          "number": 0.0
+        },
+        "usage": 0,
+        "fairshare": {
+          "factor": {
+            "set": true,
+            "infinite": false,
+            "number": 0.0
+          },
+          "level": {
+            "set": true,
+            "infinite": false,
+            "number": 0.0
+          }
+        },
+        "type": [
+          "USER"
+        ]
+      },
+      {
+        "id": 5,
+        "cluster": "default",
+        "name": "bob",
+        "parent": "physics",
+        "partition": "",
+        "shares_normalized": {
+          "set": true,
+          "infinite": false,
+          "number": 0.33333333333333331
+        },
+        "shares": {
+          "set": true,
+          "infinite": false,
+          "number": 1
+        },
+        "tres": {
+          "run_seconds": [
+            {
+              "name": "cpu",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "mem",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "energy",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "node",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "billing",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "fs\/disk",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "vmem",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "pages",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            }
+          ],
+          "group_minutes": [
+            {
+              "name": "cpu",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "mem",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "energy",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "node",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "billing",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "fs\/disk",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "vmem",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "pages",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            }
+          ],
+          "usage": [
+            {
+              "name": "cpu",
+              "value": 0.0
+            },
+            {
+              "name": "mem",
+              "value": 0.0
+            },
+            {
+              "name": "energy",
+              "value": 0.0
+            },
+            {
+              "name": "node",
+              "value": 0.0
+            },
+            {
+              "name": "billing",
+              "value": 0.0
+            },
+            {
+              "name": "fs\/disk",
+              "value": 0.0
+            },
+            {
+              "name": "vmem",
+              "value": 0.0
+            },
+            {
+              "name": "pages",
+              "value": 0.0
+            }
+          ]
+        },
+        "effective_usage": {
+          "set": true,
+          "infinite": false,
+          "number": 0.0
+        },
+        "usage_normalized": {
+          "set": false,
+          "infinite": false,
+          "number": 0.0
+        },
+        "usage": 0,
+        "fairshare": {
+          "factor": {
+            "set": true,
+            "infinite": false,
+            "number": 0.0
+          },
+          "level": {
+            "set": true,
+            "infinite": false,
+            "number": 0.0
+          }
+        },
+        "type": [
+          "USER"
+        ]
+      },
+      {
+        "id": 6,
+        "cluster": "default",
+        "name": "carol",
+        "parent": "physics",
+        "partition": "",
+        "shares_normalized": {
+          "set": true,
+          "infinite": false,
+          "number": 0.33333333333333331
+        },
+        "shares": {
+          "set": true,
+          "infinite": false,
+          "number": 1
+        },
+        "tres": {
+          "run_seconds": [
+            {
+              "name": "cpu",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "mem",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "energy",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "node",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "billing",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "fs\/disk",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "vmem",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            },
+            {
+              "name": "pages",
+              "value": {
+                "set": true,
+                "infinite": false,
+                "number": 0
+              }
+            }
+          ],
+          "group_minutes": [
+            {
+              "name": "cpu",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "mem",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "energy",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "node",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "billing",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "fs\/disk",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "vmem",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            },
+            {
+              "name": "pages",
+              "value": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            }
+          ],
+          "usage": [
+            {
+              "name": "cpu",
+              "value": 0.0
+            },
+            {
+              "name": "mem",
+              "value": 0.0
+            },
+            {
+              "name": "energy",
+              "value": 0.0
+            },
+            {
+              "name": "node",
+              "value": 0.0
+            },
+            {
+              "name": "billing",
+              "value": 0.0
+            },
+            {
+              "name": "fs\/disk",
+              "value": 0.0
+            },
+            {
+              "name": "vmem",
+              "value": 0.0
+            },
+            {
+              "name": "pages",
+              "value": 0.0
+            }
+          ]
+        },
+        "effective_usage": {
+          "set": true,
+          "infinite": false,
+          "number": 0.0
+        },
+        "usage_normalized": {
+          "set": false,
+          "infinite": false,
+          "number": 0.0
+        },
+        "usage": 0,
+        "fairshare": {
+          "factor": {
+            "set": true,
+            "infinite": false,
+            "number": 0.0
+          },
+          "level": {
+            "set": true,
+            "infinite": false,
+            "number": 0.0
+          }
+        },
+        "type": [
+          "USER"
+        ]
+      }
+    ],
+    "total_shares": 0
+  },
+  "meta": {
+    "plugin": {
+      "type": "openapi\/slurmctld",
+      "name": "Slurm OpenAPI slurmctld",
+      "data_parser": "data_parser\/v0.0.45",
+      "accounting_storage": "accounting_storage\/slurmdbd"
+    },
+    "client": {
+      "source": "172.19.0.5:6820(fd:9)",
+      "user": "root",
+      "group": "root"
+    },
+    "command": [],
+    "slurm": {
+      "version": {
+        "major": "26",
+        "micro": "5",
+        "minor": "05"
+      },
+      "release": "26.05.5",
+      "cluster": "default"
+    }
+  },
+  "errors": [],
+  "warnings": []
+}
