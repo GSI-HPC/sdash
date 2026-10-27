@@ -4,11 +4,37 @@
 # The cluster the end-to-end tests and the captures run against
 # (doc/adr/0016-e2e-and-fixtures-on-sind.md). The api node runs slurmrestd
 # with JWT authentication, which sind sets up and only the 26.05 images
-# carry. The db node gives slurmrestd its /slurmdb/ endpoints. CI sets
+# carry (doc/adr/0031-slurmrestd-end-to-end-on-26-05.md). The db node gives
+# slurmrestd its /slurmdb/ endpoints and the cluster its accounting. CI sets
 # defaults.image per Slurm release line; without it sind takes its default.
 kind: Cluster
+defaults:
+  # Two CPUs for every worker: e2e/seed.sh counts on four CPUs once it has
+  # drained one of the three.
+  cpus: 2
 nodes:
   - controller
   - db
   - api
-  - worker: 2
+  - worker: 3
+
+# One user for each thing sdash tells apart: someone with jobs, someone with
+# jobs and the rights to manage an account, an operator, and someone with no
+# account at all. The Linux accounts are on every node (identity local), so
+# a token that slurmctld mints for any of them works.
+accounts:
+  - name: physics
+users:
+  - name: alice
+    uid: 2001
+    accounts: [physics]
+  - name: bob
+    uid: 2002
+    accounts: [physics]
+    coordinator: [physics]
+  - name: carol
+    uid: 2003
+    accounts: [physics]
+    adminLevel: operator
+  - name: dave
+    uid: 2004

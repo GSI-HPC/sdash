@@ -126,7 +126,12 @@ E2E_CAPTURE ?= e2e/capture
 e2e-up:
 	sind create cluster --config $(E2E_CONFIG)
 
-## e2e: run the end-to-end tests against the cluster of e2e-up
+## e2e-seed: put the cluster of e2e-up into the scenario of e2e/seed.sh; once, on a fresh cluster
+.PHONY: e2e-seed
+e2e-seed:
+	e2e/seed.sh
+
+## e2e: run the end-to-end tests against the seeded cluster
 .PHONY: e2e
 e2e:
 	$(GO) test -tags e2e -count=1 ./e2e/...
