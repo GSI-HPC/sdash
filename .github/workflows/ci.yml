@@ -281,11 +281,17 @@ jobs:
           clusters: |
             - ${{ steps.prepare.outputs.config }}
 
-      - name: Test
-        run: make e2e
+      # Once, on the fresh cluster: the ids of the jobs have to repeat.
+      - name: Seed the scenario
+        run: make e2e-seed
 
+      # Before the tests: one of them submits a job, which the capture must
+      # not hold.
       - name: Capture what slurmrestd sends
         run: make e2e-capture
+
+      - name: Test
+        run: make e2e
 
       - uses: actions/upload-artifact@v7
         if: always()
