@@ -97,11 +97,13 @@ export function useShortcuts(shortcuts: readonly Shortcut[]): void {
 }
 
 /**
- * Tells the registry that a dialog is open over the page, for as long as
- * `open` is true: the shortcuts of the page then rest (resolve.ts). The
- * dialog component calls it, and nothing else does.
+ * Tells the registry that an overlay is open over the page, for as long
+ * as `open` is true: the shortcuts of the page then rest (resolve.ts).
+ * Every primitive that takes the focus while it is open calls it, the
+ * dialog, the drawer, the popover, the menu and the select, and nothing
+ * else does.
  *
- * It goes by the dialog's open state and not by whether its content is
+ * It goes by the overlay's open state and not by whether its content is
  * mounted. A dialog library keeps the content mounted while it leaves, for
  * as long as its exit animation takes, and a key pressed right after
  * Escape, "g" and "j", say, would be lost for that long.

@@ -20,6 +20,7 @@ import {
   Registers,
   renderWithShortcuts,
 } from "../testing/shortcuts";
+import { shownTooltipElements, shownTooltips } from "../testing/tooltips";
 import { shellKeys } from "./keys";
 import { Shell } from "./Shell";
 
@@ -53,7 +54,7 @@ describe("the layout", () => {
   // nothing but the navigation. The button that collapses the sidebar is
   // inside the navigation, since content in no landmark at all is passed
   // over by a user who moves from one landmark to the next.
-  test("has these three landmarks and no other", async () => {
+  test("has these three landmarks and no other of its own", async () => {
     const screen = await renderApp("/overview");
     await expect
       .element(screen.getByRole("heading", { level: 1 }))
@@ -74,6 +75,70 @@ describe("the layout", () => {
           .getByRole("button", { name: "Collapse sidebar" }),
       )
       .toBeVisible();
+  });
+
+  // A popup on the body is content in no landmark, which a user who moves
+  // from one landmark to the next passes over. The shell has a place for
+  // the popups of the page inside its main region, fixed to the window so
+  // that the region does not clip them, and the place takes no room.
+  test("opens the popups of the page inside the main region", async () => {
+    const screen = await renderApp("/overview");
+    await expect.element(screen.getByText("v1.4.0")).toBeVisible();
+    const main = screen.getByRole("main").element();
+    const scrolls = main.scrollHeight > main.clientHeight;
+
+    const switcher = screen.getByRole("button", { name: "Clusters" });
+    switcher.element().focus();
+    await userEvent.keyboard("{Shift>}{Tab}{/Shift}{Tab}");
+    const reason = screen.getByRole("tooltip");
+    await expect.element(reason).toBeVisible();
+
+    expect(main.contains(reason.element())).toBe(true);
+    // Below the header, outside the box of the region it is rendered in.
+    await expect.element(reason).toBeInViewport({ ratio: 1 });
+    expect(reason.element().getBoundingClientRect().left).toBeLessThan(
+      main.getBoundingClientRect().right,
+    );
+    expect(main.scrollHeight > main.clientHeight).toBe(scrolls);
+  });
+
+  // The layer of that place is the handoff's for menus. Over the header,
+  // in whose layer a popup of the page would otherwise lie under the
+  // header it opens beside; and under the dialogs, so that a tooltip the
+  // pointer left behind does not lie over the palette.
+  test("lays the popups of the page over the header and under the dialogs", async () => {
+    const screen = await renderApp("/overview");
+    await expect.element(screen.getByText("v1.4.0")).toBeVisible();
+    const layer = (element: Element | null | undefined) =>
+      element ? Number(getComputedStyle(element).zIndex) : NaN;
+    const header = screen.getByRole("banner").element();
+    const switcher = screen.getByRole("button", { name: "Clusters" });
+    switcher.element().focus();
+    await userEvent.keyboard("{Shift>}{Tab}{/Shift}{Tab}");
+    const reason = screen.getByRole("tooltip");
+    await expect.element(reason).toBeVisible();
+    const place = reason.element().closest("main > div");
+
+    expect(layer(place)).toBeGreaterThan(layer(header));
+
+    await pressModK();
+    await expect
+      .element(screen.getByRole("dialog", { name: "Command palette" }))
+      .toBeVisible();
+    // The scrim of the palette, in a corner the palette does not reach.
+    const scrim = document.elementFromPoint(5, 700);
+    expect(layer(place)).toBeLessThan(layer(scrim));
+  });
+
+  // The toasts appear in a region of their own, which the application has
+  // from the start: a region that announces has to be there before what it
+  // announces.
+  test("has the region the toasts appear in", async () => {
+    const screen = await renderApp("/overview");
+
+    await expect
+      .element(screen.getByRole("region", { name: "Notifications" }))
+      .toHaveAttribute("aria-live", "polite");
   });
 
   // The sizes of the design handoff (doc/design/README.md, "Global
@@ -405,8 +470,8 @@ describe("the shortcuts of the shell", () => {
 });
 
 // The toggle is the last control of the header, at the right edge of the
-// window. Its hint starts at the button and would run off that edge.
-describe("the hint of the theme toggle", () => {
+// window. Its tooltip is wider than the button and would run off that edge.
+describe("the tooltip of the theme toggle", () => {
   test.each([1280, 360, 320])(
     "is on a screen %d px wide in full, below its button",
     async (width) => {
@@ -417,23 +482,14 @@ describe("the hint of the theme toggle", () => {
       toggle.element().focus();
       await userEvent.keyboard("{Shift>}{Tab}{/Shift}{Tab}");
       await expect.element(toggle).toHaveFocus();
-      const label = () =>
-        toggle
-          .element()
-          .querySelector<HTMLElement>(
-            ":scope > span[aria-hidden='true'] > span",
-          );
-      await expect.element(label()).toBeVisible();
+      await expect.poll(shownTooltips).toEqual(["Dark themet"]);
+      const box = () => shownTooltipElements()[0]?.getBoundingClientRect();
 
-      await expect
-        .poll(() => label()?.getBoundingClientRect().right)
-        .toBeLessThanOrEqual(width);
-      const box = label()?.getBoundingClientRect();
-      expect(box?.left).toBeGreaterThanOrEqual(0);
-      expect(box?.top).toBeGreaterThanOrEqual(
+      await expect.poll(() => box()?.right).toBeLessThanOrEqual(width);
+      expect(box()?.left).toBeGreaterThanOrEqual(0);
+      expect(box()?.top).toBeGreaterThanOrEqual(
         toggle.element().getBoundingClientRect().bottom,
       );
-      expect(label()?.textContent).toBe("Dark themet");
     },
   );
 });

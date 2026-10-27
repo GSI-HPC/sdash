@@ -76,6 +76,7 @@ describe("the command palette", () => {
       "Switch to the dark theme",
       "Collapse the sidebar",
       "Show the keyboard shortcuts",
+      "Open the component gallery",
       "Switch single-key shortcuts off",
     ]);
   });
@@ -292,7 +293,11 @@ describe("the command palette", () => {
     await expect
       .poll(() => document.documentElement.dataset.theme)
       .toBe("dark");
-    expect(screen.getByRole("dialog").elements()).toHaveLength(0);
+    // The dialog goes once its closing has ended, which can be after the
+    // theme has changed.
+    await expect
+      .poll(() => screen.getByRole("dialog").elements())
+      .toHaveLength(0);
     // The toggle in the header shows the theme whoever changed it.
     await expect
       .element(screen.getByRole("button", { name: "Dark theme" }))

@@ -5,10 +5,12 @@ import { beforeEach, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 
 import { renderApp, resetPage, settled } from "../testing/app";
+import { shownTooltipElements, shownTooltips } from "../testing/tooltips";
 import { storageKey } from "./sidebar";
 
-// The hints of the shell as a user meets them (Hint.tsx): the names
-// beside the items of the rail, and how a hint keeps to its owner. That
+// The tooltips of the shell as a user meets them: the names beside the
+// items of the rail, and how a tooltip keeps to its control. What a
+// tooltip does by itself is in primitives/Tooltip.browser.test.tsx. That
 // the cluster switcher has its reason is in Shell.browser.test.tsx, and
 // what a narrow screen does to it in Sidebar.browser.test.tsx.
 
@@ -21,16 +23,6 @@ beforeEach(async () => {
 // single "[" opens the name of a key there, two type the character.
 const sidebarKey = "[[";
 
-/** The names the rail shows beside its items at this moment. */
-function shownHints(): string[] {
-  const hints = document.querySelectorAll<HTMLElement>(
-    'nav :is(a, button) > span[aria-hidden="true"]',
-  );
-  return [...hints]
-    .filter((hint) => !hint.hidden)
-    .map((hint) => hint.innerText);
-}
-
 /**
  * Renders the application with the sidebar as the rail and the pointer
  * over the main region. The tests of a file share one page, and with it
@@ -40,7 +32,7 @@ async function renderRail() {
   localStorage.setItem(storageKey, "collapsed");
   const screen = await renderApp("/overview");
   await screen.getByRole("main").hover();
-  await expect.poll(shownHints).toEqual([]);
+  await expect.poll(shownTooltips).toEqual([]);
   return screen;
 }
 
@@ -59,11 +51,18 @@ function railLinks(): HTMLElement {
   return links;
 }
 
-/** How far the name beside a rail item is from level with its icon. */
+/**
+ * How far the name that shows is from level with the icon of a rail item,
+ * and NaN unless it is the one name that shows and stands to the right of
+ * the icon.
+ */
 function offLevel(item: Element): number {
-  const label = item.querySelector('span[aria-hidden="true"] > span');
+  const [label, ...others] = shownTooltipElements();
   const icon = item.querySelector("svg");
-  if (!label || !icon) {
+  if (!label || others.length > 0 || !icon) {
+    return NaN;
+  }
+  if (label.getBoundingClientRect().left < icon.getBoundingClientRect().right) {
     return NaN;
   }
   const middle = (box: DOMRect) => box.top + box.height / 2;
@@ -84,7 +83,7 @@ describe("the name beside a rail item", () => {
     const screen = await renderRail();
     screen.getByRole("link", { name: "Overview" }).element().focus();
     await userEvent.tab();
-    await expect.poll(shownHints).toEqual(["Nodes"]);
+    await expect.poll(shownTooltips).toEqual(["Nodes"]);
 
     await userEvent.keyboard(sidebarKey);
     await expect
@@ -99,13 +98,13 @@ describe("the name beside a rail item", () => {
     await expect
       .element(screen.getByRole("button", { name: "Expand sidebar" }))
       .toBeVisible();
-    expect(shownHints()).toEqual([]);
+    expect(shownTooltips()).toEqual([]);
   });
 
   test("is not back with the rail after the pointer left its link in the full sidebar", async () => {
     const screen = await renderRail();
     await screen.getByRole("link", { name: "Jobs", exact: true }).hover();
-    await expect.poll(shownHints).toEqual(["Jobs"]);
+    await expect.poll(shownTooltips).toEqual(["Jobs"]);
 
     await userEvent.keyboard(sidebarKey);
     await expect
@@ -117,21 +116,21 @@ describe("the name beside a rail item", () => {
     await expect
       .element(screen.getByRole("button", { name: "Expand sidebar" }))
       .toBeVisible();
-    expect(shownHints()).toEqual([]);
+    expect(shownTooltips()).toEqual([]);
   });
 
   test("is not back after the button that expands the sidebar was used", async () => {
     const screen = await renderRail();
     const expand = screen.getByRole("button", { name: "Expand sidebar" });
     await expand.hover();
-    await expect.poll(shownHints).toEqual(["Expand sidebar"]);
+    await expect.poll(shownTooltips).toEqual(["Expand sidebar"]);
 
     await expand.click();
     await screen.getByRole("main").hover();
     await userEvent.keyboard(sidebarKey);
 
     await expect.element(expand).toBeVisible();
-    expect(shownHints()).toEqual([]);
+    expect(shownTooltips()).toEqual([]);
   });
 
   // The focus stays on the link all the while, so no blur takes the name
@@ -143,7 +142,7 @@ describe("the name beside a rail item", () => {
     const scroller = railLinks();
     screen.getByRole("link", { name: "Overview" }).element().focus();
     await userEvent.tab();
-    await expect.poll(shownHints).toEqual(["Nodes"]);
+    await expect.poll(shownTooltips).toEqual(["Nodes"]);
 
     await userEvent.keyboard(sidebarKey);
     await expect
@@ -156,7 +155,7 @@ describe("the name beside a rail item", () => {
     await expect
       .element(screen.getByRole("button", { name: "Expand sidebar" }))
       .toBeVisible();
-    expect(shownHints()).toEqual([]);
+    expect(shownTooltips()).toEqual([]);
   });
 
   // In a window too low for the rail the Tab key scrolls the next link
@@ -183,7 +182,7 @@ describe("the name beside a rail item", () => {
       throw new Error("the rail has no link that is cut off");
     }
     await expect
-      .poll(shownHints)
+      .poll(shownTooltips)
       .toEqual([reached.querySelector("span")?.textContent]);
     await expect.poll(() => offLevel(reached)).toBeLessThanOrEqual(1);
   });
@@ -195,16 +194,16 @@ describe("the name beside a rail item", () => {
     const nodes = screen.getByRole("link", { name: "Nodes" });
     screen.getByRole("link", { name: "Overview" }).element().focus();
     await userEvent.tab();
-    await expect.poll(shownHints).toEqual(["Nodes"]);
+    await expect.poll(shownTooltips).toEqual(["Nodes"]);
     expect(offLevel(nodes.element())).toBeLessThanOrEqual(1);
 
     scroller.scrollTop = 24;
     await expect.poll(() => scroller.scrollTop).toBe(24);
     await expect.poll(() => offLevel(nodes.element())).toBeLessThanOrEqual(1);
-    expect(shownHints()).toEqual(["Nodes"]);
+    expect(shownTooltips()).toEqual(["Nodes"]);
 
     scroller.scrollTop = scroller.scrollHeight;
-    await expect.poll(shownHints).toEqual([]);
+    await expect.poll(shownTooltips).toEqual([]);
     await expect.element(nodes).toHaveFocus();
   });
 
@@ -214,14 +213,14 @@ describe("the name beside a rail item", () => {
     const screen = await renderRail();
     await expect.element(screen.getByText("v1.4.0")).toBeVisible();
     await screen.getByRole("link", { name: "Overview" }).hover();
-    await expect.poll(shownHints).toEqual(["Overview"]);
+    await expect.poll(shownTooltips).toEqual(["Overview"]);
 
     const main = screen.getByRole("main").element();
     main.scrollTop = 40;
     await expect.poll(() => main.scrollTop).toBe(40);
     await settled();
 
-    expect(shownHints()).toEqual(["Overview"]);
+    expect(shownTooltips()).toEqual(["Overview"]);
   });
 
   // Enlarging the page is a change of the window's size to the page. A
@@ -230,12 +229,12 @@ describe("the name beside a rail item", () => {
     const screen = await renderRail();
     const jobs = screen.getByRole("link", { name: "Jobs", exact: true });
     await jobs.hover();
-    await expect.poll(shownHints).toEqual(["Jobs"]);
+    await expect.poll(shownTooltips).toEqual(["Jobs"]);
 
     await page.viewport(1100, 600);
     await settled();
 
-    expect(shownHints()).toEqual(["Jobs"]);
+    expect(shownTooltips()).toEqual(["Jobs"]);
     expect(offLevel(jobs.element())).toBeLessThanOrEqual(1);
   });
 });
@@ -252,13 +251,10 @@ describe("the reason below the cluster switcher", () => {
     await userEvent.keyboard("{Shift>}{Tab}{/Shift}{Tab}");
     const reason = screen.getByRole("tooltip");
     await expect.element(reason).toBeVisible();
-    const offset = () => {
-      const label = reason.element().firstElementChild;
-      return label
-        ? Math.abs(label.getBoundingClientRect().left - buttonLeft())
-        : NaN;
-    };
-    expect(offset()).toBeLessThanOrEqual(1);
+    // The reason starts where its button does.
+    const offset = () =>
+      Math.abs(reason.element().getBoundingClientRect().left - buttonLeft());
+    await expect.poll(offset).toBeLessThanOrEqual(1);
     const before = buttonLeft();
 
     await page.viewport(600, 600);

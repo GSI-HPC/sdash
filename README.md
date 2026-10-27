@@ -21,7 +21,10 @@ shell of the interface: a header, a sidebar that leads to the twelve views
 the design has, each at an address of its own, keyboard shortcuts and a
 command palette. The views are placeholders that say no cluster is
 configured; the first of them also says which sdash is running, which it
-asks of the first operation of the browser API. There is no release.
+asks of the first operation of the browser API. The first building blocks
+of the views are there as well, the buttons, fields, menus, dialogs and
+toasts, and a gallery at `/gallery` shows each of them; nothing uses them
+for data yet. There is no release.
 
 There is no Slurm-facing code: nothing here connects to a slurmrestd, and no
 view shows a job or a node. That code is to be tested end to end against

@@ -4,11 +4,8 @@
 import { describe, expect, test } from "vitest";
 
 import prototype from "../../../doc/design/sdash.dc.html?raw";
+import { colourOf, contrast, themes, tokensOf } from "../testing/contrast";
 import stylesheet from "./tokens.css?raw";
-
-// The selectors the prototype declares its tokens on, by theme.
-const selectors = { light: ":root", dark: '[data-theme="dark"]' } as const;
-const themes = ["light", "dark"] as const;
 
 // The tokens sdash adds to the prototype's; tokens.css says why each exists.
 const added = ["--focus"];
@@ -29,79 +26,7 @@ const backgrounds = [
   "--bg-active",
 ];
 
-type Declarations = Map<string, string>;
-
-/**
- * The custom properties each selector of a stylesheet declares. It reads
- * flat rules, which is all the two sources hold; a selector list counts for
- * each of its selectors, and a later rule adds to an earlier one.
- */
-function customProperties(css: string): Map<string, Declarations> {
-  const rules = new Map<string, Declarations>();
-  const withoutComments = css.replaceAll(/\/\*[\s\S]*?\*\//g, "");
-  for (const [, selectorList = "", body = ""] of withoutComments.matchAll(
-    /([^{}]+)\{([^{}]*)\}/g,
-  )) {
-    for (const selector of selectorList.split(",")) {
-      const name = selector.trim();
-      const declarations = rules.get(name) ?? new Map<string, string>();
-      for (const declaration of body.split(";")) {
-        const colon = declaration.indexOf(":");
-        const property = declaration.slice(0, colon).trim();
-        if (colon > 0 && property.startsWith("--")) {
-          declarations.set(property, declaration.slice(colon + 1).trim());
-        }
-      }
-      rules.set(name, declarations);
-    }
-  }
-  return rules;
-}
-
-function tokensOf(css: string, theme: (typeof themes)[number]): Declarations {
-  const tokens = customProperties(css).get(selectors[theme]);
-  if (!tokens || tokens.size === 0) {
-    throw new Error(`no tokens found for ${selectors[theme]}`);
-  }
-  return tokens;
-}
-
 const prototypeStyle = /<style>([\s\S]*?)<\/style>/.exec(prototype)?.[1] ?? "";
-
-/**
- * A token's colour in a theme, following one token that refers to another.
- * The dark theme inherits what it does not declare from the light one, as
- * the cascade does.
- */
-function colourOf(token: string, theme: (typeof themes)[number]): string {
-  const value =
-    tokensOf(stylesheet, theme).get(token) ??
-    tokensOf(stylesheet, "light").get(token) ??
-    "";
-  const reference = /^var\((--[\w-]+)\)$/.exec(value)?.[1];
-  return reference ? colourOf(reference, theme) : value;
-}
-
-/** The relative luminance WCAG 2.1 defines, of a colour written #RRGGBB. */
-function luminance(colour: string): number {
-  const channels = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(colour);
-  if (!channels) {
-    throw new Error(`${colour} is not a colour written as #RRGGBB`);
-  }
-  const [red = 0, green = 0, blue = 0] = channels.slice(1).map((channel) => {
-    const share = parseInt(channel, 16) / 255;
-    return share <= 0.04045 ? share / 12.92 : ((share + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
-}
-
-/** The contrast ratio WCAG 2.1 defines between two colours. */
-function contrast(one: string, other: string): number {
-  const [darker = 0, lighter = 0] = [luminance(one), luminance(other)].sort(
-    (a, b) => a - b,
-  );
-  return (lighter + 0.05) / (darker + 0.05);
-}
 
 // A departure that is listed and no longer one would hide the next change to
 // that token, and one without a reason says nothing to whoever reads it.

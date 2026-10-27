@@ -4,7 +4,7 @@
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 
 import { Icon } from "../icons/Icon";
-import { Modal, ModalClose, ModalTitle } from "../overlay/Modal";
+import { Dialog, DialogClose, DialogTitle } from "../primitives/Dialog";
 import { Keys } from "../shortcuts/Keys";
 import { kindHeadings, type PaletteItem, search } from "./items";
 
@@ -34,13 +34,9 @@ export function CommandPalette({
     // left between the text field and the footer and scrolls inside that.
     // A palette that ran past the bottom edge could not be scrolled to,
     // and its marker would leave the screen on the way down the list.
-    <Modal
-      open={open}
-      onClose={onClose}
-      className="top-[12vh] max-h-[76vh] w-150"
-    >
+    <Dialog open={open} onClose={onClose} className="w-150">
       <Palette items={items} onClose={onClose} />
-    </Modal>
+    </Dialog>
   );
 }
 
@@ -117,7 +113,7 @@ function Palette({
 
   return (
     <>
-      <ModalTitle className="sr-only">Command palette</ModalTitle>
+      <DialogTitle className="sr-only">Command palette</DialogTitle>
       {/*
         The ring of the keyboard focus is drawn around the whole row and
         not around the bare text field inside it, which has no border to
@@ -150,10 +146,10 @@ function Palette({
           Its name starts with what it shows and goes on, for assistive
           technology, to say what it does: "Esc to close".
         */}
-        <ModalClose className="cursor-pointer rounded-[3px] hover:text-t1">
+        <DialogClose className="cursor-pointer rounded-[3px] hover:text-t1">
           <Keys keys="Escape" named />
           <span className="sr-only"> to close</span>
-        </ModalClose>
+        </DialogClose>
       </div>
 
       {found.length > 0 ? (
