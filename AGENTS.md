@@ -15,10 +15,9 @@ Personal, uncommitted instructions belong in `AGENTS.local.md` or
 ## Status
 
 A scaffold: the build, the checks, the decision records, and the shell of
-the UI (`doc/ui.md`) around placeholder views. Of its primitives the
-controls and the overlays are there (buttons, fields, tabs, tooltips,
-menus, dialogs, the drawer, toasts), with a gallery of them at `/gallery`;
-what shows data (cards, meters, tables) is next. No release yet.
+the UI (`doc/ui.md`) around placeholder views. Its primitives, controls,
+overlays and what shows data, are in a gallery at `/gallery`; tables are
+next. No release yet.
 Everything Slurm-facing (the slurmrestd client, vendored specs, fixtures,
 the views of cluster data) waits for slurmrestd support in GSI-HPC/sind
 (sind issue 90), because every spec and fixture comes from an end-to-end
@@ -127,8 +126,8 @@ and need Docker and sind.
   the noun, "license" the verb and in fixed names); an identifier keeps the
   spelling of whoever defines it. No em dashes, and no emoji in Markdown.
 - Frontend (`0013-frontend-stack`, `0014-accessibility-and-browsers`,
-  `0024-addresses-and-keyboard-in-the-shell`,
-  `0029-ui-primitives-on-base-ui`, `doc/ui.md`): colours come from the
+  `0024-addresses-and-keyboard-in-the-shell`, `0029-ui-primitives-on-base-ui`,
+  `0030-primitives-that-show-data`, `doc/ui.md`): colours come from the
   design tokens only, never from a literal value or a `style` attribute;
   the browser API is called through `web/src/client/` only, against the types
   generated into `web/src/api/`; a view is a row of the view table
@@ -136,12 +135,13 @@ and need Docker and sind.
   palette entry, and starts with `PageHeader`; a shortcut is registered with
   `useShortcuts`, never with a key listener of a component's own; state a
   reload must keep goes into the query string with `useSearchParam`; a
-  control or an overlay is a primitive of `web/src/primitives/`, the one
-  directory that imports Base UI, its look chosen by props and `className`
-  kept for layout, and a new one gets its section in the gallery; a tooltip
-  is the `Tooltip` primitive, never a native `title` attribute; every
-  interactive element is operable by keyboard. The target is WCAG 2.1 AA,
-  with an axe scan in CI of every view and of the gallery, overlays open.
+  control, an overlay or a graphic is a primitive of `web/src/primitives/`,
+  the one directory that imports Base UI, its look chosen by props and
+  `className` kept for layout, a length that is a value an SVG attribute,
+  and a new one gets its section in the gallery; a tooltip is the
+  `Tooltip` primitive, never a native `title` attribute; every interactive
+  element is operable by keyboard. The target is WCAG 2.1 AA, with an axe
+  scan in CI of every view and of the gallery, overlays open.
 
 ## Versions and capabilities
 
