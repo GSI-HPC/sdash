@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
+# SPDX-License-Identifier: Apache-2.0
+#
+# The cluster the end-to-end tests and the captures run against
+# (doc/adr/0016-e2e-and-fixtures-on-sind.md). The api node runs slurmrestd
+# with JWT authentication, which sind sets up and only the 26.05 images
+# carry. The db node gives slurmrestd its /slurmdb/ endpoints. CI sets
+# defaults.image per Slurm release line; without it sind takes its default.
+kind: Cluster
+nodes:
+  - controller
+  - db
+  - api
+  - worker: 2
