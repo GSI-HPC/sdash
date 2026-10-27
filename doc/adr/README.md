@@ -47,3 +47,4 @@ ordered by subject.
 | [0028](0028-one-sdash-server-per-user.md) | One sdash server per user | accepted |
 | [0029](0029-ui-primitives-on-base-ui.md) | The UI primitives, on Base UI | proposed |
 | [0030](0030-primitives-that-show-data.md) | The primitives that show data | proposed |
+| [0031](0031-slurmrestd-end-to-end-on-26-05.md) | End-to-end tests against slurmrestd start on Slurm 26.05 | accepted |

@@ -256,19 +256,27 @@ shown to pass that should not.
 
 ## End to end against Slurm
 
-There is no test against a real Slurm yet, and no test fixture. Both come
-from clusters that [sind](https://github.com/GSI-HPC/sind) creates
-([0016](adr/0016-e2e-and-fixtures-on-sind.md)), and sind does not run a
-slurmrestd yet; [sind-requirements.md](sind-requirements.md) says what sdash
-needs from it. Until then nothing Slurm-facing is written, no fixture is
-taken from anywhere else, and `doc/design/sdash-data.js` is not the truth
-about the API.
+Tests against a real Slurm, and every test fixture, come from clusters that
+[sind](https://github.com/GSI-HPC/sind) creates
+([0016](adr/0016-e2e-and-fixtures-on-sind.md)); no fixture is taken from
+anywhere else, and `doc/design/sdash-data.js` is not the truth about the API.
+sind runs a slurmrestd on its Slurm 26.05 images only
+([0031](adr/0031-slurmrestd-end-to-end-on-26-05.md)).
 
-When sind is ready, the suite follows clusterctl's: a package `e2e/` behind
-the build tag `e2e`, so that `go test ./...` never needs Docker, which runs
-the built binary against the cluster of `e2e/testdata/`; `make e2e-up`,
-`make e2e` and `make e2e-down`; and a CI job with
-[sind-action](https://github.com/GSI-HPC/sind-action) for each supported
-Slurm release. The suite will fail, rather than skip, when sind or the
-cluster is missing. The fixtures of the other layers and the vendored
-slurmrestd specs are captured from those runs.
+The suite follows clusterctl's: a package `e2e/` behind the build tag `e2e`,
+so that `go test ./...` never needs Docker, against the cluster of
+`e2e/testdata/sind-cluster.yaml`: a controller, a db node, an api node that
+runs slurmrestd, three workers and four users. `make e2e-up` creates the
+cluster, `make e2e-seed` puts it, once, into the scenario of `e2e/seed.sh`
+(a QOS, a reservation, a drained node, and jobs completed, failed, cancelled,
+running, pending, held and in an array, with fixed ids), `make e2e` runs the
+tests, `make e2e-capture` writes what slurmrestd sends (its OpenAPI document,
+the answer to each GET without side effects, a few answers by name and the
+error cases, with the HTTP status of each) to `e2e/capture/`, and
+`make e2e-down` deletes the cluster. The CI job `e2e` does the same with
+[sind-action](https://github.com/GSI-HPC/sind-action), once for each Slurm
+release whose image runs a slurmrestd, and keeps the capture as an artifact.
+The suite fails, rather than skips, when sind or the cluster is missing. The
+fixtures of the other layers and the vendored slurmrestd specs are copied
+from such a capture. The tests that run the built binary come with the first
+view of cluster data.

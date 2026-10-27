@@ -19,10 +19,11 @@ the UI (`doc/ui.md`) around placeholder views. Its primitives, controls,
 overlays and what shows data, are in a gallery at `/gallery`; tables are
 next. No release yet.
 Everything Slurm-facing (the slurmrestd client, vendored specs, fixtures,
-the views of cluster data) waits for slurmrestd support in GSI-HPC/sind
-(sind issue 90), because every spec and fixture comes from an end-to-end
-run on a sind cluster (`0016-e2e-and-fixtures-on-sind`). Until then write
-no Slurm-facing code and take fixtures from nowhere else.
+the views of cluster data) is built against a slurmrestd on a sind cluster,
+because every spec and fixture comes from an end-to-end run on one
+(`0016-e2e-and-fixtures-on-sind`). sind runs a slurmrestd on Slurm 26.05
+only (`0031-slurmrestd-end-to-end-on-26-05`); take fixtures from nowhere
+else.
 
 ## Layout
 
@@ -35,8 +36,10 @@ no Slurm-facing code and take fixtures from nowhere else.
   browser with go-clikit's `localweb/launch`
   (`0027-go-clikit-launch-for-the-browser`), and keeps one server per user
   with its `Instance` (`0028-one-sdash-server-per-user`). A test-support
-  package is named `xxxtest`. `internal/slurm/` and a root `e2e/` come with
-  the Slurm-facing work.
+  package is named `xxxtest`. `internal/slurm/` comes with the Slurm-facing work. The root `e2e/` holds the
+  end-to-end tests, the sind cluster file in `testdata/`, `seed.sh`, which
+  puts jobs in every state on it, and `capture.sh`, which writes what
+  slurmrestd sends.
 - `internal/static/dist/`: what the binary embeds. `make build` copies the UI
   build there; a tracked placeholder lets `go build ./...` work without Node.
 - `api/openapi.yaml`: the browser API (OpenAPI 3.0.3, base path `/api/v1`),
@@ -90,8 +93,8 @@ make help             # list the targets
 `build`, `ui`, `generate`, `lint-ui`, `test-ui`, `test-components`,
 `test-browser`, `lint-docs` and `notices` need Node; `test-components` and
 `test-browser` also need Playwright's browsers.
-`make e2e-up`, `make e2e` and `make e2e-down` come with the end-to-end suite
-and need Docker and sind.
+`make e2e-up`, `e2e-seed`, `e2e`, `e2e-capture` and `e2e-down` run the
+end-to-end suite and need Docker and sind.
 
 ## Code conventions
 

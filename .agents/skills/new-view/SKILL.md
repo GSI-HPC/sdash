@@ -19,9 +19,9 @@ there is no data view to copy from. `web/src/views/Overview.tsx` is the nearest,
 part that calls the browser API. Whoever builds the first two data views
 adds what they set as the pattern to this skill, in the same PR.
 
-A view that shows cluster data is Slurm-facing work and waits for slurmrestd
-support in sind (`doc/adr/0016-e2e-and-fixtures-on-sind.md`). Until then only
-a view that needs no slurmrestd can be built.
+A view that shows cluster data is Slurm-facing work: its fixtures come from
+a capture of a slurmrestd on a sind cluster
+(`doc/adr/0016-e2e-and-fixtures-on-sind.md`, `make e2e-capture`).
 
 ## Before starting
 

@@ -4,8 +4,10 @@
 # What sdash needs from sind
 
 Status: input for [sind issue 90](https://github.com/GSI-HPC/sind/issues/90),
-"Support sackd and slurmrestd", written on 2026-10-03. No sind release meets
-it yet.
+"Support sackd and slurmrestd", written on 2026-10-03, when no sind release met
+it. Since v0.11.0 an `api` node runs slurmrestd, on the 26.05 images
+([record 0031](adr/0031-slurmrestd-end-to-end-on-26-05.md)); the text below is
+as written.
 
 sdash's end-to-end tests, fixtures and vendored slurmrestd specifications all
 come from clusters that [sind](https://github.com/GSI-HPC/sind) creates

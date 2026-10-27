@@ -80,9 +80,10 @@ description: Drive an sdash pull request to a mergeable state. Covers the local 
 - Vulnerabilities fails for a new advisory against the standard library
   without any change in the PR. Say so on the PR; the fix is a Go patch
   release, which the job picks up when it is out.
-- There is no end-to-end job yet. It arrives with slurmrestd support in sind
-  (`doc/adr/0016-e2e-and-fixtures-on-sind.md`), as one leg per supported
-  Slurm release.
+- The end-to-end job runs the cluster of `e2e/testdata/sind-cluster.yaml`
+  on sind, one leg for each Slurm release whose image runs a slurmrestd, which
+  is 26.05 alone (`doc/adr/0031-slurmrestd-end-to-end-on-26-05.md`). On a
+  failure, read the artifact `sind-logs-slurm-*` before anything else.
 
 ## GitHub etiquette
 
