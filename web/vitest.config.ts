@@ -8,7 +8,10 @@ import viteConfig from "./vite.config.ts";
 
 // A Chromium to use in place of the one Playwright installs, for a machine
 // where "npx playwright install" is not wanted or does not work. Unset, as
-// in CI, Playwright's own build is used.
+// in CI, Playwright's own build is used, which for a run without a window
+// is the headless shell. A Chromium named here is the whole browser run
+// without a window: the two can differ in what is around the page, such as
+// where the focus goes once the Tab key leaves it (doc/testing.md).
 const chromium = process.env.SDASH_CHROMIUM;
 
 // Two of the three test layers of doc/adr/0015-how-tests-are-written.md; the
@@ -59,7 +62,8 @@ export default mergeConfig(
               // the engines are compared by the end-to-end layer.
               instances: [{ browser: "chromium" }],
               // Without a window everywhere, not only where CI is set, so a
-              // run on a developer's machine is the run CI does.
+              // run on a developer's machine with Playwright's own build is
+              // the run CI does.
               headless: true,
               // A screenshot a test takes itself goes there as well, and
               // not next to the test file.

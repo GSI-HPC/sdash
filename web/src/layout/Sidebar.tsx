@@ -5,9 +5,9 @@ import { useId } from "react";
 
 import { Icon } from "../icons/Icon";
 import { Navigation } from "../nav/Navigation";
+import { Tooltip } from "../primitives/Tooltip";
 import { Keys } from "../shortcuts/Keys";
 import { useAriaKeyShortcuts } from "../shortcuts/useShortcuts";
-import { Hint, useHint } from "./Hint";
 import { shellKeys } from "./keys";
 
 /**
@@ -57,7 +57,8 @@ export function Sidebar({
  * sidebar", and so needs no pressed or expanded state beside its name. Its
  * visible text is the first word of that name, as WCAG 2.1 asks (success
  * criterion 2.5.3), so that someone who speaks to the computer can say
- * what they see.
+ * what they see. In the rail it shows its icon alone, and its name as a
+ * tooltip beside it, as the links above it do.
  */
 function CollapseButton({
   rail,
@@ -68,35 +69,32 @@ function CollapseButton({
   controls: string;
   onToggle: () => void;
 }) {
-  const hint = useHint("right", rail);
   const ariaKeys = useAriaKeyShortcuts(shellKeys.sidebar);
 
   return (
-    <button
-      type="button"
-      aria-controls={controls}
-      aria-keyshortcuts={ariaKeys}
-      onClick={onToggle}
-      {...hint.owner}
-      className="flex h-7.5 cursor-pointer items-center gap-2 rounded-[5px] border border-bd bg-surface px-2.25 text-xs whitespace-nowrap text-t3 hover:bg-hover hover:text-t1"
-    >
-      <Icon
-        name={rail ? "sidebarExpand" : "sidebarCollapse"}
-        className="size-3.75 stroke-[1.8]"
-      />
-      {rail ? (
-        <>
+    <Tooltip label="Expand sidebar" side="right" disabled={!rail}>
+      <button
+        type="button"
+        aria-controls={controls}
+        aria-keyshortcuts={ariaKeys}
+        onClick={onToggle}
+        className="flex h-7.5 cursor-pointer items-center gap-2 rounded-[5px] border border-bd bg-surface px-2.25 text-xs whitespace-nowrap text-t3 hover:bg-hover hover:text-t1"
+      >
+        <Icon
+          name={rail ? "sidebarExpand" : "sidebarCollapse"}
+          className="size-3.75 stroke-[1.8]"
+        />
+        {rail ? (
           <span className="sr-only">Expand sidebar</span>
-          <Hint state={hint}>Expand sidebar</Hint>
-        </>
-      ) : (
-        <>
-          <span>
-            Collapse<span className="sr-only"> sidebar</span>
-          </span>
-          <Keys keys={shellKeys.sidebar} size="small" />
-        </>
-      )}
-    </button>
+        ) : (
+          <>
+            <span>
+              Collapse<span className="sr-only"> sidebar</span>
+            </span>
+            <Keys keys={shellKeys.sidebar} size="small" />
+          </>
+        )}
+      </button>
+    </Tooltip>
   );
 }

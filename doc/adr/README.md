@@ -45,3 +45,4 @@ ordered by subject.
 | [0026](0026-go-clikit-localweb-for-the-listener-and-the-guard.md) | go-clikit's localweb for the listener and the guard | accepted |
 | [0027](0027-go-clikit-launch-for-the-browser.md) | go-clikit's launch for the browser | accepted |
 | [0028](0028-one-sdash-server-per-user.md) | One sdash server per user | accepted |
+| [0029](0029-ui-primitives-on-base-ui.md) | The UI primitives, on Base UI | proposed |

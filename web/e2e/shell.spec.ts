@@ -3,6 +3,7 @@
 
 import { expect, test } from "@playwright/test";
 
+import { galleryPath, galleryTitle } from "../src/gallery/page.ts";
 import { storageKey as sidebarKey } from "../src/layout/sidebar.ts";
 import { groups, views } from "../src/routing/views.ts";
 import {
@@ -19,10 +20,12 @@ import {
 // navigation.spec.ts and keyboard.spec.ts, the scans in
 // accessibility.spec.ts.
 
-// The addresses to try: every view of the view table, and one that no view
-// has, which shows the not-found view inside the same shell.
+// The addresses to try: every view of the view table, the gallery of the
+// primitives, which is a page like a view and no view, and one that
+// neither has, which shows the not-found view inside the same shell.
 const pages = [
   ...views.map((view) => ({ path: view.path, title: view.title })),
+  { path: galleryPath, title: galleryTitle },
   { path: "/no/such/view", title: "Page not found" },
 ];
 
@@ -30,8 +33,8 @@ for (const { path, title } of pages) {
   // The server answers every address with the same page, so that a reload
   // of a view, or a link to one, works; the page then has to show the view
   // of that address. A screen reader user finds their way by the three
-  // landmarks and learns what the page is from its one top-level heading
-  // and from the title of the document.
+  // landmarks of the shell and learns what the page is from its one
+  // top-level heading and from the title of the document.
   test(`${path} loads inside the shell, with one heading and the landmarks`, async ({
     page,
   }) => {
@@ -47,10 +50,16 @@ for (const { path, title } of pages) {
       1,
     );
     await expect(page.getByRole("main")).toHaveCount(1);
-    // And no fourth: the sidebar is the navigation, with no landmark of
-    // its own around it.
+    // And no fourth of the shell's: the sidebar is the navigation, with
+    // no landmark of its own around it.
     await expect(page.getByRole("navigation")).toHaveCount(1);
     await expect(page.getByRole("complementary")).toHaveCount(0);
+    // The region the toasts appear in is a landmark beside them, on the
+    // page from the start: a region that announces has to be there before
+    // what it announces.
+    await expect(
+      page.getByRole("region", { name: "Notifications" }),
+    ).toHaveCount(1);
     // A page that was loaded leaves the focus at its top. The title above
     // is set in the step in which a heading would take the focus, so with
     // the title there, the focus has been left alone and not just not
@@ -230,15 +239,20 @@ for (const width of [360, 320]) {
         // The shell clips what is too wide for it and the main region
         // scrolls, so a view that is too wide shows as a main region that
         // scrolls sideways and never as a page that does. Both are asked.
+        // The window itself does not scroll down either: the shell is as
+        // high as the window, and what is taken out of the flow far down
+        // a region that scrolls, a name kept for assistive technology,
+        // must not be held by the page, which would grow by it.
         const beyond = await page.evaluate(() => {
           const root = document.documentElement;
           const main = document.querySelector("main");
           return {
             page: root.scrollWidth - root.clientWidth,
             main: main ? main.scrollWidth - main.clientWidth : NaN,
+            down: root.scrollHeight - root.clientHeight,
           };
         });
-        expect(beyond).toEqual({ page: 0, main: 0 });
+        expect(beyond).toEqual({ page: 0, main: 0, down: 0 });
         // The sidebar is the rail, and the header's controls are all on
         // the screen.
         await expect(sidebar(page)).toHaveCSS("width", "60px");

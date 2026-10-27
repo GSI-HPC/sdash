@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { useLocation } from "react-router";
 
 import { Shell } from "./layout/Shell";
+import { PrimitivesProvider } from "./primitives/PrimitivesProvider";
 import { AppRoutes } from "./routing/AppRoutes";
 import { ArrivalProvider } from "./routing/arrival";
 import { ViewBoundary } from "./routing/ViewBoundary";
@@ -23,21 +24,29 @@ import { ShortcutsProvider } from "./shortcuts/ShortcutsProvider";
  * the same machine, and a word that flashes for a moment tells nobody
  * anything. A view that cannot be loaded at all is the boundary's to
  * report.
+ *
+ * Around the shell is what the primitives need once for the whole
+ * application: the toasts and their region, and what keeps Base UI inside
+ * the server's Content-Security-Policy (primitives/PrimitivesProvider.tsx).
+ * It lies inside the provider of the shortcuts, so that a control it
+ * renders itself, in a toast, can show a key.
  */
 export function App() {
   const { pathname } = useLocation();
 
   return (
     <ShortcutsProvider>
-      <ArrivalProvider>
-        <Shell>
-          <ViewBoundary at={pathname}>
-            <Suspense fallback={null}>
-              <AppRoutes />
-            </Suspense>
-          </ViewBoundary>
-        </Shell>
-      </ArrivalProvider>
+      <PrimitivesProvider>
+        <ArrivalProvider>
+          <Shell>
+            <ViewBoundary at={pathname}>
+              <Suspense fallback={null}>
+                <AppRoutes />
+              </Suspense>
+            </ViewBoundary>
+          </Shell>
+        </ArrivalProvider>
+      </PrimitivesProvider>
     </ShortcutsProvider>
   );
 }

@@ -2,14 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { Icon } from "../icons/Icon";
-import { Hint, useHint } from "../layout/Hint";
 import { shellKeys } from "../layout/keys";
-import { Keys } from "../shortcuts/Keys";
+import { Tooltip } from "../primitives/Tooltip";
 import { useAriaKeyShortcuts } from "../shortcuts/useShortcuts";
 import { toggleTheme } from "./theme";
 import { useTheme } from "./useTheme";
 
-/** The name of the toggle, to assistive technology and in its hint. */
+/** The name of the toggle, to assistive technology and in its tooltip. */
 const name = "Dark theme";
 
 /**
@@ -21,13 +20,13 @@ const name = "Dark theme";
  * changes. The icon is decoration and shows, as in the design, the theme a
  * click leads to.
  *
- * It shows an icon and no text, so a sighted user gets its name as a hint
- * on hover and on keyboard focus, as for an item of the rail, with the key
- * that does the same beside it. The hint says what the name says and not
- * the handoff's "Toggle theme": what a control shows is what someone who
- * speaks to the computer calls it (WCAG 2.1, success criterion 2.5.3).
- * Assistive technology is told the key with the button, as for the other
- * buttons of the shell that have one.
+ * It shows an icon and no text, so a sighted user gets its name as a
+ * tooltip on hover and on keyboard focus, as for an item of the rail, with
+ * the key that does the same beside it. The tooltip says what the name says
+ * and not the handoff's "Toggle theme": what a control shows is what
+ * someone who speaks to the computer calls it (WCAG 2.1, success criterion
+ * 2.5.3). Assistive technology is told the key with the button, as for the
+ * other buttons of the shell that have one.
  *
  * The theme is also switched from the keyboard and from the command
  * palette, so the button does not keep it: it shows what the page has
@@ -35,26 +34,20 @@ const name = "Dark theme";
  */
 export function ThemeToggle() {
   const dark = useTheme() === "dark";
-  const hint = useHint("below");
   const ariaKeys = useAriaKeyShortcuts(shellKeys.theme);
 
   return (
-    <button
-      type="button"
-      aria-label={name}
-      aria-pressed={dark}
-      aria-keyshortcuts={ariaKeys}
-      onClick={toggleTheme}
-      {...hint.owner}
-      className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-md border border-bd bg-surface text-t2 hover:bg-hover hover:text-t1"
-    >
-      <Icon name={dark ? "sun" : "moon"} className="size-3.75 stroke-[1.9]" />
-      <Hint state={hint}>
-        <span className="flex items-center gap-2">
-          {name}
-          <Keys keys={shellKeys.theme} size="small" />
-        </span>
-      </Hint>
-    </button>
+    <Tooltip label={name} keys={shellKeys.theme} side="bottom">
+      <button
+        type="button"
+        aria-label={name}
+        aria-pressed={dark}
+        aria-keyshortcuts={ariaKeys}
+        onClick={toggleTheme}
+        className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-md border border-bd bg-surface text-t2 hover:bg-hover hover:text-t1"
+      >
+        <Icon name={dark ? "sun" : "moon"} className="size-3.75 stroke-[1.9]" />
+      </button>
+    </Tooltip>
   );
 }

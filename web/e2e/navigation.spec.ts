@@ -106,7 +106,7 @@ test("the palette opens from the header and is left by Escape", async ({
   await expect(
     page.getByRole("dialog", { name: "Command palette" }),
   ).toBeVisible();
-  await expect(page.getByRole("option")).toHaveCount(views.length + 4);
+  await expect(page.getByRole("option")).toHaveCount(views.length + 5);
   await page.keyboard.press("Escape");
 
   await expect(page.getByRole("dialog")).toHaveCount(0);
