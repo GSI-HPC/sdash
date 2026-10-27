@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/GSI-HPC/go-clikit/cobratree"
 	"github.com/GSI-HPC/go-clikit/fsutil"
@@ -38,6 +39,13 @@ const (
 	runtimeSubdir      = "sdash"
 	socketName         = "sdash.sock"
 )
+
+// retireWait is how long a server that stops waits for the lock under which
+// it removes its record. The context that stopped the server has ended, and
+// with it Retire would give up at once on a lock that is busy for a moment,
+// as it is while a second start looks for this server, and leave a record
+// that costs the next start a check.
+const retireWait = 2 * time.Second
 
 // unknownHost stands in the forwarding hint for the name of a machine that
 // does not report one.
@@ -211,7 +219,9 @@ func serve(ctx context.Context, p Process, o options) error {
 			logger.Warn("cannot record the server for a second start", "error", err)
 		} else {
 			defer func() {
-				if err := instance.Retire(ctx); err != nil {
+				retire, cancel := context.WithTimeout(context.WithoutCancel(ctx), retireWait)
+				defer cancel()
+				if err := instance.Retire(retire); err != nil {
 					logger.Warn("cannot remove the record of the server", "error", err)
 				}
 			}()
