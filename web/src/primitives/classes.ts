@@ -53,6 +53,12 @@ export const iconSizes = {
 export const floating = "border border-bd bg-surface text-t1 shadow-lg";
 
 /**
+ * The surface of a panel that lies on the page: a card, a stat card. The
+ * gallery draws its examples on the same surface.
+ */
+export const panel = "rounded-lg border border-bd bg-surface shadow-sm";
+
+/**
  * The layers, lowest first, after the handoff's: the drawer, the dialogs,
  * what opens from inside either, the tooltips, the toasts. What opens from
  * the page itself lies in the shell's place for popups (popups.tsx), below

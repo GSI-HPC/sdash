@@ -7,18 +7,25 @@ import { Link, useLocation } from "react-router";
 import { PageHeader } from "../layout/PageHeader";
 import { galleryTitle, type SectionId, sections } from "./page";
 import { BadgeSection } from "./sections/BadgeSection";
+import { BannerSection } from "./sections/BannerSection";
 import { ButtonSection } from "./sections/ButtonSection";
+import { CardSection } from "./sections/CardSection";
 import { ChipSection } from "./sections/ChipSection";
 import { ConfirmDialogSection } from "./sections/ConfirmDialogSection";
 import { DialogSection } from "./sections/DialogSection";
 import { DrawerSection } from "./sections/DrawerSection";
+import { EmptyStateSection } from "./sections/EmptyStateSection";
+import { ErrorPanelSection } from "./sections/ErrorPanelSection";
 import { IconButtonSection } from "./sections/IconButtonSection";
 import { InputSection } from "./sections/InputSection";
 import { KbdSection } from "./sections/KbdSection";
+import { KVListSection } from "./sections/KVListSection";
 import { MenuSection } from "./sections/MenuSection";
 import { PopoverSection } from "./sections/PopoverSection";
 import { SegmentedControlSection } from "./sections/SegmentedControlSection";
 import { SelectSection } from "./sections/SelectSection";
+import { SkeletonSection } from "./sections/SkeletonSection";
+import { StatCardSection } from "./sections/StatCardSection";
 import { TabsSection } from "./sections/TabsSection";
 import { ToastSection } from "./sections/ToastSection";
 import { TooltipSection } from "./sections/TooltipSection";
@@ -42,6 +49,13 @@ const content: Record<SectionId, ComponentType> = {
   "confirm-dialog": ConfirmDialogSection,
   drawer: DrawerSection,
   toast: ToastSection,
+  card: CardSection,
+  "stat-card": StatCardSection,
+  "kv-list": KVListSection,
+  "empty-state": EmptyStateSection,
+  skeleton: SkeletonSection,
+  "error-panel": ErrorPanelSection,
+  banner: BannerSection,
 };
 
 /**
