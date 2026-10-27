@@ -17,7 +17,9 @@ Personal, uncommitted instructions belong in `AGENTS.local.md` or
 A scaffold: the build, the checks, the decision records, and the shell of
 the UI (`doc/ui.md`) around placeholder views. Its primitives, controls,
 overlays and what shows data, are in a gallery at `/gallery`; tables are
-next. No release yet.
+next. The Slurm client connects to a slurmrestd and reads jobs, nodes and
+partitions (`0032-the-slurm-client-as-built`); no view shows them yet. No
+release yet.
 Everything Slurm-facing (the slurmrestd client, vendored specs, fixtures,
 the views of cluster data) is built against a slurmrestd on a sind cluster,
 because every spec and fixture comes from an end-to-end run on one
@@ -36,10 +38,17 @@ else.
   browser with go-clikit's `localweb/launch`
   (`0027-go-clikit-launch-for-the-browser`), and keeps one server per user
   with its `Instance` (`0028-one-sdash-server-per-user`). A test-support
-  package is named `xxxtest`. `internal/slurm/` comes with the Slurm-facing work. The root `e2e/` holds the
-  end-to-end tests, the sind cluster file in `testdata/`, `seed.sh`, which
-  puts jobs in every state on it, and `capture.sh`, which writes what
-  slurmrestd sends.
+  package is named `xxxtest`. The root `e2e/` holds the end-to-end tests,
+  the sind cluster file in `testdata/`, `seed.sh`, which puts jobs in every
+  state on it, `capture.sh`, which writes what slurmrestd sends, and
+  `vendor.sh` with `normalise.jq`, which copy a capture into the tree.
+- `internal/slurm/`: the Slurm client (`0032-the-slurm-client-as-built`).
+  `versions` holds the data_parser versions sdash speaks, each with a
+  directory of its vendored document and captures, and `releases` a
+  profile per Slurm release line with its captured error cases; `errs` the
+  kinds of failure, `auth` the token, `wire` the structs of the answers and
+  their streaming decoder, `client` the connection, and `slurmrestdtest` a
+  fake slurmrestd that answers with the captures.
 - `internal/static/dist/`: what the binary embeds. `make build` copies the UI
   build there; a tracked placeholder lets `go build ./...` work without Node.
 - `api/openapi.yaml`: the browser API (OpenAPI 3.0.3, base path `/api/v1`),

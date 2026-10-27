@@ -9,8 +9,8 @@
 one static binary with its web interface embedded: it listens on loopback,
 opens your browser, and talks HTTP to the slurmrestd your site already runs,
 directly or through SSH, under your own Slurm identity, so that Slurm itself
-decides what you may see and do. The Slurm-facing part does not exist yet;
-[Status](#status) says what does.
+decides what you may see and do. The Slurm-facing part is a client without
+views yet; [Status](#status) says what exists.
 
 ## Status
 
@@ -26,12 +26,15 @@ of the views are there as well, the buttons, fields, menus, dialogs and
 toasts, and a gallery at `/gallery` shows each of them; nothing uses them
 for data yet. There is no release.
 
-There is no Slurm-facing code: nothing here connects to a slurmrestd, and no
-view shows a job or a node. That code is to be tested end to end against
-clusters that [sind](https://github.com/GSI-HPC/sind) creates, which are also
-where every test fixture and every vendored slurmrestd specification will
-come from. sind runs a slurmrestd on its Slurm 26.05 images, and the
-end-to-end job and the captures of its answers are in place
+The Slurm client in `internal/slurm/` connects to a slurmrestd with the
+user's token, chooses the data_parser version to speak, and reads jobs,
+nodes and partitions
+([`doc/adr/0032-the-slurm-client-as-built.md`](doc/adr/0032-the-slurm-client-as-built.md)).
+No view shows them yet, and the command line has no setting for a cluster.
+The client is tested end to end against clusters that
+[sind](https://github.com/GSI-HPC/sind) creates, which are also where every
+test fixture and every vendored slurmrestd specification comes from. sind
+runs a slurmrestd on its Slurm 26.05 images only
 ([`doc/adr/0031-slurmrestd-end-to-end-on-26-05.md`](doc/adr/0031-slurmrestd-end-to-end-on-26-05.md));
 [`doc/sind-requirements.md`](doc/sind-requirements.md) says what sdash needs
 from sind.
@@ -87,8 +90,10 @@ server's REST API offers
 A release is dropped when SchedMD's support for it has ended and no cluster
 at GSI runs it any more.
 
-These are the releases sdash is written for. No code speaks to Slurm yet
-(see [Status](#status)), so none has been tested.
+These are the releases sdash is written for. The client is tested on Slurm
+26.05 and speaks its data_parser v0.0.45. It refuses a 25.11 server until a
+capture of v0.0.44 on a sind cluster exists
+([`doc/adr/0032-the-slurm-client-as-built.md`](doc/adr/0032-the-slurm-client-as-built.md)).
 
 ## Versions
 

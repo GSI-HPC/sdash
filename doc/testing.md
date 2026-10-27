@@ -10,14 +10,14 @@ layer of tests is for and how it is run.
 
 | Layer | What it is for | Run it with |
 | --- | --- | --- |
-| Go tests | The logic of the binary: the command line, the listener and its checks, the API handlers | `make test` |
+| Go tests | The logic of the binary: the command line, the listener and its checks, the API handlers, the Slurm client against the captured answers of slurmrestd | `make test` |
 | Fuzz targets | What must hold for any input | `make fuzz` |
 | Frontend unit tests | Logic that needs no page | `make test-ui` |
 | Component tests | One component in a real browser | `make test-components` |
 | Browser tests | The built binary in a browser, with the accessibility scan of every view | `make test-browser` |
 | Smoke test | A built binary starts, signs a client in and serves its page and its API | `.github/scripts/smoke-test.sh bin/sdash` |
 | Release tag verification | The check that refuses a release tag | `make test-release` |
-| End to end against Slurm | Nothing yet; see [below](#end-to-end-against-slurm) | |
+| End to end against Slurm | slurmrestd itself and the Slurm client on a sind cluster; see [below](#end-to-end-against-slurm) | `make e2e` |
 
 CI (`.github/workflows/ci.yml`) runs each of them on every pull request.
 The Go tests run there on both Go release lines, the `go` line of `go.mod`
@@ -106,8 +106,8 @@ CI reads the same list and runs each target for a minute on every change.
 When one fails, CI uploads the failing input; it is committed under the
 package's `testdata/fuzz/`, where every later `go test` replays it.
 
-The list is empty today. The first targets will be the parsers of what
-slurmrestd sends, and they wait with everything else that speaks to Slurm.
+The first target is `FuzzStream`, the decoder of the lists slurmrestd
+sends, which has to give what decoding the whole body gives.
 
 ## The frontend's three layers
 
@@ -281,6 +281,20 @@ fixtures of the other layers and the vendored slurmrestd specs are copied
 from such a capture: download the artifact of a run into `e2e/capture/`,
 run `make e2e-vendor VERSIONS=v0.0.45`, and commit the result by itself.
 `e2e/vendor.sh` writes each data_parser version's document and answers to
-`internal/slurm/versions/`, and the error cases to
-`internal/slurm/releases/testdata/`. The tests that run the built binary come with the first
-view of cluster data.
+`internal/slurm/versions/`, and the error cases, with the HTTP status of
+each in `status.tsv`, to `internal/slurm/releases/testdata/`. On the way it
+normalises every answer with `e2e/normalise.jq`, so that two captures of
+the scenario differ only where Slurm sends something else: points in time
+move so that the run starts at 2026-01-01T00:00:00Z, IPv4 addresses move
+into 192.0.2.0/24, and what measures the machine, such as the latency of a
+ping or a node's load, is 0
+([0032](adr/0032-the-slurm-client-as-built.md)). The artifact keeps the
+daemon's bytes.
+
+The suite tests slurmrestd itself, what sdash relies on, and the Slurm
+client of `internal/slurm/client` against it: the connection with a token
+that a token command gets, the seeded jobs, nodes and partition, and a
+token slurmctld refuses. The Go tests of the client run against
+`internal/slurm/slurmrestdtest`, a fake slurmrestd that answers with the
+vendored captures and error cases and with nothing written by hand. The
+tests that run the built binary come with the first view of cluster data.
