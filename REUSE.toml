@@ -48,13 +48,18 @@ SPDX-License-Identifier = "Apache-2.0"
 
 # Vendored slurmrestd OpenAPI documents are SchedMD's, not GSI's, and each
 # declares Apache 2.0 in its own info.license (doc/research/slurmrestd.md,
-# section 5). None is vendored yet: the first comes from an end-to-end run
-# on sind (doc/adr/0016-e2e-and-fixtures-on-sind.md). The commit that vendors
-# it enables this block and sets the path to where the documents land; the
-# one below is the layout doc/initial-conclusions.md proposes.
-#
-# [[annotations]]
-# path = "internal/slurm/versions/*/openapi.json"
-# precedence = "aggregate"
-# SPDX-FileCopyrightText = "SchedMD LLC <https://www.schedmd.com/>"
-# SPDX-License-Identifier = "Apache-2.0"
+# section 5). They come from an end-to-end run on sind
+# (doc/adr/0016-e2e-and-fixtures-on-sind.md), by e2e/vendor.sh.
+[[annotations]]
+path = "internal/slurm/versions/*/openapi.json"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "SchedMD LLC <https://www.schedmd.com/>"
+SPDX-License-Identifier = "Apache-2.0"
+
+# The answers of a slurmrestd that e2e/capture.sh recorded, JSON that cannot
+# hold a comment: a record of a run of GSI's, vendored by e2e/vendor.sh.
+[[annotations]]
+path = "internal/slurm/**/testdata/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>"
+SPDX-License-Identifier = "Apache-2.0"

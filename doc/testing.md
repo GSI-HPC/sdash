@@ -278,5 +278,9 @@ error cases, with the HTTP status of each) to `e2e/capture/`, and
 release whose image runs a slurmrestd, and keeps the capture as an artifact.
 The suite fails, rather than skips, when sind or the cluster is missing. The
 fixtures of the other layers and the vendored slurmrestd specs are copied
-from such a capture. The tests that run the built binary come with the first
+from such a capture: download the artifact of a run into `e2e/capture/`,
+run `make e2e-vendor VERSIONS=v0.0.45`, and commit the result by itself.
+`e2e/vendor.sh` writes each data_parser version's document and answers to
+`internal/slurm/versions/`, and the error cases to
+`internal/slurm/releases/testdata/`. The tests that run the built binary come with the first
 view of cluster data.
