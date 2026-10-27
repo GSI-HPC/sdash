@@ -114,6 +114,33 @@ test-components: web/node_modules
 test-browser: build
 	cd web && $(NPM) run test:browser
 
+# The sind realm of the end-to-end cluster, which keeps it apart from any
+# other cluster of the user's (doc/adr/0016-e2e-and-fixtures-on-sind.md). The
+# sind command and the tests read it from the environment.
+export SIND_REALM ?= e2e
+E2E_CONFIG  ?= e2e/testdata/sind-cluster.yaml
+E2E_CAPTURE ?= e2e/capture
+
+## e2e-up: create the end-to-end cluster with sind; needs Docker
+.PHONY: e2e-up
+e2e-up:
+	sind create cluster --config $(E2E_CONFIG)
+
+## e2e: run the end-to-end tests against the cluster of e2e-up
+.PHONY: e2e
+e2e:
+	$(GO) test -tags e2e -count=1 ./e2e/...
+
+## e2e-capture: write what slurmrestd sends to E2E_CAPTURE, for specs and fixtures
+.PHONY: e2e-capture
+e2e-capture:
+	e2e/capture.sh $(E2E_CAPTURE)
+
+## e2e-down: delete the end-to-end cluster
+.PHONY: e2e-down
+e2e-down:
+	sind delete cluster
+
 ## tidy: prune and verify the module requirements
 .PHONY: tidy
 tidy:
@@ -169,7 +196,7 @@ dev:
 .PHONY: clean
 clean:
 	rm -rf bin dist web/dist $(COVER) coverage.html
-	rm -rf web/coverage web/test-results web/playwright-report
+	rm -rf web/coverage web/test-results web/playwright-report $(E2E_CAPTURE)
 	find $(EMBED) -mindepth 1 ! -name $(KEEP) -delete
 
 ## help: list the available targets

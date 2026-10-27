@@ -49,3 +49,7 @@ coverage.html
 
 # Packages npm installs anywhere else, such as for the Markdown lint
 node_modules/
+
+# What e2e/capture.sh wrote: specs and fixtures are vendored on purpose, by a
+# commit of their own
+/e2e/capture/
