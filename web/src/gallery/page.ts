@@ -39,6 +39,13 @@ export const sections = [
   { id: "confirm-dialog", title: "ConfirmDialog" },
   { id: "drawer", title: "Drawer" },
   { id: "toast", title: "Toast" },
+  { id: "card", title: "Card" },
+  { id: "stat-card", title: "StatCard" },
+  { id: "kv-list", title: "KVList" },
+  { id: "empty-state", title: "EmptyState" },
+  { id: "skeleton", title: "Skeleton" },
+  { id: "error-panel", title: "ErrorPanel" },
+  { id: "banner", title: "Banner" },
 ] as const;
 
 /** The id of one of the sections. */

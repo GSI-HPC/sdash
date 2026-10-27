@@ -46,6 +46,14 @@ const tones = [
   { tint: "--ac-m", dot: "--ac-t" },
 ] as const;
 
+/** The tints of a banner, each with the colour of its dot. */
+const bannerTints = [
+  { tint: "--info-bg", dot: "--info-fg" },
+  { tint: "--warn-bg", dot: "--warn-fg" },
+  { tint: "--err-bg", dot: "--err-fg" },
+  { tint: "--ok-bg", dot: "--ok-fg" },
+] as const;
+
 /** One pair: a colour, and what it stands against. */
 interface Pair {
   /** What the colour is the colour of. */
@@ -173,6 +181,40 @@ const text: readonly Pair[] = [
   ...onEach("the note in the foot of a dialog", "--t3", [surface]),
   ...onEach("the second line of a toast", "--t3", [surface]),
 
+  // Card, StatCard, KVList: their ground is a card. The
+  // handoff's --t3 stands 4.7:1 there and not 4.5:1 on the page.
+  ...onEach("the action of a card", "--ac-t", [surface]),
+  ...onEach("the footer of a card", "--t2", [surface]),
+  ...onEach("the figure of a stat card", "--t1", [surface]),
+  ...onEach("the label, the aside and the line of a stat card", "--t3", [
+    surface,
+  ]),
+  ...onEach("the term of a key and value list", "--t3", [surface]),
+  ...onEach("the value of a key and value list", "--t1", [surface]),
+
+  // EmptyState, Skeleton, ErrorPanel: on a card or on the page.
+  ...onEach("the title of an empty state", "--t1", [surface], [page]),
+  ...onEach("the text of an empty state", "--t2", [surface], [page]),
+  ...onEach("the word of a skeleton", "--t2", [surface], [page]),
+  ...onEach("the title of an error panel", "--t1", [surface], [page]),
+  ...onEach(
+    "the text and the code of an error panel",
+    "--t2",
+    [surface],
+    [page],
+  ),
+
+  // Banner: on the tint of its tone, over the page or a card.
+  ...bannerTints.flatMap(({ tint }) => [
+    ...onEach("the title of a banner", "--t1", [tint, page], [tint, surface]),
+    ...onEach(
+      "the text and the code of a banner",
+      "--t2",
+      [tint, page],
+      [tint, surface],
+    ),
+  ]),
+
   // ConfirmDialog: the request lies on the background of the page.
   ...onEach("the method of a request that reads", "--info-fg", [page]),
   ...onEach("the method of a request that writes", "--ok-fg", [page]),
@@ -237,6 +279,12 @@ const marks: readonly Pair[] = [
   ...["--ok-fg", "--info-fg", "--warn-fg", "--err-fg"].flatMap((dot) =>
     onEach("the dot of a toast", dot, [surface]),
   ),
+
+  // Banner and ErrorPanel: the dot in the text colour of the tone.
+  ...bannerTints.flatMap(({ tint, dot }) =>
+    onEach("the dot of a banner", dot, [tint, page], [tint, surface]),
+  ),
+  ...onEach("the dot of an error panel", "--err-fg", [surface], [page]),
 
   // The ring of the focus, on everything a primitive draws it on or
   // around. tokens.test.ts has the plain backgrounds; these are the ones a
@@ -316,6 +364,12 @@ test.each<Pair & { least: number }>([
     fore: "--ok",
     ground: [surface],
     least: 3,
+  },
+  {
+    what: "--t3 as the code of a banner",
+    fore: "--t3",
+    ground: ["--err-bg", page],
+    least: 4.5,
   },
   {
     what: "--t4 as the lock of a read-only field",
