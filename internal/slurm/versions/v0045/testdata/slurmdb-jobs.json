@@ -35,7 +35,7 @@
       "cluster": "default",
       "constraints": "",
       "container": "",
-      "sluid": "s5CSM5Z8SQVC00",
+      "sluid": "s6G1M5ZSTN8V00",
       "derived_exit_code": {
         "status": [
           "SUCCESS"
@@ -56,15 +56,15 @@
       },
       "time": {
         "elapsed": 0,
-        "eligible": 1793124486,
-        "end": 1793124488,
+        "eligible": 1767225600,
+        "end": 1767225602,
         "planned": {
           "set": true,
           "infinite": false,
           "number": 2
         },
-        "start": 1793124488,
-        "submission": 1793124486,
+        "start": 1767225602,
+        "submission": 1767225600,
         "suspended": 0,
         "system": {
           "seconds": 0,
@@ -157,13 +157,13 @@
       },
       "script": "",
       "segment_size": 0,
-      "original_sluid": "s5CSM5Z8SQVC00",
-      "stdin_expanded": "\/dev\/null",
-      "stdout_expanded": "\/home\/alice\/slurm-1.out",
+      "original_sluid": "s6G1M5ZSTN8V00",
+      "stdin_expanded": "/dev/null",
+      "stdout_expanded": "/home/alice/slurm-1.out",
       "stderr_expanded": "",
       "stdout": "slurm-%j.out",
       "stderr": "",
-      "stdin": "\/dev\/null",
+      "stdin": "/dev/null",
       "state": {
         "current": [
           "COMPLETED"
@@ -177,17 +177,17 @@
             "end": {
               "set": true,
               "infinite": false,
-              "number": 1793124488
+              "number": 1767225602
             },
             "start": {
               "set": true,
               "infinite": false,
-              "number": 1793124488
+              "number": 1767225602
             },
             "suspended": 0,
             "system": {
               "seconds": 0,
-              "microseconds": 1141
+              "microseconds": 0
             },
             "limit": {
               "set": false,
@@ -196,11 +196,11 @@
             },
             "total": {
               "seconds": 0,
-              "microseconds": 2282
+              "microseconds": 0
             },
             "user": {
               "seconds": 0,
-              "microseconds": 1141
+              "microseconds": 0
             }
           },
           "exit_code": {
@@ -393,7 +393,7 @@
         "wckey": "",
         "flags": []
       },
-      "working_directory": "\/home\/alice"
+      "working_directory": "/home/alice"
     },
     {
       "account": "physics",
@@ -430,7 +430,7 @@
       "cluster": "default",
       "constraints": "",
       "container": "",
-      "sluid": "s5CSM5Z8SSWK00",
+      "sluid": "s6G1M5ZSTQA000",
       "derived_exit_code": {
         "status": [
           "SUCCESS"
@@ -451,15 +451,15 @@
       },
       "time": {
         "elapsed": 0,
-        "eligible": 1793124488,
-        "end": 1793124491,
+        "eligible": 1767225602,
+        "end": 1767225605,
         "planned": {
           "set": true,
           "infinite": false,
           "number": 3
         },
-        "start": 1793124491,
-        "submission": 1793124488,
+        "start": 1767225605,
+        "submission": 1767225602,
         "suspended": 0,
         "system": {
           "seconds": 0,
@@ -552,13 +552,13 @@
       },
       "script": "",
       "segment_size": 0,
-      "original_sluid": "s5CSM5Z8SSWK00",
-      "stdin_expanded": "\/dev\/null",
-      "stdout_expanded": "\/home\/alice\/slurm-2.out",
+      "original_sluid": "s6G1M5ZSTQA000",
+      "stdin_expanded": "/dev/null",
+      "stdout_expanded": "/home/alice/slurm-2.out",
       "stderr_expanded": "",
       "stdout": "slurm-%j.out",
       "stderr": "",
-      "stdin": "\/dev\/null",
+      "stdin": "/dev/null",
       "state": {
         "current": [
           "FAILED"
@@ -572,17 +572,17 @@
             "end": {
               "set": true,
               "infinite": false,
-              "number": 1793124491
+              "number": 1767225605
             },
             "start": {
               "set": true,
               "infinite": false,
-              "number": 1793124491
+              "number": 1767225605
             },
             "suspended": 0,
             "system": {
               "seconds": 0,
-              "microseconds": 1054
+              "microseconds": 0
             },
             "limit": {
               "set": false,
@@ -591,11 +591,11 @@
             },
             "total": {
               "seconds": 0,
-              "microseconds": 2108
+              "microseconds": 0
             },
             "user": {
               "seconds": 0,
-              "microseconds": 1054
+              "microseconds": 0
             }
           },
           "exit_code": {
@@ -788,7 +788,7 @@
         "wckey": "",
         "flags": []
       },
-      "working_directory": "\/home\/alice"
+      "working_directory": "/home/alice"
     },
     {
       "account": "physics",
@@ -825,7 +825,7 @@
       "cluster": "default",
       "constraints": "",
       "container": "",
-      "sluid": "s5CSM5Z8T42M00",
+      "sluid": "s6G1M5ZSV1F300",
       "derived_exit_code": {
         "status": [
           "SUCCESS"
@@ -845,16 +845,16 @@
         }
       },
       "time": {
-        "elapsed": 5,
-        "eligible": 1793124499,
-        "end": 1793124504,
+        "elapsed": 4,
+        "eligible": 1767225613,
+        "end": 1767225619,
         "planned": {
           "set": true,
           "infinite": false,
-          "number": 0
+          "number": 2
         },
-        "start": 1793124499,
-        "submission": 1793124499,
+        "start": 1767225615,
+        "submission": 1767225613,
         "suspended": 0,
         "system": {
           "seconds": 0,
@@ -947,13 +947,13 @@
       },
       "script": "",
       "segment_size": 0,
-      "original_sluid": "s5CSM5Z8T42M00",
-      "stdin_expanded": "\/dev\/null",
-      "stdout_expanded": "\/home\/alice\/slurm-4.out",
+      "original_sluid": "s6G1M5ZSV1F300",
+      "stdin_expanded": "/dev/null",
+      "stdout_expanded": "/home/alice/slurm-4.out",
       "stderr_expanded": "",
       "stdout": "slurm-%j.out",
       "stderr": "",
-      "stdin": "\/dev\/null",
+      "stdin": "/dev/null",
       "state": {
         "current": [
           "RUNNING"
@@ -963,16 +963,16 @@
       "steps": [
         {
           "time": {
-            "elapsed": 5,
+            "elapsed": 4,
             "end": {
               "set": true,
               "infinite": false,
-              "number": 1793124504
+              "number": 1767225619
             },
             "start": {
               "set": true,
               "infinite": false,
-              "number": 1793124499
+              "number": 1767225615
             },
             "suspended": 0,
             "system": {
@@ -1169,7 +1169,7 @@
         "wckey": "",
         "flags": []
       },
-      "working_directory": "\/home\/alice"
+      "working_directory": "/home/alice"
     },
     {
       "account": "physics",
@@ -1206,7 +1206,7 @@
       "cluster": "default",
       "constraints": "",
       "container": "",
-      "sluid": "s5CSM5Z8T45900",
+      "sluid": "s6G1M5ZSV1HS00",
       "derived_exit_code": {
         "status": [
           "SUCCESS"
@@ -1227,15 +1227,15 @@
       },
       "time": {
         "elapsed": 4,
-        "eligible": 1793124499,
-        "end": 1793124504,
+        "eligible": 1767225613,
+        "end": 1767225619,
         "planned": {
           "set": true,
           "infinite": false,
-          "number": 1
+          "number": 2
         },
-        "start": 1793124500,
-        "submission": 1793124499,
+        "start": 1767225615,
+        "submission": 1767225613,
         "suspended": 0,
         "system": {
           "seconds": 0,
@@ -1328,13 +1328,13 @@
       },
       "script": "",
       "segment_size": 0,
-      "original_sluid": "s5CSM5Z8T45900",
-      "stdin_expanded": "\/dev\/null",
-      "stdout_expanded": "\/home\/bob\/slurm-5.out",
+      "original_sluid": "s6G1M5ZSV1HS00",
+      "stdin_expanded": "/dev/null",
+      "stdout_expanded": "/home/bob/slurm-5.out",
       "stderr_expanded": "",
       "stdout": "slurm-%j.out",
       "stderr": "",
-      "stdin": "\/dev\/null",
+      "stdin": "/dev/null",
       "state": {
         "current": [
           "RUNNING"
@@ -1348,12 +1348,12 @@
             "end": {
               "set": true,
               "infinite": false,
-              "number": 1793124504
+              "number": 1767225619
             },
             "start": {
               "set": true,
               "infinite": false,
-              "number": 1793124500
+              "number": 1767225615
             },
             "suspended": 0,
             "system": {
@@ -1550,7 +1550,7 @@
         "wckey": "",
         "flags": []
       },
-      "working_directory": "\/home\/bob"
+      "working_directory": "/home/bob"
     },
     {
       "account": "physics",
@@ -1587,7 +1587,7 @@
       "cluster": "default",
       "constraints": "",
       "container": "",
-      "sluid": "s5CSM5Z8T5FT00",
+      "sluid": "s6G1M5ZSV3XF00",
       "derived_exit_code": {
         "status": [
           "SUCCESS"
@@ -1608,15 +1608,15 @@
       },
       "time": {
         "elapsed": 0,
-        "eligible": 1793124500,
-        "end": 1793124504,
+        "eligible": 1767225615,
+        "end": 1767225619,
         "planned": {
           "set": true,
           "infinite": false,
           "number": 4
         },
-        "start": 1793124504,
-        "submission": 1793124500,
+        "start": 1767225619,
+        "submission": 1767225615,
         "suspended": 0,
         "system": {
           "seconds": 0,
@@ -1708,13 +1708,13 @@
       },
       "script": "",
       "segment_size": 0,
-      "original_sluid": "s5CSM5Z8T5FT00",
-      "stdin_expanded": "\/dev\/null",
-      "stdout_expanded": "\/home\/alice\/slurm-6.out",
+      "original_sluid": "s6G1M5ZSV3XF00",
+      "stdin_expanded": "/dev/null",
+      "stdout_expanded": "/home/alice/slurm-6.out",
       "stderr_expanded": "",
       "stdout": "slurm-%j.out",
       "stderr": "",
-      "stdin": "\/dev\/null",
+      "stdin": "/dev/null",
       "state": {
         "current": [
           "PENDING"
@@ -1758,7 +1758,7 @@
         "wckey": "",
         "flags": []
       },
-      "working_directory": "\/home\/alice"
+      "working_directory": "/home/alice"
     },
     {
       "account": "physics",
@@ -1795,7 +1795,7 @@
       "cluster": "default",
       "constraints": "",
       "container": "",
-      "sluid": "s5CSM5Z8T5N000",
+      "sluid": "s6G1M5ZSV42M00",
       "derived_exit_code": {
         "status": [
           "SUCCESS"
@@ -1816,15 +1816,15 @@
       },
       "time": {
         "elapsed": 0,
-        "eligible": 1793124502,
-        "end": 1793124504,
+        "eligible": 1767225618,
+        "end": 1767225619,
         "planned": {
           "set": true,
           "infinite": false,
-          "number": 2
+          "number": 1
         },
-        "start": 1793124504,
-        "submission": 1793124501,
+        "start": 1767225619,
+        "submission": 1767225615,
         "suspended": 0,
         "system": {
           "seconds": 0,
@@ -1916,13 +1916,13 @@
       },
       "script": "",
       "segment_size": 0,
-      "original_sluid": "s5CSM5Z8T5N000",
-      "stdin_expanded": "\/dev\/null",
-      "stdout_expanded": "\/home\/alice\/slurm-8_4294967294.out",
+      "original_sluid": "s6G1M5ZSV42M00",
+      "stdin_expanded": "/dev/null",
+      "stdout_expanded": "/home/alice/slurm-8_4294967294.out",
       "stderr_expanded": "",
       "stdout": "slurm-%A_%a.out",
       "stderr": "",
-      "stdin": "\/dev\/null",
+      "stdin": "/dev/null",
       "state": {
         "current": [
           "PENDING"
@@ -1966,18 +1966,18 @@
         "wckey": "",
         "flags": []
       },
-      "working_directory": "\/home\/alice"
+      "working_directory": "/home/alice"
     }
   ],
   "meta": {
     "plugin": {
-      "type": "openapi\/slurmdbd",
+      "type": "openapi/slurmdbd",
       "name": "Slurm OpenAPI slurmdbd",
-      "data_parser": "data_parser\/v0.0.45",
-      "accounting_storage": "accounting_storage\/slurmdbd"
+      "data_parser": "data_parser/v0.0.45",
+      "accounting_storage": "accounting_storage/slurmdbd"
     },
     "client": {
-      "source": "172.19.0.5:6820(fd:9)",
+      "source": "192.0.2.7:6820(fd:9)",
       "user": "nobody",
       "group": ""
     },

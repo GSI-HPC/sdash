@@ -8,7 +8,7 @@
       "end_time": {
         "set": true,
         "infinite": false,
-        "number": 1793214499
+        "number": 1767315613
       },
       "features": "",
       "flags": [
@@ -32,7 +32,7 @@
       "start_time": {
         "set": true,
         "infinite": false,
-        "number": 1793210899
+        "number": 1767312013
       },
       "tres": "cpu=2",
       "users": "root"
@@ -41,17 +41,17 @@
   "last_update": {
     "set": true,
     "infinite": false,
-    "number": 1793124504
+    "number": 1767225619
   },
   "meta": {
     "plugin": {
-      "type": "openapi\/slurmctld",
+      "type": "openapi/slurmctld",
       "name": "Slurm OpenAPI slurmctld",
-      "data_parser": "data_parser\/v0.0.45",
-      "accounting_storage": "accounting_storage\/slurmdbd"
+      "data_parser": "data_parser/v0.0.45",
+      "accounting_storage": "accounting_storage/slurmdbd"
     },
     "client": {
-      "source": "172.19.0.5:6820(fd:9)",
+      "source": "192.0.2.7:6820(fd:9)",
       "user": "root",
       "group": "root"
     },

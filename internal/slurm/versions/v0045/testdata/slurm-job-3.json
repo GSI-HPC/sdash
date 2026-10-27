@@ -118,7 +118,7 @@
       "end_time": {
         "set": true,
         "infinite": false,
-        "number": 1793124499
+        "number": 1767225613
       },
       "excluded_nodes": "",
       "exit_code": {
@@ -168,7 +168,7 @@
       "last_sched_evaluation": {
         "set": true,
         "infinite": false,
-        "number": 1793124499
+        "number": 1767225612
       },
       "licenses": "",
       "licenses_allocated": "",
@@ -296,7 +296,7 @@
       "selinux_context": "",
       "shared": [],
       "step_id": {
-        "sluid": "s5CSM5Z8T3R300",
+        "sluid": "s6G1M5ZSV15400",
         "job_id": {
           "set": true,
           "infinite": false,
@@ -318,20 +318,20 @@
       "start_time": {
         "set": true,
         "infinite": false,
-        "number": 1793124499
+        "number": 1767225613
       },
       "state_description": "",
       "state_reason": "JobHeldUser",
-      "standard_input": "\/dev\/null",
+      "standard_input": "/dev/null",
       "standard_output": "slurm-%j.out",
       "standard_error": "",
-      "stdin_expanded": "\/dev\/null",
-      "stdout_expanded": "\/home\/alice\/slurm-3.out",
+      "stdin_expanded": "/dev/null",
+      "stdout_expanded": "/home/alice/slurm-3.out",
       "stderr_expanded": "",
       "submit_time": {
         "set": true,
         "infinite": false,
-        "number": 1793124499
+        "number": 1767225612
       },
       "submit_line": "sbatch --parsable --job-name=cancelled --hold --wrap=true",
       "suspend_time": {
@@ -367,7 +367,7 @@
       "user_name": "alice",
       "maximum_switch_wait_time": 0,
       "wckey": "",
-      "current_working_directory": "\/home\/alice"
+      "current_working_directory": "/home/alice"
     }
   ],
   "last_backfill": {
@@ -378,17 +378,17 @@
   "last_update": {
     "set": true,
     "infinite": false,
-    "number": 1793124504
+    "number": 1767225619
   },
   "meta": {
     "plugin": {
-      "type": "openapi\/slurmctld",
+      "type": "openapi/slurmctld",
       "name": "Slurm OpenAPI slurmctld",
-      "data_parser": "data_parser\/v0.0.45",
-      "accounting_storage": "accounting_storage\/slurmdbd"
+      "data_parser": "data_parser/v0.0.45",
+      "accounting_storage": "accounting_storage/slurmdbd"
     },
     "client": {
-      "source": "172.19.0.5:6820(fd:9)",
+      "source": "192.0.2.7:6820(fd:9)",
       "user": "root",
       "group": "root"
     },

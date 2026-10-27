@@ -2,7 +2,7 @@
   "clusters": [
     {
       "controller": {
-        "host": "172.19.0.7",
+        "host": "192.0.2.4",
         "port": 6817
       },
       "flags": [
@@ -663,7 +663,7 @@
       },
       "id": 1,
       "is_default": false,
-      "lineage": "\/",
+      "lineage": "/",
       "min": {
         "priority_threshold": {
           "set": false,
@@ -762,7 +762,7 @@
       },
       "id": 2,
       "is_default": true,
-      "lineage": "\/0-root\/",
+      "lineage": "/0-root/",
       "min": {
         "priority_threshold": {
           "set": false,
@@ -861,7 +861,7 @@
       },
       "id": 3,
       "is_default": false,
-      "lineage": "\/physics\/",
+      "lineage": "/physics/",
       "min": {
         "priority_threshold": {
           "set": false,
@@ -960,7 +960,7 @@
       },
       "id": 4,
       "is_default": true,
-      "lineage": "\/physics\/0-alice\/",
+      "lineage": "/physics/0-alice/",
       "min": {
         "priority_threshold": {
           "set": false,
@@ -1059,7 +1059,7 @@
       },
       "id": 5,
       "is_default": true,
-      "lineage": "\/physics\/0-bob\/",
+      "lineage": "/physics/0-bob/",
       "min": {
         "priority_threshold": {
           "set": false,
@@ -1158,7 +1158,7 @@
       },
       "id": 6,
       "is_default": true,
-      "lineage": "\/physics\/0-carol\/",
+      "lineage": "/physics/0-carol/",
       "min": {
         "priority_threshold": {
           "set": false,
@@ -1182,13 +1182,13 @@
   ],
   "meta": {
     "plugin": {
-      "type": "openapi\/slurmdbd",
+      "type": "openapi/slurmdbd",
       "name": "Slurm OpenAPI slurmdbd",
-      "data_parser": "data_parser\/v0.0.45",
-      "accounting_storage": "accounting_storage\/slurmdbd"
+      "data_parser": "data_parser/v0.0.45",
+      "accounting_storage": "accounting_storage/slurmdbd"
     },
     "client": {
-      "source": "172.19.0.5:6820(fd:9)",
+      "source": "192.0.2.7:6820(fd:9)",
       "user": "nobody",
       "group": ""
     },

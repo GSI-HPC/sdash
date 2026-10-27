@@ -1,0 +1,9 @@
+511	expired-token-jobs.json
+200	expired-token-ping.json
+502	expired-token-qos.json
+511	malformed-token-jobs.json
+200	malformed-token-ping.json
+502	malformed-token-qos.json
+401	no-token.json
+404	unknown-job.json
+200	unknown-node.json

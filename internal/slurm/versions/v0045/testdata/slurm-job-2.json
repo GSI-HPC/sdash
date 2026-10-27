@@ -5,7 +5,7 @@
       "accrue_time": {
         "set": true,
         "infinite": false,
-        "number": 1793124488
+        "number": 1767225602
       },
       "admin_comment": "",
       "allocating_node": "controller",
@@ -112,12 +112,12 @@
       "eligible_time": {
         "set": true,
         "infinite": false,
-        "number": 1793124488
+        "number": 1767225602
       },
       "end_time": {
         "set": true,
         "infinite": false,
-        "number": 1793124491
+        "number": 1767225605
       },
       "excluded_nodes": "",
       "exit_code": {
@@ -223,7 +223,7 @@
       "last_sched_evaluation": {
         "set": true,
         "infinite": false,
-        "number": 1793124491
+        "number": 1767225605
       },
       "licenses": "",
       "licenses_allocated": "",
@@ -351,7 +351,7 @@
       "selinux_context": "",
       "shared": [],
       "step_id": {
-        "sluid": "s5CSM5Z8SSWK00",
+        "sluid": "s6G1M5ZSTQA000",
         "job_id": {
           "set": true,
           "infinite": false,
@@ -373,20 +373,20 @@
       "start_time": {
         "set": true,
         "infinite": false,
-        "number": 1793124491
+        "number": 1767225605
       },
       "state_description": "",
       "state_reason": "NonZeroExitCode",
-      "standard_input": "\/dev\/null",
+      "standard_input": "/dev/null",
       "standard_output": "slurm-%j.out",
       "standard_error": "",
-      "stdin_expanded": "\/dev\/null",
-      "stdout_expanded": "\/home\/alice\/slurm-2.out",
+      "stdin_expanded": "/dev/null",
+      "stdout_expanded": "/home/alice/slurm-2.out",
       "stderr_expanded": "",
       "submit_time": {
         "set": true,
         "infinite": false,
-        "number": 1793124488
+        "number": 1767225602
       },
       "submit_line": "sbatch --wait --job-name=fails --wrap=exit 3",
       "suspend_time": {
@@ -422,7 +422,7 @@
       "user_name": "alice",
       "maximum_switch_wait_time": 0,
       "wckey": "",
-      "current_working_directory": "\/home\/alice"
+      "current_working_directory": "/home/alice"
     }
   ],
   "last_backfill": {
@@ -433,17 +433,17 @@
   "last_update": {
     "set": true,
     "infinite": false,
-    "number": 1793124504
+    "number": 1767225619
   },
   "meta": {
     "plugin": {
-      "type": "openapi\/slurmctld",
+      "type": "openapi/slurmctld",
       "name": "Slurm OpenAPI slurmctld",
-      "data_parser": "data_parser\/v0.0.45",
-      "accounting_storage": "accounting_storage\/slurmdbd"
+      "data_parser": "data_parser/v0.0.45",
+      "accounting_storage": "accounting_storage/slurmdbd"
     },
     "client": {
-      "source": "172.19.0.5:6820(fd:9)",
+      "source": "192.0.2.7:6820(fd:9)",
       "user": "root",
       "group": "root"
     },

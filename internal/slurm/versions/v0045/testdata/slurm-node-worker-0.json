@@ -7,7 +7,7 @@
       "boot_time": {
         "set": true,
         "infinite": false,
-        "number": 1793124350
+        "number": 1767225523
       },
       "tls_cert_last_renewal": {
         "set": true,
@@ -19,11 +19,11 @@
       "cores": 1,
       "specialized_cores": 0,
       "cpu_binding": 0,
-      "cpu_load": 96,
+      "cpu_load": 0,
       "free_mem": {
         "set": true,
         "infinite": false,
-        "number": 10162
+        "number": 0
       },
       "cpus": 2,
       "effective_cpus": 2,
@@ -45,14 +45,14 @@
       "active_features": [],
       "gpu_spec": "",
       "gres": "",
-      "gres_drained": "N\/A",
+      "gres_drained": "N/A",
       "gres_used": "",
       "instance_id": "",
       "instance_type": "",
       "last_busy": {
         "set": true,
         "infinite": false,
-        "number": 1793124491
+        "number": 1767225605
       },
       "mcs_label": "",
       "specialized_memory": 0,
@@ -99,7 +99,7 @@
       "slurmd_start_time": {
         "set": true,
         "infinite": false,
-        "number": 1793124485
+        "number": 1767225599
       },
       "sockets": 2,
       "threads": 1,
@@ -113,17 +113,17 @@
   "last_update": {
     "set": true,
     "infinite": false,
-    "number": 1793124504
+    "number": 1767225619
   },
   "meta": {
     "plugin": {
-      "type": "openapi\/slurmctld",
+      "type": "openapi/slurmctld",
       "name": "Slurm OpenAPI slurmctld",
-      "data_parser": "data_parser\/v0.0.45",
-      "accounting_storage": "accounting_storage\/slurmdbd"
+      "data_parser": "data_parser/v0.0.45",
+      "accounting_storage": "accounting_storage/slurmdbd"
     },
     "client": {
-      "source": "172.19.0.5:6820(fd:9)",
+      "source": "192.0.2.7:6820(fd:9)",
       "user": "root",
       "group": "root"
     },
