@@ -48,3 +48,4 @@ ordered by subject.
 | [0029](0029-ui-primitives-on-base-ui.md) | The UI primitives, on Base UI | proposed |
 | [0030](0030-primitives-that-show-data.md) | The primitives that show data | proposed |
 | [0031](0031-slurmrestd-end-to-end-on-26-05.md) | End-to-end tests against slurmrestd start on Slurm 26.05 | accepted |
+| [0032](0032-the-slurm-client-as-built.md) | The Slurm client as built | proposed |
