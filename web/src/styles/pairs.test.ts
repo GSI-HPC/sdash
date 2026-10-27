@@ -54,6 +54,18 @@ const bannerTints = [
   { tint: "--ok-bg", dot: "--ok-fg" },
 ] as const;
 
+/** The fills of the tones of a graphic (primitives/graphics.ts). */
+const graphicFills = [
+  "--ac",
+  "--ok-fg",
+  "--warn-fg",
+  "--err-fg",
+  "--info-fg",
+  "--vio-fg",
+  "--org-fg",
+  "--t3",
+] as const;
+
 /** One pair: a colour, and what it stands against. */
 interface Pair {
   /** What the colour is the colour of. */
@@ -181,7 +193,7 @@ const text: readonly Pair[] = [
   ...onEach("the note in the foot of a dialog", "--t3", [surface]),
   ...onEach("the second line of a toast", "--t3", [surface]),
 
-  // Card, StatCard, KVList: their ground is a card. The
+  // Card, StatCard, KVList, Meter, Legend: their ground is a card. The
   // handoff's --t3 stands 4.7:1 there and not 4.5:1 on the page.
   ...onEach("the action of a card", "--ac-t", [surface]),
   ...onEach("the footer of a card", "--t2", [surface]),
@@ -191,6 +203,11 @@ const text: readonly Pair[] = [
   ]),
   ...onEach("the term of a key and value list", "--t3", [surface]),
   ...onEach("the value of a key and value list", "--t1", [surface]),
+  ...onEach("the label of a meter", "--t3", [surface]),
+  ...onEach("the value of a meter", "--t1", [surface]),
+  ...onEach("the value of a meter on one line", "--t2", [surface]),
+  ...onEach("the label of a legend", "--t2", [surface]),
+  ...onEach("the value of a legend", "--t1", [surface]),
 
   // EmptyState, Skeleton, ErrorPanel: on a card or on the page.
   ...onEach("the title of an empty state", "--t1", [surface], [page]),
@@ -280,6 +297,19 @@ const marks: readonly Pair[] = [
     onEach("the dot of a toast", dot, [surface]),
   ),
 
+  // The graphics: a part in the text colour of its tone (graphics.ts),
+  // against the card, and against the track of a bar, whose colour is also
+  // that of the gap that keeps two parts of a stacked bar apart.
+  ...graphicFills.flatMap((fill) =>
+    onEach("a part of a graphic", fill, [surface], [elevated]),
+  ),
+  ...onEach(
+    "the mark of a threshold on a meter",
+    "--t2",
+    [surface],
+    [elevated],
+  ),
+
   // Banner and ErrorPanel: the dot in the text colour of the tone.
   ...bannerTints.flatMap(({ tint, dot }) =>
     onEach("the dot of a banner", dot, [tint, page], [tint, surface]),
@@ -361,6 +391,12 @@ test.each<Pair & { least: number }>([
   },
   {
     what: "the solid tone as the dot of a toast",
+    fore: "--ok",
+    ground: [surface],
+    least: 3,
+  },
+  {
+    what: "solid tone as a part of a graphic",
     fore: "--ok",
     ground: [surface],
     least: 3,

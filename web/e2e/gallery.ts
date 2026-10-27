@@ -133,6 +133,24 @@ export const overlays: readonly Overlay[] = [
     },
   },
   {
+    name: "the tooltip of a cell grid",
+    open: async (page, browserName) => {
+      const grid = section(page, "CellGrid").getByRole("grid", {
+        name: "Example cells",
+      });
+      // The control before the grid on the page is the action of a card.
+      await tabTo(
+        page,
+        browserName,
+        section(page, "Card").getByRole("link", { name: "More examples" }),
+        grid,
+      );
+      const tooltip = tooltips(page);
+      await expect(tooltip).toHaveText(["Cell 1Fine"]);
+      return tooltip;
+    },
+  },
+  {
     name: "a popover",
     open: async (page) => {
       await press(page, button(page, "Popover", "Example settings"));
