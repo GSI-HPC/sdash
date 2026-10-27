@@ -141,6 +141,11 @@ e2e:
 e2e-capture:
 	e2e/capture.sh $(E2E_CAPTURE)
 
+## e2e-vendor: copy E2E_CAPTURE into internal/slurm for the data_parser VERSIONS (v0.0.45 ...); commit it by itself
+.PHONY: e2e-vendor
+e2e-vendor:
+	e2e/vendor.sh $(E2E_CAPTURE) $(VERSIONS)
+
 ## e2e-down: delete the end-to-end cluster
 .PHONY: e2e-down
 e2e-down:
