@@ -10,6 +10,7 @@ import { BadgeSection } from "./sections/BadgeSection";
 import { BannerSection } from "./sections/BannerSection";
 import { ButtonSection } from "./sections/ButtonSection";
 import { CardSection } from "./sections/CardSection";
+import { CellGridSection } from "./sections/CellGridSection";
 import { ChipSection } from "./sections/ChipSection";
 import { ConfirmDialogSection } from "./sections/ConfirmDialogSection";
 import { DialogSection } from "./sections/DialogSection";
@@ -20,11 +21,15 @@ import { IconButtonSection } from "./sections/IconButtonSection";
 import { InputSection } from "./sections/InputSection";
 import { KbdSection } from "./sections/KbdSection";
 import { KVListSection } from "./sections/KVListSection";
+import { LegendSection } from "./sections/LegendSection";
 import { MenuSection } from "./sections/MenuSection";
+import { MeterSection } from "./sections/MeterSection";
 import { PopoverSection } from "./sections/PopoverSection";
 import { SegmentedControlSection } from "./sections/SegmentedControlSection";
 import { SelectSection } from "./sections/SelectSection";
 import { SkeletonSection } from "./sections/SkeletonSection";
+import { SparklineSection } from "./sections/SparklineSection";
+import { StackedBarSection } from "./sections/StackedBarSection";
 import { StatCardSection } from "./sections/StatCardSection";
 import { TabsSection } from "./sections/TabsSection";
 import { ToastSection } from "./sections/ToastSection";
@@ -52,6 +57,11 @@ const content: Record<SectionId, ComponentType> = {
   card: CardSection,
   "stat-card": StatCardSection,
   "kv-list": KVListSection,
+  meter: MeterSection,
+  "stacked-bar": StackedBarSection,
+  legend: LegendSection,
+  sparkline: SparklineSection,
+  "cell-grid": CellGridSection,
   "empty-state": EmptyStateSection,
   skeleton: SkeletonSection,
   "error-panel": ErrorPanelSection,
