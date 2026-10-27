@@ -1,0 +1,1208 @@
+{
+  "clusters": [
+    {
+      "controller": {
+        "host": "172.19.0.7",
+        "port": 6817
+      },
+      "flags": [
+        "REGISTERING"
+      ],
+      "name": "default",
+      "nodes": "worker-[0-2]",
+      "associations": {
+        "root": {
+          "account": "root",
+          "cluster": "default",
+          "partition": "",
+          "user": "",
+          "id": 1
+        }
+      },
+      "rpc_version": 11520,
+      "tres": [
+        {
+          "type": "cpu",
+          "name": "",
+          "id": 1,
+          "count": 6
+        },
+        {
+          "type": "mem",
+          "name": "",
+          "id": 2,
+          "count": 1536
+        },
+        {
+          "type": "energy",
+          "name": "",
+          "id": 3,
+          "count": 0
+        },
+        {
+          "type": "node",
+          "name": "",
+          "id": 4,
+          "count": 3
+        },
+        {
+          "type": "billing",
+          "name": "",
+          "id": 5,
+          "count": 6
+        },
+        {
+          "type": "fs",
+          "name": "disk",
+          "id": 6,
+          "count": 0
+        },
+        {
+          "type": "vmem",
+          "name": "",
+          "id": 7,
+          "count": 0
+        },
+        {
+          "type": "pages",
+          "name": "",
+          "id": 8,
+          "count": 0
+        }
+      ]
+    }
+  ],
+  "tres": [
+    {
+      "type": "cpu",
+      "name": "",
+      "id": 1,
+      "count": 0
+    },
+    {
+      "type": "mem",
+      "name": "",
+      "id": 2,
+      "count": 0
+    },
+    {
+      "type": "energy",
+      "name": "",
+      "id": 3,
+      "count": 0
+    },
+    {
+      "type": "node",
+      "name": "",
+      "id": 4,
+      "count": 0
+    },
+    {
+      "type": "billing",
+      "name": "",
+      "id": 5,
+      "count": 0
+    },
+    {
+      "type": "fs",
+      "name": "disk",
+      "id": 6,
+      "count": 0
+    },
+    {
+      "type": "vmem",
+      "name": "",
+      "id": 7,
+      "count": 0
+    },
+    {
+      "type": "pages",
+      "name": "",
+      "id": 8,
+      "count": 0
+    },
+    {
+      "type": "dynamic_offset",
+      "name": "",
+      "id": 1000,
+      "count": 0
+    }
+  ],
+  "accounts": [
+    {
+      "associations": [
+        {
+          "account": "physics",
+          "cluster": "default",
+          "partition": "",
+          "user": "",
+          "id": 3
+        },
+        {
+          "account": "physics",
+          "cluster": "default",
+          "partition": "",
+          "user": "alice",
+          "id": 4
+        },
+        {
+          "account": "physics",
+          "cluster": "default",
+          "partition": "",
+          "user": "bob",
+          "id": 5
+        },
+        {
+          "account": "physics",
+          "cluster": "default",
+          "partition": "",
+          "user": "carol",
+          "id": 6
+        }
+      ],
+      "coordinators": [
+        {
+          "name": "bob",
+          "direct": true
+        }
+      ],
+      "description": "physics",
+      "name": "physics",
+      "organization": "physics",
+      "flags": []
+    },
+    {
+      "associations": [],
+      "coordinators": [],
+      "description": "default root account",
+      "name": "root",
+      "organization": "root",
+      "flags": []
+    }
+  ],
+  "users": [
+    {
+      "administrator_level": [
+        "None"
+      ],
+      "associations": [
+        {
+          "account": "physics",
+          "cluster": "default",
+          "partition": "",
+          "user": "alice",
+          "id": 4
+        }
+      ],
+      "coordinators": [],
+      "default": {
+        "qos": 0,
+        "account": "physics",
+        "wckey": ""
+      },
+      "flags": [
+        "NONE"
+      ],
+      "name": "alice",
+      "old_name": "",
+      "wckeys": []
+    },
+    {
+      "administrator_level": [
+        "None"
+      ],
+      "associations": [
+        {
+          "account": "physics",
+          "cluster": "default",
+          "partition": "",
+          "user": "bob",
+          "id": 5
+        }
+      ],
+      "coordinators": [
+        {
+          "name": "physics",
+          "direct": true
+        }
+      ],
+      "default": {
+        "qos": 0,
+        "account": "physics",
+        "wckey": ""
+      },
+      "flags": [
+        "NONE"
+      ],
+      "name": "bob",
+      "old_name": "",
+      "wckeys": []
+    },
+    {
+      "administrator_level": [
+        "Operator"
+      ],
+      "associations": [
+        {
+          "account": "physics",
+          "cluster": "default",
+          "partition": "",
+          "user": "carol",
+          "id": 6
+        }
+      ],
+      "coordinators": [],
+      "default": {
+        "qos": 0,
+        "account": "physics",
+        "wckey": ""
+      },
+      "flags": [
+        "NONE"
+      ],
+      "name": "carol",
+      "old_name": "",
+      "wckeys": []
+    },
+    {
+      "administrator_level": [
+        "Administrator"
+      ],
+      "associations": [
+        {
+          "account": "root",
+          "cluster": "default",
+          "partition": "",
+          "user": "root",
+          "id": 2
+        }
+      ],
+      "coordinators": [],
+      "default": {
+        "qos": 0,
+        "account": "root",
+        "wckey": ""
+      },
+      "flags": [
+        "NONE"
+      ],
+      "name": "root",
+      "old_name": "",
+      "wckeys": []
+    }
+  ],
+  "qos": [
+    {
+      "description": "Normal QOS default",
+      "flags": [],
+      "id": 1,
+      "limits": {
+        "grace_time": 0,
+        "max": {
+          "active_jobs": {
+            "accruing": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "count": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            }
+          },
+          "jobs": {
+            "count": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "active_jobs": {
+              "per": {
+                "account": {
+                  "set": false,
+                  "infinite": true,
+                  "number": 0
+                },
+                "user": {
+                  "set": false,
+                  "infinite": true,
+                  "number": 0
+                }
+              }
+            },
+            "per": {
+              "account": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              },
+              "user": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            }
+          },
+          "tres": {
+            "total": [],
+            "minutes": {
+              "total": [],
+              "per": {
+                "qos": [],
+                "job": [],
+                "account": [],
+                "user": []
+              }
+            },
+            "per": {
+              "account": [],
+              "job": [],
+              "node": [],
+              "user": []
+            }
+          },
+          "wall_clock": {
+            "per": {
+              "qos": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              },
+              "job": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            }
+          },
+          "accruing": {
+            "per": {
+              "account": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              },
+              "user": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            }
+          }
+        },
+        "factor": {
+          "set": false,
+          "infinite": true,
+          "number": 0.0
+        },
+        "min": {
+          "priority_threshold": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          },
+          "tres": {
+            "per": {
+              "job": []
+            }
+          }
+        }
+      },
+      "name": "normal",
+      "preempt": {
+        "list": [],
+        "mode": [
+          "DISABLED"
+        ],
+        "exempt_time": {
+          "set": false,
+          "infinite": true,
+          "number": 0
+        }
+      },
+      "priority": {
+        "set": true,
+        "infinite": false,
+        "number": 0
+      },
+      "usage_factor": {
+        "set": true,
+        "infinite": false,
+        "number": 1.0
+      },
+      "usage_threshold": {
+        "set": false,
+        "infinite": true,
+        "number": 0.0
+      }
+    },
+    {
+      "description": "high",
+      "flags": [],
+      "id": 2,
+      "limits": {
+        "grace_time": 0,
+        "max": {
+          "active_jobs": {
+            "accruing": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "count": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            }
+          },
+          "jobs": {
+            "count": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "active_jobs": {
+              "per": {
+                "account": {
+                  "set": false,
+                  "infinite": true,
+                  "number": 0
+                },
+                "user": {
+                  "set": false,
+                  "infinite": true,
+                  "number": 0
+                }
+              }
+            },
+            "per": {
+              "account": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              },
+              "user": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            }
+          },
+          "tres": {
+            "total": [],
+            "minutes": {
+              "total": [],
+              "per": {
+                "qos": [],
+                "job": [],
+                "account": [],
+                "user": []
+              }
+            },
+            "per": {
+              "account": [],
+              "job": [],
+              "node": [],
+              "user": []
+            }
+          },
+          "wall_clock": {
+            "per": {
+              "qos": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              },
+              "job": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            }
+          },
+          "accruing": {
+            "per": {
+              "account": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              },
+              "user": {
+                "set": false,
+                "infinite": true,
+                "number": 0
+              }
+            }
+          }
+        },
+        "factor": {
+          "set": false,
+          "infinite": true,
+          "number": 0.0
+        },
+        "min": {
+          "priority_threshold": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          },
+          "tres": {
+            "per": {
+              "job": []
+            }
+          }
+        }
+      },
+      "name": "high",
+      "preempt": {
+        "list": [],
+        "mode": [
+          "DISABLED"
+        ],
+        "exempt_time": {
+          "set": false,
+          "infinite": true,
+          "number": 0
+        }
+      },
+      "priority": {
+        "set": true,
+        "infinite": false,
+        "number": 100
+      },
+      "usage_factor": {
+        "set": true,
+        "infinite": false,
+        "number": 1.0
+      },
+      "usage_threshold": {
+        "set": false,
+        "infinite": true,
+        "number": 0.0
+      }
+    }
+  ],
+  "wckeys": [],
+  "associations": [
+    {
+      "accounting": [],
+      "account": "root",
+      "cluster": "default",
+      "comment": "",
+      "default": {
+        "qos": ""
+      },
+      "flags": [],
+      "max": {
+        "jobs": {
+          "per": {
+            "count": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "accruing": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "submitted": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "wall_clock": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            }
+          },
+          "active": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          },
+          "accruing": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          },
+          "total": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          }
+        },
+        "tres": {
+          "total": [],
+          "group": {
+            "minutes": [],
+            "active": []
+          },
+          "minutes": {
+            "total": [],
+            "per": {
+              "job": []
+            }
+          },
+          "per": {
+            "job": [],
+            "node": []
+          }
+        },
+        "per": {
+          "account": {
+            "wall_clock": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            }
+          }
+        }
+      },
+      "id": 1,
+      "is_default": false,
+      "lineage": "\/",
+      "min": {
+        "priority_threshold": {
+          "set": false,
+          "infinite": true,
+          "number": 0
+        }
+      },
+      "parent_account": "",
+      "partition": "",
+      "priority": {
+        "set": false,
+        "infinite": true,
+        "number": 0
+      },
+      "qos": [
+        "normal"
+      ],
+      "shares_raw": 1,
+      "user": ""
+    },
+    {
+      "accounting": [],
+      "account": "root",
+      "cluster": "default",
+      "comment": "",
+      "default": {
+        "qos": ""
+      },
+      "flags": [],
+      "max": {
+        "jobs": {
+          "per": {
+            "count": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "accruing": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "submitted": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "wall_clock": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            }
+          },
+          "active": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          },
+          "accruing": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          },
+          "total": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          }
+        },
+        "tres": {
+          "total": [],
+          "group": {
+            "minutes": [],
+            "active": []
+          },
+          "minutes": {
+            "total": [],
+            "per": {
+              "job": []
+            }
+          },
+          "per": {
+            "job": [],
+            "node": []
+          }
+        },
+        "per": {
+          "account": {
+            "wall_clock": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            }
+          }
+        }
+      },
+      "id": 2,
+      "is_default": true,
+      "lineage": "\/0-root\/",
+      "min": {
+        "priority_threshold": {
+          "set": false,
+          "infinite": true,
+          "number": 0
+        }
+      },
+      "parent_account": "",
+      "partition": "",
+      "priority": {
+        "set": false,
+        "infinite": true,
+        "number": 0
+      },
+      "qos": [
+        "normal"
+      ],
+      "shares_raw": 1,
+      "user": "root"
+    },
+    {
+      "accounting": [],
+      "account": "physics",
+      "cluster": "default",
+      "comment": "",
+      "default": {
+        "qos": ""
+      },
+      "flags": [],
+      "max": {
+        "jobs": {
+          "per": {
+            "count": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "accruing": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "submitted": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "wall_clock": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            }
+          },
+          "active": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          },
+          "accruing": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          },
+          "total": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          }
+        },
+        "tres": {
+          "total": [],
+          "group": {
+            "minutes": [],
+            "active": []
+          },
+          "minutes": {
+            "total": [],
+            "per": {
+              "job": []
+            }
+          },
+          "per": {
+            "job": [],
+            "node": []
+          }
+        },
+        "per": {
+          "account": {
+            "wall_clock": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            }
+          }
+        }
+      },
+      "id": 3,
+      "is_default": false,
+      "lineage": "\/physics\/",
+      "min": {
+        "priority_threshold": {
+          "set": false,
+          "infinite": true,
+          "number": 0
+        }
+      },
+      "parent_account": "root",
+      "partition": "",
+      "priority": {
+        "set": false,
+        "infinite": true,
+        "number": 0
+      },
+      "qos": [
+        "normal"
+      ],
+      "shares_raw": 1,
+      "user": ""
+    },
+    {
+      "accounting": [],
+      "account": "physics",
+      "cluster": "default",
+      "comment": "",
+      "default": {
+        "qos": ""
+      },
+      "flags": [],
+      "max": {
+        "jobs": {
+          "per": {
+            "count": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "accruing": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "submitted": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "wall_clock": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            }
+          },
+          "active": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          },
+          "accruing": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          },
+          "total": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          }
+        },
+        "tres": {
+          "total": [],
+          "group": {
+            "minutes": [],
+            "active": []
+          },
+          "minutes": {
+            "total": [],
+            "per": {
+              "job": []
+            }
+          },
+          "per": {
+            "job": [],
+            "node": []
+          }
+        },
+        "per": {
+          "account": {
+            "wall_clock": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            }
+          }
+        }
+      },
+      "id": 4,
+      "is_default": true,
+      "lineage": "\/physics\/0-alice\/",
+      "min": {
+        "priority_threshold": {
+          "set": false,
+          "infinite": true,
+          "number": 0
+        }
+      },
+      "parent_account": "",
+      "partition": "",
+      "priority": {
+        "set": false,
+        "infinite": true,
+        "number": 0
+      },
+      "qos": [
+        "normal"
+      ],
+      "shares_raw": 1,
+      "user": "alice"
+    },
+    {
+      "accounting": [],
+      "account": "physics",
+      "cluster": "default",
+      "comment": "",
+      "default": {
+        "qos": ""
+      },
+      "flags": [],
+      "max": {
+        "jobs": {
+          "per": {
+            "count": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "accruing": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "submitted": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "wall_clock": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            }
+          },
+          "active": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          },
+          "accruing": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          },
+          "total": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          }
+        },
+        "tres": {
+          "total": [],
+          "group": {
+            "minutes": [],
+            "active": []
+          },
+          "minutes": {
+            "total": [],
+            "per": {
+              "job": []
+            }
+          },
+          "per": {
+            "job": [],
+            "node": []
+          }
+        },
+        "per": {
+          "account": {
+            "wall_clock": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            }
+          }
+        }
+      },
+      "id": 5,
+      "is_default": true,
+      "lineage": "\/physics\/0-bob\/",
+      "min": {
+        "priority_threshold": {
+          "set": false,
+          "infinite": true,
+          "number": 0
+        }
+      },
+      "parent_account": "",
+      "partition": "",
+      "priority": {
+        "set": false,
+        "infinite": true,
+        "number": 0
+      },
+      "qos": [
+        "normal"
+      ],
+      "shares_raw": 1,
+      "user": "bob"
+    },
+    {
+      "accounting": [],
+      "account": "physics",
+      "cluster": "default",
+      "comment": "",
+      "default": {
+        "qos": ""
+      },
+      "flags": [],
+      "max": {
+        "jobs": {
+          "per": {
+            "count": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "accruing": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "submitted": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            },
+            "wall_clock": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            }
+          },
+          "active": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          },
+          "accruing": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          },
+          "total": {
+            "set": false,
+            "infinite": true,
+            "number": 0
+          }
+        },
+        "tres": {
+          "total": [],
+          "group": {
+            "minutes": [],
+            "active": []
+          },
+          "minutes": {
+            "total": [],
+            "per": {
+              "job": []
+            }
+          },
+          "per": {
+            "job": [],
+            "node": []
+          }
+        },
+        "per": {
+          "account": {
+            "wall_clock": {
+              "set": false,
+              "infinite": true,
+              "number": 0
+            }
+          }
+        }
+      },
+      "id": 6,
+      "is_default": true,
+      "lineage": "\/physics\/0-carol\/",
+      "min": {
+        "priority_threshold": {
+          "set": false,
+          "infinite": true,
+          "number": 0
+        }
+      },
+      "parent_account": "",
+      "partition": "",
+      "priority": {
+        "set": false,
+        "infinite": true,
+        "number": 0
+      },
+      "qos": [
+        "normal"
+      ],
+      "shares_raw": 1,
+      "user": "carol"
+    }
+  ],
+  "meta": {
+    "plugin": {
+      "type": "openapi\/slurmdbd",
+      "name": "Slurm OpenAPI slurmdbd",
+      "data_parser": "data_parser\/v0.0.45",
+      "accounting_storage": "accounting_storage\/slurmdbd"
+    },
+    "client": {
+      "source": "172.19.0.5:6820(fd:9)",
+      "user": "nobody",
+      "group": ""
+    },
+    "command": [],
+    "slurm": {
+      "version": {
+        "major": "26",
+        "micro": "5",
+        "minor": "05"
+      },
+      "release": "26.05.5",
+      "cluster": "default"
+    }
+  },
+  "errors": [],
+  "warnings": []
+}

@@ -1,0 +1,303 @@
+{
+  "statistics": {
+    "time_start": 1793124485,
+    "rollups": {
+      "hourly": {
+        "count": 1,
+        "last_run": 1793124485,
+        "duration": {
+          "last": 134,
+          "max": 134,
+          "time": 134
+        }
+      },
+      "daily": {
+        "count": 0,
+        "last_run": 0,
+        "duration": {
+          "last": 0,
+          "max": 0,
+          "time": 0
+        }
+      },
+      "monthly": {
+        "count": 0,
+        "last_run": 0,
+        "duration": {
+          "last": 0,
+          "max": 0,
+          "time": 0
+        }
+      }
+    },
+    "RPCs": [
+      {
+        "rpc": "SLURM_PERSIST_INIT",
+        "count": 56,
+        "time": {
+          "average": 498,
+          "total": 27923
+        }
+      },
+      {
+        "rpc": "DBD_REGISTER_CTLD",
+        "count": 1,
+        "time": {
+          "average": 219615,
+          "total": 219615
+        }
+      },
+      {
+        "rpc": "DBD_GET_TRES",
+        "count": 32,
+        "time": {
+          "average": 214,
+          "total": 6867
+        }
+      },
+      {
+        "rpc": "DBD_GET_QOS",
+        "count": 24,
+        "time": {
+          "average": 274,
+          "total": 6587
+        }
+      },
+      {
+        "rpc": "DBD_GET_USERS",
+        "count": 11,
+        "time": {
+          "average": 574,
+          "total": 6321
+        }
+      },
+      {
+        "rpc": "DBD_GET_ASSOCS",
+        "count": 9,
+        "time": {
+          "average": 1471,
+          "total": 13239
+        }
+      },
+      {
+        "rpc": "DBD_GET_WCKEYS",
+        "count": 7,
+        "time": {
+          "average": 227,
+          "total": 1594
+        }
+      },
+      {
+        "rpc": "DBD_GET_RES",
+        "count": 1,
+        "time": {
+          "average": 973,
+          "total": 973
+        }
+      },
+      {
+        "rpc": "DBD_CLUSTER_TRES",
+        "count": 1,
+        "time": {
+          "average": 722,
+          "total": 722
+        }
+      },
+      {
+        "rpc": "DBD_GET_FEDERATIONS",
+        "count": 1,
+        "time": {
+          "average": 284,
+          "total": 284
+        }
+      },
+      {
+        "rpc": "DBD_NODE_STATE",
+        "count": 4,
+        "time": {
+          "average": 520,
+          "total": 2080
+        }
+      },
+      {
+        "rpc": "DBD_SEND_MULT_MSG",
+        "count": 3,
+        "time": {
+          "average": 1449,
+          "total": 4348
+        }
+      },
+      {
+        "rpc": "DBD_FINI",
+        "count": 69,
+        "time": {
+          "average": 3106,
+          "total": 214330
+        }
+      },
+      {
+        "rpc": "DBD_GET_CLUSTERS",
+        "count": 8,
+        "time": {
+          "average": 800,
+          "total": 6401
+        }
+      },
+      {
+        "rpc": "DBD_ADD_ACCOUNTS_COND",
+        "count": 1,
+        "time": {
+          "average": 2956,
+          "total": 2956
+        }
+      },
+      {
+        "rpc": "DBD_ADD_USERS_COND",
+        "count": 3,
+        "time": {
+          "average": 2640,
+          "total": 7922
+        }
+      },
+      {
+        "rpc": "DBD_GET_ACCOUNTS",
+        "count": 7,
+        "time": {
+          "average": 970,
+          "total": 6794
+        }
+      },
+      {
+        "rpc": "DBD_ADD_ACCOUNT_COORDS",
+        "count": 1,
+        "time": {
+          "average": 1513,
+          "total": 1513
+        }
+      },
+      {
+        "rpc": "DBD_ADD_QOS",
+        "count": 1,
+        "time": {
+          "average": 399,
+          "total": 399
+        }
+      },
+      {
+        "rpc": "DBD_MODIFY_ASSOCS",
+        "count": 1,
+        "time": {
+          "average": 2282,
+          "total": 2282
+        }
+      },
+      {
+        "rpc": "DBD_JOB_START",
+        "count": 14,
+        "time": {
+          "average": 918,
+          "total": 12856
+        }
+      },
+      {
+        "rpc": "DBD_STEP_START",
+        "count": 4,
+        "time": {
+          "average": 694,
+          "total": 2776
+        }
+      },
+      {
+        "rpc": "DBD_STEP_COMPLETE",
+        "count": 2,
+        "time": {
+          "average": 1055,
+          "total": 2111
+        }
+      },
+      {
+        "rpc": "DBD_JOB_COMPLETE",
+        "count": 3,
+        "time": {
+          "average": 919,
+          "total": 2757
+        }
+      },
+      {
+        "rpc": "DBD_ADD_RESV",
+        "count": 1,
+        "time": {
+          "average": 833,
+          "total": 833
+        }
+      },
+      {
+        "rpc": "DBD_GET_STATS",
+        "count": 3,
+        "time": {
+          "average": 15,
+          "total": 46
+        }
+      },
+      {
+        "rpc": "DBD_GET_INSTANCES",
+        "count": 3,
+        "time": {
+          "average": 342,
+          "total": 1026
+        }
+      },
+      {
+        "rpc": "DBD_GET_JOBS_COND",
+        "count": 6,
+        "time": {
+          "average": 1879,
+          "total": 11276
+        }
+      }
+    ],
+    "users": [
+      {
+        "user": "slurm",
+        "count": 41,
+        "time": {
+          "average": 6226,
+          "total": 255292
+        }
+      },
+      {
+        "user": "root",
+        "count": 236,
+        "time": {
+          "average": 1320,
+          "total": 311539
+        }
+      }
+    ]
+  },
+  "meta": {
+    "plugin": {
+      "type": "openapi\/slurmdbd",
+      "name": "Slurm OpenAPI slurmdbd",
+      "data_parser": "data_parser\/v0.0.45",
+      "accounting_storage": "accounting_storage\/slurmdbd"
+    },
+    "client": {
+      "source": "172.19.0.5:6820(fd:9)",
+      "user": "nobody",
+      "group": ""
+    },
+    "command": [],
+    "slurm": {
+      "version": {
+        "major": "26",
+        "micro": "5",
+        "minor": "05"
+      },
+      "release": "26.05.5",
+      "cluster": "default"
+    }
+  },
+  "errors": [],
+  "warnings": []
+}

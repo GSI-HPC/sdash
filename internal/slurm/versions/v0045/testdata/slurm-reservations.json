@@ -1,0 +1,71 @@
+{
+  "reservations": [
+    {
+      "accounts": "",
+      "burst_buffer": "",
+      "core_count": 2,
+      "core_specializations": [],
+      "end_time": {
+        "set": true,
+        "infinite": false,
+        "number": 1793214499
+      },
+      "features": "",
+      "flags": [
+        "MAINT",
+        "SPEC_NODES"
+      ],
+      "groups": "",
+      "licenses": "",
+      "max_start_delay": 0,
+      "name": "maintenance",
+      "node_count": 1,
+      "node_list": "worker-2",
+      "partition": "",
+      "purge_completed": {
+        "time": {
+          "set": true,
+          "infinite": false,
+          "number": 300
+        }
+      },
+      "start_time": {
+        "set": true,
+        "infinite": false,
+        "number": 1793210899
+      },
+      "tres": "cpu=2",
+      "users": "root"
+    }
+  ],
+  "last_update": {
+    "set": true,
+    "infinite": false,
+    "number": 1793124504
+  },
+  "meta": {
+    "plugin": {
+      "type": "openapi\/slurmctld",
+      "name": "Slurm OpenAPI slurmctld",
+      "data_parser": "data_parser\/v0.0.45",
+      "accounting_storage": "accounting_storage\/slurmdbd"
+    },
+    "client": {
+      "source": "172.19.0.5:6820(fd:9)",
+      "user": "root",
+      "group": "root"
+    },
+    "command": [],
+    "slurm": {
+      "version": {
+        "major": "26",
+        "micro": "5",
+        "minor": "05"
+      },
+      "release": "26.05.5",
+      "cluster": "default"
+    }
+  },
+  "errors": [],
+  "warnings": []
+}
