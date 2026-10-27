@@ -5,7 +5,7 @@
 // scan each view must pass (doc/adr/0014-accessibility-and-browsers.md).
 
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Locator, type Page } from "@playwright/test";
+import { errors, expect, type Locator, type Page } from "@playwright/test";
 
 import { isApplePlatform } from "../src/shortcuts/keys.ts";
 
@@ -21,6 +21,38 @@ function launchAddress(): URL {
     throw new Error("SDASH_URL is not set; playwright.config.ts sets it");
   }
   return new URL(address);
+}
+
+/** How long one attempt to load a page may take, and how many are made. */
+const attemptTimeout = 10_000;
+const attempts = 3;
+
+/**
+ * Goes to the address, and tries again where the navigation never finishes.
+ * The server sends Cross-Origin-Opener-Policy: same-origin, so Firefox moves
+ * the page to a new process, and on a loaded CI runner it now and then never
+ * reports the load: goto waits until the test times out, in a different
+ * test each run, while the server has long answered. A second navigation to
+ * the same address succeeds, and nothing a test checks depends on the
+ * attempt that got through. Other failures are not retried.
+ */
+async function navigate(
+  page: Page,
+  href: string,
+  until: "load" | "domcontentloaded",
+) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await page.goto(href, {
+        waitUntil: until,
+        timeout: attemptTimeout,
+      });
+    } catch (error) {
+      if (!(error instanceof errors.TimeoutError) || attempt === attempts) {
+        throw error;
+      }
+    }
+  }
 }
 
 /**
@@ -43,7 +75,7 @@ async function enter(
     }
   });
 
-  const response = await page.goto(address.href, { waitUntil: until });
+  const response = await navigate(page, address.href, until);
   // A binary compiled without the interface answers 404 with a page that
   // says so; without this check a test would fail on a missing element and
   // hide the reason.
