@@ -3,7 +3,7 @@
 
 # 0016: End-to-end tests, fixtures and specs come from sind clusters
 
-Status: accepted
+Status: accepted, the gate opened for Slurm 26.05 by [0031](0031-slurmrestd-end-to-end-on-26-05.md)
 
 ## Context
 

@@ -10,11 +10,11 @@ description: Add a Slurm release to the ones sdash supports, or drop one. Covers
 
 **This skill cannot be carried out yet.** Every vendored spec and every
 fixture comes from an end-to-end run on a cluster that GSI-HPC/sind created
-(`doc/adr/0016-e2e-and-fixtures-on-sind.md`), and sind starts no slurmrestd
-yet (sind issue 90). Until sind does and sdash has its end-to-end suite,
-`internal/slurm/` and `e2e/` do not exist, and the paths below are the layout
-that `doc/adr/0005-versions-releases-and-capabilities.md` and section 5 of
-`doc/initial-conclusions.md` plan; `doc/sind-requirements.md` says what sind
+(`doc/adr/0016-e2e-and-fixtures-on-sind.md`), and sind starts a slurmrestd on
+the 26.05 images only (`doc/adr/0031-slurmrestd-end-to-end-on-26-05.md`).
+Until the Slurm-facing code exists, `internal/slurm/` does not, and the paths
+below are the layout that `doc/adr/0005-versions-releases-and-capabilities.md`
+and section 5 of `doc/initial-conclusions.md` plan; `doc/sind-requirements.md` says what sind
 has to provide first. If asked to add a release before then, stop and say
 so. If the tree has turned out differently by the time the first release is
 added, correct this skill in the same PR.

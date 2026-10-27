@@ -30,10 +30,9 @@ There is no Slurm-facing code: nothing here connects to a slurmrestd, and no
 view shows a job or a node. That code is to be tested end to end against
 clusters that [sind](https://github.com/GSI-HPC/sind) creates, which are also
 where every test fixture and every vendored slurmrestd specification will
-come from, and sind does not run a slurmrestd yet
-([sind issue 90](https://github.com/GSI-HPC/sind/issues/90)). Until it
-does, the work here is on the shell of the interface and its primitives
-([`doc/adr/0016-e2e-and-fixtures-on-sind.md`](doc/adr/0016-e2e-and-fixtures-on-sind.md));
+come from. sind runs a slurmrestd on its Slurm 26.05 images, and the
+end-to-end job and the captures of its answers are in place
+([`doc/adr/0031-slurmrestd-end-to-end-on-26-05.md`](doc/adr/0031-slurmrestd-end-to-end-on-26-05.md));
 [`doc/sind-requirements.md`](doc/sind-requirements.md) says what sdash needs
 from sind.
 
