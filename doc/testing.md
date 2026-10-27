@@ -142,7 +142,10 @@ has its test beside it in `web/src/primitives/`, which renders it alone.
 `web/src/testing/` has what such tests share: the colour a token has on
 the page (`colours.ts`), the tooltips that show (`tooltips.ts`), and what
 the system asks of a page, a contrast theme or less motion, set through
-the DevTools protocol (`system.ts`). `make test-components`, or
+the DevTools protocol (`system.ts`). What a user's input cannot be made
+to do there, a touch, or a pointer the browser reports over a new place
+when the page scrolls under it, a test sends as a pointer event of its
+own, as the tests of the cell grid do. `make test-components`, or
 `npm run test:components` in `web/`.
 
 **Browser tests** are the Playwright tests in `web/e2e`. They run against the
@@ -221,10 +224,12 @@ dialogs of the shell are scanned there too, and so is the gallery of the
 primitives as it comes. `web/e2e/gallery.spec.ts` scans the gallery in the
 states a page at rest does not have: with each kind of overlay open, a
 tooltip, a popover, a menu, the list of a select, a dialog, a
-confirmation, the drawer and the toasts, with what opens from inside
-another overlay, and with controls that have the focus or are under the
-pointer. The overlays are a list in `web/e2e/gallery.ts`, which a new kind
-is added to. An enlarged page and a contrast theme of the system are
+confirmation, the drawer, the toasts and the tooltip of a cell grid, with
+what opens from inside another overlay, and with controls that have the
+focus or are under the pointer. The overlays are a list in
+`web/e2e/gallery.ts`, which a new kind is added to. The cell grid of
+4,000 cells, which the gallery shows behind a button, is scanned in
+`web/e2e/data-display.spec.ts`. An enlarged page and a contrast theme of the system are
 `web/e2e/zoom-and-contrast.spec.ts`, for the shell and for the gallery. `scan()` in
 `web/e2e/support.ts` is the one place the scan is configured. It runs every
 rule axe enables by default, on the whole page, so an exception would have

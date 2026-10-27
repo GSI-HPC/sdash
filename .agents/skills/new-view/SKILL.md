@@ -12,11 +12,10 @@ A view is one page of the app: a route, the component the route loads, the
 operations of the browser API it calls, and its tests. This skill gives the
 order of work and the rule each step has to meet.
 
-The shell of the UI and the first primitives, the controls and the
-overlays, are there, and `doc/ui.md` describes both: this skill names
-their files. The primitives that show data, cards, meters and tables, are
-not built yet. No view shows data yet, so there is no data view to copy
-from. `web/src/views/Overview.tsx` is the nearest, a placeholder with one
+The shell of the UI and the primitives, the controls, the overlays and
+what shows data, are there, and `doc/ui.md` describes both: this skill
+names their files. Tables are not built yet. No view shows data yet, so
+there is no data view to copy from. `web/src/views/Overview.tsx` is the nearest, a placeholder with one
 part that calls the browser API. Whoever builds the first two data views
 adds what they set as the pattern to this skill, in the same PR.
 
@@ -83,7 +82,14 @@ a view that needs no slurmrestd can be built.
    `doc/adr/0029-ui-primitives-on-base-ui.md`): a button is `Button`, a
    field `Input` or `Select`, a tooltip `Tooltip`, a dialog `Dialog`, the
    question before a change is sent `ConfirmDialog`, the details of one
-   thing `Drawer`, and a report of what happened `useToast`. A look is
+   thing `Drawer`, and a report of what happened `useToast`. Data stands
+   in a `Card` or a `StatCard` (`doc/ui.md`, "Showing data";
+   `doc/adr/0030-primitives-that-show-data.md`), drawn by `Meter`,
+   `StackedBar`, `Sparkline`, `CellGrid` and `KVList`. While a card waits
+   for its data it holds a `Skeleton`, with none an `EmptyState`, after a
+   failure an `ErrorPanel` with its retry; a failure of the whole view is a
+   `Banner`. Which state of the data has which tone is for the view to
+   say, in words beside the colour. A look is
    chosen by props, and `className` is for layout alone. A view imports
    nothing of Base UI. A control or an overlay that is missing is a new
    primitive, or a new variant of one, with its component test and its

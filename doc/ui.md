@@ -5,12 +5,15 @@
 
 The shell is what is on the screen whichever view shows: the header, the
 sidebar with the navigation, the main region, the command palette and the
-keyboard shortcuts. The primitives are the controls and overlays a view is
-built from: buttons, fields, tabs, tooltips, menus, dialogs, the drawer
-and the toasts. This document is for whoever builds a view inside the one
-and out of the other. The decisions behind them are in
-[0024](adr/0024-addresses-and-keyboard-in-the-shell.md) and
-[0029](adr/0029-ui-primitives-on-base-ui.md), the stack in
+keyboard shortcuts. The primitives are what a view is built from: the
+controls and overlays, buttons, fields, tabs, tooltips, menus, dialogs,
+the drawer and the toasts, and what shows data, cards, meters, bars,
+sparklines, grids of cells and the states of a panel with nothing to
+show. This document is for whoever builds a view inside the one and out
+of the other. The decisions behind them are in
+[0024](adr/0024-addresses-and-keyboard-in-the-shell.md),
+[0029](adr/0029-ui-primitives-on-base-ui.md) and
+[0030](adr/0030-primitives-that-show-data.md), the stack in
 [0013](adr/0013-frontend-stack.md), and the look comes from the
 [design handoff](design/README.md), which they depart from in the places
 [listed below](#departures-from-the-handoff).
@@ -381,6 +384,17 @@ Content-Security-Policy ([0029](adr/0029-ui-primitives-on-base-ui.md)).
 | `ConfirmDialog` | The question before a change is sent, with the request that will be sent |
 | `Drawer`, `DrawerHeader`, `DrawerBody` | The details of one thing, beside the list it was opened from |
 | `useToast` | The report that something the user did has happened, or has not |
+| `Card` | A panel on the page, with a title, an action at the end of its header and a footer; a region named by its title |
+| `StatCard` | One figure with its label above it, a line below it, and a meter or a sparkline of it |
+| `KVList` | Terms and their values, a pair to a line, on a card or in a drawer |
+| `Meter` | How much of a whole is used or left, as a bar with its value in words, and marks where it turns to a warning and an error |
+| `StackedBar`, `Legend` | The parts of a whole side by side, with a legend that names each and says how much it is |
+| `Sparkline` | A small line of a series over time, beside the figure it is of |
+| `CellGrid` | Many things of one kind at a glance, a small cell for each in the colour of its state, with one tooltip and a legend |
+| `EmptyState` | What stands where there is nothing to show, and what would change that |
+| `Skeleton` | The place of content that is on its way |
+| `ErrorPanel` | What stands where content could not be had, with the error and a button that tries again |
+| `Banner` | A message across a view, a note, a warning, a failure, that stays until its cause goes or it is dismissed |
 
 ### Looks, sizes and states
 
@@ -676,6 +690,74 @@ alone and shows a toast wraps it in that provider. A toast is a dialog
 that is not modal, so a test that looks for a dialog names the one it
 means.
 
+### Showing data
+
+A view of data is made of cards. A `Card` or a `StatCard` is a region
+named by its heading, whose `level` the view gives it: 2 on the view
+itself, one more inside a section. While a card has nothing to show, an
+`EmptyState`, a `Skeleton` or an `ErrorPanel` takes the place of its
+content, so that the card keeps its place and its size
+([0030](adr/0030-primitives-that-show-data.md)). A `Banner` stands above
+the content of a view, for what concerns all of it.
+
+A graphic says nothing by length or colour alone. Each is drawn in SVG,
+hidden from assistive technology, and said in words where a reader looks:
+
+| Graphic | To assistive technology | On the page |
+| --- | --- | --- |
+| `Meter` | A `meter` with its range, its value, and its value in words, which names a mark the value passed | The label and the value beside the bar, except in the `bare` layout, where a figure beside it says the same |
+| `StackedBar` | A group named by its label, and in it the legend as a list | The legend: a swatch, a label and a value for each part, and the rest of the whole |
+| `Sparkline` | An image whose text says how many values there are, the first, the last, the lowest and the highest | Nothing more: the figure it stands beside |
+| `CellGrid` | A `grid` whose cells are named by their label, the word of their tone and their detail | The tooltip of the cell under the pointer or the keyboard, and a legend with the count of each tone |
+
+A length that is a value is an SVG attribute in percent, a `rect` with
+`width="37.5%"` inside an `svg` as wide as its box: the policy forbids a
+`style` attribute, and a class cannot hold every length. A part of a
+graphic takes its colour from a tone, `accent`, `ok`, `warn`, `err`,
+`info`, `vio`, `org` or `neutral` (`primitives/graphics.ts`); which state
+has which tone is for the view to say, and the words of the tones of a
+grid are given with it.
+
+The cell grid is one stop of the Tab key, however many cells it has. Its
+keys:
+
+| Key | What it does |
+| --- | --- |
+| The arrow keys | Move to the next cell, or to the one above or below; they stop at the edges |
+| `Home`, `End` | Move to the first or the last cell of the row |
+| `Ctrl` `Home`, `Ctrl` `End` | Move to the first or the last cell of the grid |
+| `Enter`, `Space` | Press the cell, where the grid has something to do with it |
+| `Escape` | Puts the tooltip away, and nothing else |
+
+The grid is as wide as its container, lays its cells out in as many
+columns as fit and measures again when its width changes, so Up and Down
+go to the cell one sees above and below. A container as wide as its
+content, an inline block or a column of a grid sized to its content, gives
+it the width of one cell. Its one tooltip comes at once to the cell the keyboard moves to,
+and after 300 ms to the cell the pointer rests on; whichever moved last
+owns it, and a pointer that did not move, when the page scrolls under it,
+takes nothing. The pointer can cross the cells between a cell and its
+tooltip and move onto it. A touch shows the tooltip, a second touch on the
+same cell presses it. A key the grid takes reaches no shortcut, and a key
+it does not take, a letter, `Alt` and an arrow, goes on to the page.
+
+A banner that is dismissed while the focus is inside it hands the focus to
+the first element after it that the Tab key stops on, or else to the
+heading of the view; inside a dialog or the drawer it looks no further
+than the dialog and falls back to the dialog itself, and it passes over
+what is inert. One dismissed by the pointer with the focus elsewhere
+leaves the focus alone. A failure is an alert; a note, a warning and a
+success are a status. A banner is put on the page empty and filled before
+it is drawn, because most screen readers announce what changes in such a
+region and say nothing of one that arrives with its text. An error panel is an alert only when the view asks,
+for a failure that comes after the page showed: one that is there on
+arrival is found like the rest of the page.
+
+The figures of DM Sans, as sdash bundles it, are not all of one width, and
+`tabular-nums` changes nothing. A figure that changes moves the text after
+it; where values stand in a column and have to line up, as on a meter on
+one line or in a key and value list, they are set in DM Mono.
+
 ### Popups and where they go
 
 Base UI appends a popup to the end of the page, outside every landmark,
@@ -797,6 +879,11 @@ ratios are worked out over the ground named.
 | Chosen entry of a choice in a menu, chosen option of a select | the hover background and a tick; the handoff's select is the native one | the tick alone, in `--ac-t`: 5.54, 8.23 on `--bg-surface`, 4.54, 6.28 on the marked entry | The hover background marks where the focus is, and cannot say two things |
 | A control that is disabled and can still have the focus | the whole control at an opacity of 0.45, and with it the ring of the focus: 1.95, 2.70 on `--bg-surface`, 1.83, 2.47 on `--bg-hover` | the control dims what it holds and not itself, and a filled one lets its fill through by the same measure; the ring stays at 5.54, 8.23 and 4.54, 6.28. The text of a filled button is then dimmed on a fill that is dimmed too, and stands 1.38, 1.62 against it, where the handoff's stands 1.78, 1.93 | The ring has to stand 3:1 on a control the keyboard reaches: a button disabled with a reason, an option, a tab, an entry of a menu. A disabled control is exempt from the contrast of its text |
 | Ring of the focus on a dialog, a drawer, a popover and a part that scrolls | no ring | drawn inside the edge, on `--bg-surface`: 5.54, 8.23 | Outside it would lie on the scrim, where `--focus` reaches 2.86 in the light theme |
+| A part of a graphic: the bar of a meter, a part of a stacked bar, a cell of a grid, the line of a sparkline, a swatch of a legend | the solid tone on a card: `--ok` 2.19, 7.67; `--warn` 2.07, 8.13; `--org` 2.70, 6.23 | the tone's `-fg`, on a card and on the track in `--bg-elevated`: `--ok-fg` 4.83, 10.02 and 4.22, 8.91; `--warn-fg` 6.83, 10.46 and 5.97, 9.30; `--err-fg` 6.23, 6.31 and 5.45, 5.61; `--info-fg` 6.45, 6.87 and 5.64, 6.11; `--vio-fg` 6.84, 6.42 and 5.98, 5.70; `--org-fg` 4.99, 7.72 and 4.36, 6.86. The accent stays `--ac`, 4.03, 6.36 and 3.52, 5.65, and neutral is `--t3`, 4.75, 8.50 and 4.16, 7.55 | A part of a graphic needs 3:1 (WCAG 2.1, 1.4.11); three tones fail in the light theme, and one colour for a state across sdash is the one its badges and toasts have |
+| Title of a banner | the tone's `-fg` on its tint over the page: ok 4.05, 8.53; err 5.01, 5.95 | `--t1`: at least 13.21, 13.68 | ok fails in the light theme, as the text of a badge |
+| Code line of a banner | `--t3` on the tint over the page: err 3.82, 8.01; info 3.90, 7.49; warn and ok 3.98 in the light theme | `--t2`, as the text above it: at least 5.51, 10.59 | Fails in the light theme |
+| Dot of a banner | the solid tone on the tint | the tone's `-fg`, as the dot of a badge: the least ok, 4.05, 8.53 over the page | A dot that marks a state needs 3:1 |
+| Empty state | `--t3`, centred: 4.75, 8.50 on a card, 4.44, 9.28 on the page | title `--t1` and text `--t2`: 15.35, 17.63 and 6.40, 13.64 on the page | An empty state lies on the page too, where `--t3` fails in the light theme |
 
 Kept from the handoff, with their ratios: a text button in `--ac-t` (5.54,
 8.23 on a card; 5.17, 8.99 on the page; 4.54, 6.28 on `--bg-hover`; not
@@ -812,6 +899,13 @@ and body in `--t2` (6.40, 13.64); and `--t3` on `--bg-surface` (4.75,
 the lines above and below the title of a drawer and the note in the foot
 of a dialog. `--ok-fg` passes on `--bg-base` by a hair: the request lies
 on that background and on nothing darker.
+
+What shows data keeps the handoff's `--t3` where it lies on a card and on
+nothing else: the label, the aside and the line of a stat card, the term
+of a key and value list and the label of a meter (4.75, 8.50). The track
+of a bar is `--bg-elevated`, 1.14, 1.13 against a card, and decoration:
+no value is read off it. The marks of a meter are `--t2`, 6.85, 12.50 on a
+card and 5.99, 11.11 on the track.
 
 ### Look and wording
 
@@ -872,6 +966,15 @@ on that background and on nothing darker.
 | Smaller differences of type and shape | Secondary buttons at a weight of 400 on their 32 and 34 px sizes and 500 on most smaller ones; a badge in the monospaced font at 11 px and 400; the arrow of a select and of a button that opens a menu 11 and 12 px wide; a field with an icon with a radius of 6 px | Every secondary button at 500; a badge in the monospaced font at 11.5 px and 500; the arrows 14 px wide; a field with an icon with the radius of every field, 5 px | One set of looks and sizes, where the handoff varies them from place to place |
 | An icon with a colour of its own, under a contrast theme of the system | Not drawn | The tick of a chosen option, the arrow of a select, the lock and the icon of a field take the colour of the text | They kept the colour of the token, of the theme stored in sdash, while the text took the system's: with a dark theme stored and a light contrast theme the tick, which alone marks the chosen option, stood 2.12 against the system's white (WCAG 2.1, 1.4.11) |
 | The gallery | None | A page at `/gallery` that shows every primitive in every state | The tests need each primitive in a real page under the server's policy, and the designer needs to see them |
+| A meter with thresholds | The colour of the bar alone, as the efficiency bar that turns to a warning below 40 % | A mark across the track at each threshold, standing out 2 px above and below it, and the colour | The colour must not be all that says it (WCAG 2.1, 1.4.1) |
+| The value of a meter on one line | DM Sans, with `tabular-nums` | DM Mono | DM Sans as bundled has no figures of one width, and values in a column have to line up |
+| The figure of a stat card | `tabular-nums` | DM Sans without it | The font has no such figures; a card holds one figure, and nothing lines up with it |
+| A cell of a grid under the pointer | Scaled by 1.15 in 120 ms | Not scaled; its tooltip shows after 300 ms | One look for every grid; the motion is for the designer to ask for |
+| The tooltip of a cell | At the pointer, with the name and figures of the thing | One tooltip for the grid, beside the cell, with the label, the word of the tone with its swatch, and a detail | Each view says what a cell is; the tooltip is the same for every grid |
+| A grid under a contrast theme of the system | Not drawn | Every cell in the colour of text | The system removes the colours of the cells; their tooltips and names tell them apart |
+| Content on its way | Not drawn | A still skeleton: grey lines, and "Loading…" in words | The handoff has no loading state; a shimmer would move for as long as the wait |
+| A card whose content failed | Not drawn: failures are banners | An error panel in place of the content: a dot, what failed, what to do, the error in DM Mono, and a button that tries again | A part of a view can fail while the rest works |
+| A banner that can be dismissed | Not drawn | A button "Dismiss" at its end, where the view allows it | A banner about something the user has seen and can do nothing about need not stay |
 
 ### Behaviour
 
@@ -909,6 +1012,9 @@ on that background and on nothing darker.
 | How a toast is announced | Not at all | In a region that announces politely, a landmark named "Notifications"; `F6` moves the focus there | A status message has to reach a screen reader without taking the focus (WCAG 2.1, 4.1.3) |
 | The title of a toast | A line of text | The same, and no heading | A toast comes and goes, and must not come and go in the outline of the page |
 | Popups | At the end of the page | Inside the main region, and inside the dialog or the drawer they open from | Content in no landmark is passed over by a user who moves from one to the next |
+| A grid of many cells | Each cell a target of the pointer, none of the keyboard | One stop of the Tab key; the arrow keys, `Home`, `End` and with `Ctrl` the ends of the grid move the focus, `Enter` and `Space` press the cell | The WAI-ARIA grid pattern: a thousand stops of the Tab key could not be passed |
+| The tooltip of a grid | Follows the pointer | Follows whichever of the keyboard and the pointer moved last, the pointer after a rest of 300 ms; a pointer that did not move takes nothing; a touch shows it | WCAG 2.1, 1.4.13; a scroll under a still pointer must not take away what the keyboard brought up |
+| Dismissing a banner by the keyboard | Not drawn | The focus goes to the first stop of the Tab key after the banner, or to the heading of the view; in a dialog, to the next stop in it or to the dialog | The focus would fall to the body, and the next Tab start at the top of the page |
 
 ### Not built yet
 
@@ -921,16 +1027,18 @@ place it is disabled with its reason as a tooltip; the count beside an
 item of the navigation; the API hint beside a page's heading; jobs and
 nodes in the palette.
 
-Of the primitives, this change has the controls and the overlays. What
-shows data, the cards, the meters, the bars and the tables, is not built
-yet, and neither are the handoff's editor dialog and its popover that
-opens under the pointer, which wait for the views that use them. Five
-things the handoff draws for these primitives cannot be built from them
-yet, and wait for the same views: a pill with an icon, as the role pill
-has one; the 26 px chip of a legend, with a swatch of its colour; a line
-of text below the entries of a menu; a field that shows it was changed,
-with a boundary in the accent and what it was before; and a button beside
-the close button of the drawer.
+Of the primitives, the controls, the overlays and what shows data are
+built. Tables, sortable, virtual and as a tree, are not, and neither is
+the heat map of the Nodes view, whose cells run from `--hm-cold` to the
+accent by a value and dim where a filter leaves them out: the cell grid
+has tones and no scale. Neither are the handoff's editor dialog and its
+popover that opens under the pointer, which wait for the views that use
+them. Five things the handoff draws for these primitives cannot be built
+from them yet, and wait for the same views: a pill with an icon, as the
+role pill has one; the 26 px chip of a legend that filters, with a swatch
+of its colour; a line of text below the entries of a menu; a field that
+shows it was changed, with a boundary in the accent and what it was
+before; and a button beside the close button of the drawer.
 
 ## Tests
 
@@ -965,4 +1073,8 @@ both themes and with the sidebar in both forms, and
 the system. `gallery.spec.ts` uses every control and every overlay of the
 gallery by the keyboard alone, under the server's
 Content-Security-Policy, scans the gallery with each kind of overlay
-open, and tries with the pointer what lies behind an open overlay. [testing.md](testing.md) says how each layer is run.
+open, and tries with the pointer what lies behind an open overlay; the
+tooltip of the cell grid is one of its overlays. `data-display.spec.ts`
+goes through the cell grid, a banner and an error panel by the keyboard
+alone, and shows and scans the grid of 4,000 cells.
+[testing.md](testing.md) says how each layer is run.
