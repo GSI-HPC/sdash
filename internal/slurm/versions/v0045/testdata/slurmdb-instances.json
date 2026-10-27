@@ -8,13 +8,13 @@
   ],
   "meta": {
     "plugin": {
-      "type": "openapi\/slurmdbd",
+      "type": "openapi/slurmdbd",
       "name": "Slurm OpenAPI slurmdbd",
-      "data_parser": "data_parser\/v0.0.45",
-      "accounting_storage": "accounting_storage\/slurmdbd"
+      "data_parser": "data_parser/v0.0.45",
+      "accounting_storage": "accounting_storage/slurmdbd"
     },
     "client": {
-      "source": "172.19.0.5:6820(fd:9)",
+      "source": "192.0.2.7:6820(fd:9)",
       "user": "nobody",
       "group": ""
     },

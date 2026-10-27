@@ -10,7 +10,7 @@
         "shares_normalized": {
           "set": true,
           "infinite": false,
-          "number": 2.3283064376228985e-10
+          "number": 2.3283064376228985E-10
         },
         "shares": {
           "set": false,
@@ -60,7 +60,7 @@
               }
             },
             {
-              "name": "fs\/disk",
+              "name": "fs/disk",
               "value": {
                 "set": true,
                 "infinite": false,
@@ -126,7 +126,7 @@
               }
             },
             {
-              "name": "fs\/disk",
+              "name": "fs/disk",
               "value": {
                 "set": false,
                 "infinite": true,
@@ -172,7 +172,7 @@
               "value": 0.0
             },
             {
-              "name": "fs\/disk",
+              "name": "fs/disk",
               "value": 0.0
             },
             {
@@ -271,7 +271,7 @@
               }
             },
             {
-              "name": "fs\/disk",
+              "name": "fs/disk",
               "value": {
                 "set": true,
                 "infinite": false,
@@ -337,7 +337,7 @@
               }
             },
             {
-              "name": "fs\/disk",
+              "name": "fs/disk",
               "value": {
                 "set": false,
                 "infinite": true,
@@ -383,7 +383,7 @@
               "value": 0.0
             },
             {
-              "name": "fs\/disk",
+              "name": "fs/disk",
               "value": 0.0
             },
             {
@@ -482,7 +482,7 @@
               }
             },
             {
-              "name": "fs\/disk",
+              "name": "fs/disk",
               "value": {
                 "set": true,
                 "infinite": false,
@@ -548,7 +548,7 @@
               }
             },
             {
-              "name": "fs\/disk",
+              "name": "fs/disk",
               "value": {
                 "set": false,
                 "infinite": true,
@@ -594,7 +594,7 @@
               "value": 0.0
             },
             {
-              "name": "fs\/disk",
+              "name": "fs/disk",
               "value": 0.0
             },
             {
@@ -693,7 +693,7 @@
               }
             },
             {
-              "name": "fs\/disk",
+              "name": "fs/disk",
               "value": {
                 "set": true,
                 "infinite": false,
@@ -759,7 +759,7 @@
               }
             },
             {
-              "name": "fs\/disk",
+              "name": "fs/disk",
               "value": {
                 "set": false,
                 "infinite": true,
@@ -805,7 +805,7 @@
               "value": 0.0
             },
             {
-              "name": "fs\/disk",
+              "name": "fs/disk",
               "value": 0.0
             },
             {
@@ -904,7 +904,7 @@
               }
             },
             {
-              "name": "fs\/disk",
+              "name": "fs/disk",
               "value": {
                 "set": true,
                 "infinite": false,
@@ -970,7 +970,7 @@
               }
             },
             {
-              "name": "fs\/disk",
+              "name": "fs/disk",
               "value": {
                 "set": false,
                 "infinite": true,
@@ -1016,7 +1016,7 @@
               "value": 0.0
             },
             {
-              "name": "fs\/disk",
+              "name": "fs/disk",
               "value": 0.0
             },
             {
@@ -1115,7 +1115,7 @@
               }
             },
             {
-              "name": "fs\/disk",
+              "name": "fs/disk",
               "value": {
                 "set": true,
                 "infinite": false,
@@ -1181,7 +1181,7 @@
               }
             },
             {
-              "name": "fs\/disk",
+              "name": "fs/disk",
               "value": {
                 "set": false,
                 "infinite": true,
@@ -1227,7 +1227,7 @@
               "value": 0.0
             },
             {
-              "name": "fs\/disk",
+              "name": "fs/disk",
               "value": 0.0
             },
             {
@@ -1272,13 +1272,13 @@
   },
   "meta": {
     "plugin": {
-      "type": "openapi\/slurmctld",
+      "type": "openapi/slurmctld",
       "name": "Slurm OpenAPI slurmctld",
-      "data_parser": "data_parser\/v0.0.45",
-      "accounting_storage": "accounting_storage\/slurmdbd"
+      "data_parser": "data_parser/v0.0.45",
+      "accounting_storage": "accounting_storage/slurmdbd"
     },
     "client": {
-      "source": "172.19.0.5:6820(fd:9)",
+      "source": "192.0.2.7:6820(fd:9)",
       "user": "root",
       "group": "root"
     },
