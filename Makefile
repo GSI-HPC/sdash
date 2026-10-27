@@ -7,11 +7,8 @@ BIN      ?= bin/sdash
 COVER    ?= coverage.out
 FUZZTIME ?= 60s
 # The fuzz targets, as package:target, which make fuzz runs one after the
-# other; FUZZ=internal/x:FuzzY runs one of them. The list is empty for now:
-# the parsers of what slurmrestd sends will be the first targets, and they
-# wait, with everything that speaks to Slurm, for
-# doc/adr/0016-e2e-and-fixtures-on-sind.md.
-FUZZ     ?=
+# other; FUZZ=internal/x:FuzzY runs one of them.
+FUZZ     ?= internal/slurm/wire:FuzzStream
 # The exact release of markdownlint-cli2 that make lint-docs fetches with
 # npx, so that a new release of the linter, with rules of its own, fails no
 # change that did not cause it; raised by hand.
