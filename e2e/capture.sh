@@ -86,8 +86,11 @@ for v in $versions; do
   as_root "errors/$v/unknown-job.json" "slurm/$v/job/999999"
   as_root "errors/$v/unknown-node.json" "slurm/$v/node/nonexistent"
   get "errors/$v/no-token.json" "slurm/$v/ping/"
-  get "errors/$v/malformed-token.json" "slurm/$v/ping/" \
-    -H "X-SLURM-USER-NAME: root" -H "X-SLURM-USER-TOKEN: not-a-token"
+  # A token that is no token, where slurmctld answers, where it lists, and
+  # where slurmdbd answers: each tells it in its own way.
+  for target in ping:slurm/$v/ping/ jobs:slurm/$v/jobs/ qos:slurmdb/$v/qos/; do
+    as_user "errors/$v/malformed-token-${target%%:*}.json" "${target#*:}" root not-a-token
+  done
 
   # A user the cluster does not have, if slurmctld mints a token for one.
   # Reading is not refused to a name slurmctld has never heard of.
@@ -98,8 +101,12 @@ for v in $versions; do
   fi
 done
 
-# A token that has expired, which can only be told after its lifespan.
+# A token that has expired, which can only be told after its lifespan, at
+# the same three places as the malformed one.
 expired=$(token root 1)
 sleep 3
-v=$(echo "$versions" | tail -n 1)
-as_user "errors/$v/expired-token.json" "slurm/$v/ping/" root "$expired"
+for v in $versions; do
+  for target in ping:slurm/$v/ping/ jobs:slurm/$v/jobs/ qos:slurmdb/$v/qos/; do
+    as_user "errors/$v/expired-token-${target%%:*}.json" "${target#*:}" root "$expired"
+  done
+done
