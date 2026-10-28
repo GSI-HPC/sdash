@@ -8,19 +8,20 @@ sidebar with the navigation, the main region, the command palette and the
 keyboard shortcuts. The primitives are what a view is built from: the
 controls and overlays, buttons, fields, tabs, tooltips, menus, dialogs,
 the drawer and the toasts, and what shows data, cards, meters, bars,
-sparklines, grids of cells, tables and the states of a panel with
+sparklines, grids of cells, timelines, tables and the states of a panel with
 nothing to show. This document is for whoever builds a view inside the
 one and out of the other. The decisions behind them are in
 [0024](adr/0024-addresses-and-keyboard-in-the-shell.md),
 [0029](adr/0029-ui-primitives-on-base-ui.md),
 [0030](adr/0030-primitives-that-show-data.md),
-[0035](adr/0035-the-jobs-view-and-its-table.md) and
-[0036](adr/0036-the-cluster-views-on-real-data.md), the stack in
+[0035](adr/0035-the-jobs-view-and-its-table.md),
+[0036](adr/0036-the-cluster-views-on-real-data.md) and
+[0037](adr/0037-the-reservations-view.md), the stack in
 [0013](adr/0013-frontend-stack.md), and the look comes from the
 [design handoff](design/README.md), which they depart from in the places
 [listed below](#departures-from-the-handoff).
 
-The Overview, Nodes, Partitions and Jobs views show the data of a
+The Overview, Nodes, Partitions, Reservations and Jobs views show the data of a
 cluster, and the header tells the state of that data and switches between
 the clusters. Every other view is a placeholder: its page header and a
 card that says that no cluster is configured, or else that the view is not
@@ -35,7 +36,7 @@ Everything is under `web/src/`.
 | `routing/` | The view table (`views.ts`), the routes, what happens on arriving at a view, the helper for state in the query string |
 | `layout/` | The shell: header, sidebar, main region, skip link, page header, the shell's commands |
 | `nav/` | The navigation inside the sidebar |
-| `views/` | One component for each view, the shared placeholder, the not-found view; a view's own parts in a directory named after it, such as `views/jobs/`, `views/nodes/` and `views/partitions/`; the skeleton and the words of a view whose data are missing or old |
+| `views/` | One component for each view, the shared placeholder, the not-found view; a view's own parts in a directory named after it, such as `views/jobs/`, `views/nodes/`, `views/partitions/` and `views/reservations/`; the skeleton and the words of a view whose data are missing or old |
 | `cluster/` | Which cluster a view shows, its pulse, how a view follows it, the state the status pill tells, the words for a failure of its data, and their age |
 | `shortcuts/` | The shortcut registry, its hook, the help dialog |
 | `palette/` | The command palette and its scoring |
@@ -431,6 +432,7 @@ Content-Security-Policy ([0029](adr/0029-ui-primitives-on-base-ui.md)).
 | `StackedBar`, `Legend` | The parts of a whole side by side, with a legend that names each and says how much it is |
 | `Sparkline` | A small line of a series over time, beside the figure it is of |
 | `CellGrid` | Many things of one kind at a glance, a small cell for each in the colour of its state, with one tooltip and a legend |
+| `Timeline` | Stretches of time on rows over a few days, with the days named and a line at now |
 | `EmptyState` | What stands where there is nothing to show, and what would change that |
 | `Skeleton` | The place of content that is on its way |
 | `ErrorPanel` | What stands where content could not be had, with the error and a button that tries again |
@@ -749,6 +751,7 @@ hidden from assistive technology, and said in words where a reader looks:
 | `StackedBar` | A group named by its label, and in it the legend as a list | The legend: a swatch, a label and a value for each part, and the rest of the whole |
 | `Sparkline` | An image whose text says how many values there are, the first, the last, the lowest and the highest | Nothing more: the figure it stands beside |
 | `CellGrid` | A `grid` whose cells are named by their label, the word of their tone and their detail | The tooltip of the cell under the pointer or the keyboard, and a legend with the count of each tone |
+| `Timeline` | An image named by its label, which says where its rows are listed in words | The name and a line of each row, and the days; the view lists the stretches in a table |
 
 A length that is a value is an SVG attribute in percent, a `rect` with
 `width="37.5%"` inside an `svg` as wide as its box: the policy forbids a
@@ -1095,7 +1098,9 @@ card and 5.99, 11.11 on the track.
 | The Nodes map | Racks, a gradient by load, memory, GPUs or jobs, and a drawer for a node | One grid of the nodes in the colour of their state, filtered by name, state and partition, without racks, gradients or drawer | The browser API serves no racks, GPUs or jobs of a node yet |
 | The state of a node | Its state, coloured by the status mapping | The same mapping; a node that does not respond is down, and one that drains or is reserved is so whatever its base state | slurmrestd gives these as flags beside the base state, and they say more of the node, as in `sinfo` |
 | The Partitions table | A "default" tag, GPUs, running and pending jobs apart, drain and resume | State, the states of the nodes, the CPUs allocated, the limits, the priority tier, the QOS, the nodes per job, and one count of jobs; no actions | The API serves no default flag, GPUs or actions; the count is a facet of the jobs |
-| The Overview | GPUs, the scheduler, reservations, "needs attention", jobs waiting over 6 h | Nodes, CPUs and memory allocated, jobs, the CPUs allocated by partition, the map of the nodes, the connection | The API serves only nodes, partitions and jobs |
+| The Overview | GPUs, the scheduler, reservations, "needs attention", jobs waiting over 6 h | Nodes, CPUs and memory allocated, jobs, the CPUs allocated by partition, the map of the nodes, the connection | The API serves no GPUs, scheduler or attention yet; the reservations card waits for a change of its own |
+| The timeline of reservations | A row for each reservation | A row for each reservation that holds its nodes in the eight days shown; where each stands, and the line of now, at the moment the reservations were fetched | An empty row says nothing; the table lists every reservation ([0037](adr/0037-the-reservations-view.md)) |
+| The table of reservations | Name, state, nodes, start, end, duration, access, flags, and Delete | The same, with the nodes beside the name, what the reservation holds, and no Delete; "New reservation" is left out too | Making and deleting a reservation change the cluster, and wait for a decision on writes |
 
 ### Not built yet
 
@@ -1110,8 +1115,8 @@ Of the Jobs view: the job page its ids lead to, the drawer a row opens,
 the boxes that select rows and the bar of what to do with them, the
 "Submit job" button, and the GPUs of a job.
 
-Of the Nodes, Partitions and Overview views: what the browser API does
-not serve yet, listed in the table above.
+Of the Nodes, Partitions, Reservations and Overview views: what the
+browser API does not serve yet, listed in the table above.
 
 Of the primitives, the controls, the overlays, what shows data and the
 sortable table are built. A table as a tree is not, and neither is

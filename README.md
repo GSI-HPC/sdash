@@ -28,20 +28,23 @@ release.
 
 The Slurm client in `internal/slurm/` connects to a slurmrestd with the
 user's token, chooses the data_parser version to speak, and reads jobs,
-nodes and partitions
+nodes, partitions and reservations
 ([`doc/adr/0032-the-slurm-client-as-built.md`](doc/adr/0032-the-slurm-client-as-built.md)).
 A profile file names the clusters, each with its slurmrestd and the
 command, file or variable its token comes from
 ([`doc/adr/0033-the-profile-file.md`](doc/adr/0033-the-profile-file.md)),
-and the browser API serves their jobs, nodes and partitions from a cache
-that asks slurmrestd only while a page looks
+and the browser API serves their jobs, nodes, partitions and reservations
+from a cache that asks slurmrestd only while a page looks
 ([`doc/adr/0034-cluster-data-in-the-browser-api.md`](doc/adr/0034-cluster-data-in-the-browser-api.md)).
 The Jobs view shows the jobs, a page at a time
 ([`doc/adr/0035-the-jobs-view-and-its-table.md`](doc/adr/0035-the-jobs-view-and-its-table.md)).
 The Overview, Nodes and Partitions views show the cluster at a glance, a
 map of its nodes and a table of its partitions, and the header says in a
 word how the data on the screen stand and switches between the clusters
-([`doc/adr/0036-the-cluster-views-on-real-data.md`](doc/adr/0036-the-cluster-views-on-real-data.md));
+([`doc/adr/0036-the-cluster-views-on-real-data.md`](doc/adr/0036-the-cluster-views-on-real-data.md)).
+The Reservations view shows the reservations on a timeline of the next
+days and in a table
+([`doc/adr/0037-the-reservations-view.md`](doc/adr/0037-the-reservations-view.md));
 the other views come next.
 The client is tested end to end against clusters that
 [sind](https://github.com/GSI-HPC/sind) creates, which are also where every

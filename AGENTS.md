@@ -17,15 +17,18 @@ Personal, uncommitted instructions belong in `AGENTS.local.md` or
 A scaffold: the build, the checks, the decision records, and the shell of
 the UI (`doc/ui.md`) around its views. Its primitives, controls, overlays,
 what shows data and tables, are in a gallery at `/gallery`. The Slurm client
-connects to a slurmrestd and reads jobs, nodes and partitions
-(`0032-the-slurm-client-as-built`), the clusters come from a profile file
+connects to a slurmrestd and reads jobs, nodes, partitions and
+reservations (`0032-the-slurm-client-as-built`,
+`0037-the-reservations-view`), the clusters come from a profile file
 (`0033-the-profile-file`), and the browser API serves their data from a
 cache (`0034-cluster-data-in-the-browser-api`). The Jobs view shows the
 jobs, in the table primitive (`0035-the-jobs-view-and-its-table`); the
 Overview, Nodes and Partitions views show the cluster, and the header its
 state and the switcher between clusters
-(`0036-the-cluster-views-on-real-data`); the other views are
-placeholders. No release yet.
+(`0036-the-cluster-views-on-real-data`); the Reservations view shows
+the reservations on a timeline and in a table
+(`0037-the-reservations-view`); the other views are placeholders. No
+release yet.
 Everything Slurm-facing (the slurmrestd client, vendored specs, fixtures,
 the views of cluster data) is built against a slurmrestd on a sind cluster,
 because every spec and fixture comes from an end-to-end run on one
@@ -58,7 +61,8 @@ else.
   profile per Slurm release line with its captured error cases; `errs` the
   kinds of failure, `auth` the token, `wire` the structs of the answers and
   their streaming decoder, `client` the connection, `model` sdash's own
-  jobs, nodes and partitions, `cache` the read-through cache of one kind,
+  jobs, nodes, partitions and reservations, `cache` the read-through cache
+  of one kind,
   and `slurmrestdtest` a fake slurmrestd that answers with the captures,
   which `cmd/slurmrestdtest` runs as a program for the browser tests.
 - `internal/static/dist/`: what the binary embeds. `make build` copies the UI
