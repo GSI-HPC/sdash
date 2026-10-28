@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
 // SPDX-License-Identifier: Apache-2.0
 
-import { useQuery } from "@tanstack/react-query";
+import { skipToken, useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useLocation } from "react-router";
 
@@ -32,8 +32,12 @@ export type ClusterChoice =
       readonly name: string;
       readonly known: readonly string[];
     }
-  /** The cluster to show. */
-  | { readonly kind: "chosen"; readonly name: string };
+  /** The cluster to show, among the names of all of them. */
+  | {
+      readonly kind: "chosen";
+      readonly name: string;
+      readonly known: readonly string[];
+    };
 
 /** The cluster the address chooses, from the clusters of the status. */
 export function useCluster(): ClusterChoice {
@@ -53,7 +57,7 @@ export function useCluster(): ClusterChoice {
   }
   const name = named === "" ? first : named;
   return known.includes(name)
-    ? { kind: "chosen", name }
+    ? { kind: "chosen", name, known }
     : { kind: "unknown", name, known };
 }
 
@@ -70,12 +74,22 @@ export const pulseInterval = 10_000;
 /**
  * The pulse of a cluster, asked for again every pulseInterval while the
  * page is visible: the connection, and how far each kind has got. Asking
- * keeps the kinds watched, so that sdash goes on fetching them.
+ * keeps the kinds watched, so that sdash goes on fetching them. Without a
+ * cluster nothing is asked.
+ *
+ * The status pill asks for the kinds of the view that shows, and the view
+ * for the same kinds, so that the two share one request.
  */
-export function usePulse(cluster: string, kinds: readonly DataKind[]) {
+export function usePulse(
+  cluster: string | undefined,
+  kinds: readonly DataKind[],
+) {
   return useQuery({
     queryKey: ["pulse", cluster, kinds],
-    queryFn: ({ signal }) => client.getPulse(cluster, kinds, { signal }),
+    queryFn:
+      cluster === undefined
+        ? skipToken
+        : ({ signal }) => client.getPulse(cluster, kinds, { signal }),
     refetchInterval: pulseInterval,
   });
 }

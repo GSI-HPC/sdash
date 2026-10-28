@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
 // SPDX-License-Identifier: Apache-2.0
 
+import { useHealth } from "../cluster/useHealth";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { ClusterSwitcher } from "./ClusterSwitcher";
 import { Mark } from "./Mark";
@@ -13,12 +14,12 @@ import { StatusPill } from "./StatusPill";
  * the command palette, and the theme toggle.
  *
  * Of the handoff's header three things are missing because they have
- * nothing to show before there is a cluster: the refresh control, the pill
- * with the user's role, and the avatar
- * (doc/adr/0016-e2e-and-fixtures-on-sind.md). The pill says "No cluster"
- * for the same reason.
+ * nothing to show yet: the refresh control, the pill with the user's role,
+ * and the avatar (doc/adr/0036-the-cluster-views-on-real-data.md).
  */
 export function Header({ onOpenPalette }: { onOpenPalette: () => void }) {
+  const cluster = useHealth();
+
   return (
     <header className="relative z-20 flex min-w-0 items-center gap-3 border-b border-bd bg-base pr-3.5 pl-4 max-sm:gap-2">
       <div className="flex shrink-0 items-center gap-2.25 sm:w-49">
@@ -33,9 +34,9 @@ export function Header({ onOpenPalette }: { onOpenPalette: () => void }) {
         <span className="text-[0.9375rem] font-semibold tracking-[-0.01em] max-[22.5rem]:sr-only">
           sdash
         </span>
-        <StatusPill tone="neutral" label="No cluster" />
+        <StatusPill tone={cluster.health.tone} label={cluster.health.word} />
       </div>
-      <ClusterSwitcher />
+      <ClusterSwitcher {...cluster} />
       <SearchButton onOpen={onOpenPalette} />
       <div className="flex-1" />
       <ThemeToggle />

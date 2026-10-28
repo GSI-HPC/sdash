@@ -47,7 +47,10 @@ export interface View {
    * its title does not contain.
    */
   readonly keywords: readonly string[];
-  /** The kinds of a cluster's data the view shows and keeps watched. */
+  /**
+   * The kinds of a cluster's data the view shows. While it shows, they
+   * are kept watched, and the status pill says how far they have got.
+   */
   readonly kinds: readonly DataKind[];
 }
 
