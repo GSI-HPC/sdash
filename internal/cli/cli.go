@@ -91,8 +91,11 @@ type options struct {
 	readOnly bool
 	// verbosity counts the -v flags.
 	verbosity int
+	// config is the profile file the command line names; empty for the
+	// default one.
+	config string
 	// ownServer is set when the command line asks for a server of its own:
-	// it names --listen, --dev or --read-only. Such a start neither looks
+	// it names --listen, --dev, --read-only or --config. Such a start neither looks
 	// for the sdash that runs already nor leaves a record for the next
 	// one (doc/adr/0028-one-sdash-server-per-user.md).
 	ownServer bool
@@ -154,7 +157,22 @@ interrupted or its terminal hangs up, and exits 0 after a clean shutdown.
 
 Only one sdash serves each user. Started again, it prints the address of the
 one that runs, opens the browser on it and exits 0. A start with --listen,
---dev or --read-only asks for a server of its own and is left alone.
+--dev, --read-only or --config asks for a server of its own and is left
+alone.
+
+The clusters are named in a profile file, $XDG_CONFIG_HOME/sdash/clusters.toml
+or ~/.config/sdash/clusters.toml unless --config names another. Each
+[[cluster]] has a name, the endpoint of its slurmrestd, an optional ca_file,
+and the token every request runs as, from exactly one of a command, a file
+or an environment variable:
+
+    [[cluster]]
+    name     = "virgo"
+    endpoint = "https://slurmrestd.example.org:6820"
+    token    = { command = ["ssh", "virgo", "scontrol", "token", "lifespan=3600"] }
+
+sdash reads the file at start and never writes it. The token stays in
+sdash and never reaches the browser.
 
 The printed address holds a token that signs the browser in. Whoever has it
 acts as you for as long as this sdash runs, so treat it like a password.
@@ -171,7 +189,7 @@ below a directory in which others may rename what is yours.`),
 		SilenceErrors: true,
 		Args:          cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			for _, name := range []string{"listen", "dev", "read-only"} {
+			for _, name := range []string{"listen", "dev", "read-only", "config"} {
 				o.ownServer = o.ownServer || cmd.Flags().Changed(name)
 			}
 			return serve(cmd.Context(), p, o)
@@ -193,6 +211,8 @@ below a directory in which others may rename what is yours.`),
 		"do not open a browser; the address is printed in any case")
 	flags.BoolVar(&o.dev, "dev", false,
 		"development: serve the interface from web/dist on disk and accept requests the Vite dev server proxies")
+	flags.StringVar(&o.config, "config", "",
+		"the profile file that names the clusters (default: $XDG_CONFIG_HOME/sdash/clusters.toml)")
 	flags.BoolVar(&o.readOnly, "read-only", false,
 		"send nothing that changes a cluster: every request of the interface that could is refused")
 	flags.CountVarP(&o.verbosity, "verbose", "v",

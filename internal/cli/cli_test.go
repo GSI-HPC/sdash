@@ -86,6 +86,7 @@ func TestEachFlagReachesTheServer(t *testing.T) {
 		{name: "no browser", args: []string{"--no-browser"}, want: with(func(o *options) { o.noBrowser = true })},
 		{name: "development", args: []string{"--dev"}, want: with(func(o *options) { o.dev, o.ownServer = true, true })},
 		{name: "read-only", args: []string{"--read-only"}, want: with(func(o *options) { o.readOnly, o.ownServer = true, true })},
+		{name: "a profile file", args: []string{"--config", "c.toml"}, want: with(func(o *options) { o.config, o.ownServer = "c.toml", true })},
 		{name: "one -v", args: []string{"-v"}, want: with(func(o *options) { o.verbosity = 1 })},
 		{name: "-v twice in one word", args: []string{"-vv"}, want: with(func(o *options) { o.verbosity = 2 })},
 		{name: "-v twice in two words", args: []string{"-v", "-v"}, want: with(func(o *options) { o.verbosity = 2 })},
