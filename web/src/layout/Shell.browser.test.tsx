@@ -1,10 +1,12 @@
 // SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
 // SPDX-License-Identifier: Apache-2.0
 
+import { QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 
+import { createQueryClient } from "../client/query";
 import { views } from "../routing/views";
 import {
   focused,
@@ -502,11 +504,13 @@ describe("the shortcuts of a view", () => {
   test("win over the shell's for the same key", async () => {
     const log: Log = [];
     const screen = await renderWithShortcuts(
-      <MemoryRouter initialEntries={["/overview"]}>
-        <Shell>
-          <Registers shortcuts={[logging(log, shellKeys.theme, "view")]} />
-        </Shell>
-      </MemoryRouter>,
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter initialEntries={["/overview"]}>
+          <Shell>
+            <Registers shortcuts={[logging(log, shellKeys.theme, "view")]} />
+          </Shell>
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
     await expect.element(screen.getByRole("main")).toBeInTheDocument();
 
