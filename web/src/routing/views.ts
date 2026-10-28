@@ -76,8 +76,7 @@ export const views = [
     id: "nodes",
     path: "/nodes",
     title: "Nodes",
-    summary:
-      "Every node of the cluster as a heat map, by state, jobs, load or allocation.",
+    summary: "Every node of the cluster on a map, in the colour of its state.",
     group: "Cluster",
     icon: "nodes",
     goKey: "n",
