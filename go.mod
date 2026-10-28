@@ -15,6 +15,7 @@ go 1.26.0
 ignore node_modules
 
 require (
+	github.com/BurntSushi/toml v1.6.0
 	github.com/GSI-HPC/go-clikit v0.10.0
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/spf13/cobra v1.10.2
