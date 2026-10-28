@@ -18,8 +18,10 @@ A scaffold: the build, the checks, the decision records, and the shell of
 the UI (`doc/ui.md`) around placeholder views. Its primitives, controls,
 overlays and what shows data, are in a gallery at `/gallery`; tables are
 next. The Slurm client connects to a slurmrestd and reads jobs, nodes and
-partitions (`0032-the-slurm-client-as-built`); no view shows them yet. No
-release yet.
+partitions (`0032-the-slurm-client-as-built`), the clusters come from a
+profile file (`0033-the-profile-file`), and the browser API serves their
+data from a cache (`0034-cluster-data-in-the-browser-api`); no view shows
+them yet. No release yet.
 Everything Slurm-facing (the slurmrestd client, vendored specs, fixtures,
 the views of cluster data) is built against a slurmrestd on a sind cluster,
 because every spec and fixture comes from an end-to-end run on one
@@ -42,13 +44,18 @@ else.
   the sind cluster file in `testdata/`, `seed.sh`, which puts jobs in every
   state on it, `capture.sh`, which writes what slurmrestd sends, and
   `vendor.sh` with `normalise.jq`, which copy a capture into the tree.
+- `internal/profile/`: the profile file, which names the clusters
+  (`0033-the-profile-file`). `internal/clusters/`: for each cluster its
+  client, its connection and the caches of its data
+  (`0034-cluster-data-in-the-browser-api`).
 - `internal/slurm/`: the Slurm client (`0032-the-slurm-client-as-built`).
   `versions` holds the data_parser versions sdash speaks, each with a
   directory of its vendored document and captures, and `releases` a
   profile per Slurm release line with its captured error cases; `errs` the
   kinds of failure, `auth` the token, `wire` the structs of the answers and
-  their streaming decoder, `client` the connection, and `slurmrestdtest` a
-  fake slurmrestd that answers with the captures.
+  their streaming decoder, `client` the connection, `model` sdash's own
+  jobs, nodes and partitions, `cache` the read-through cache of one kind,
+  and `slurmrestdtest` a fake slurmrestd that answers with the captures.
 - `internal/static/dist/`: what the binary embeds. `make build` copies the UI
   build there; a tracked placeholder lets `go build ./...` work without Node.
 - `api/openapi.yaml`: the browser API (OpenAPI 3.0.3, base path `/api/v1`),

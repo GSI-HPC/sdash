@@ -30,7 +30,13 @@ The Slurm client in `internal/slurm/` connects to a slurmrestd with the
 user's token, chooses the data_parser version to speak, and reads jobs,
 nodes and partitions
 ([`doc/adr/0032-the-slurm-client-as-built.md`](doc/adr/0032-the-slurm-client-as-built.md)).
-No view shows them yet, and the command line has no setting for a cluster.
+A profile file names the clusters, each with its slurmrestd and the
+command, file or variable its token comes from
+([`doc/adr/0033-the-profile-file.md`](doc/adr/0033-the-profile-file.md)),
+and the browser API serves their jobs, nodes and partitions from a cache
+that asks slurmrestd only while a page looks
+([`doc/adr/0034-cluster-data-in-the-browser-api.md`](doc/adr/0034-cluster-data-in-the-browser-api.md)).
+No view shows them yet.
 The client is tested end to end against clusters that
 [sind](https://github.com/GSI-HPC/sind) creates, which are also where every
 test fixture and every vendored slurmrestd specification comes from. sind
