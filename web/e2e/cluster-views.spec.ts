@@ -5,15 +5,21 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { heading, openAt, reload, scan } from "./support.ts";
 
-// The Nodes, Partitions and Overview views and the header on the cluster
-// of the fake slurmrestd, which answers with what the seeded sind cluster
-// answered (e2e/seed.sh): three nodes, two of them allocated and one
-// drained, in the one partition "all"
-// (doc/adr/0036-the-cluster-views-on-real-data.md).
+// The Nodes, Partitions, Reservations and Overview views and the header on
+// the cluster of the fake slurmrestd, which answers with what the seeded
+// sind cluster answered (e2e/seed.sh): three nodes, two of them allocated
+// and one drained, in the one partition "all", and a reservation for
+// maintenance (doc/adr/0036-the-cluster-views-on-real-data.md,
+// doc/adr/0037-the-reservations-view.md).
 
 /** The map of the nodes, once it shows. */
 function nodeMap(page: Page) {
   return page.getByRole("grid", { name: "Nodes of virgo" });
+}
+
+/** The table of the reservations, once it shows. */
+function reservationTable(page: Page) {
+  return page.getByRole("table", { name: "Reservations of virgo" });
 }
 
 /** The table of the partitions, once it shows. */
@@ -70,6 +76,24 @@ test("the Partitions view shows each partition with its nodes and its jobs, and 
   // The address named no cluster, and the link names none either.
   await expect(page).toHaveURL(/\/nodes\?partition=all$/);
   await expect(nodeMap(page).getByRole("gridcell")).toHaveCount(3);
+  expect(problems).toEqual([]);
+});
+
+// The capture was taken when the reservation was a day ahead; it has ended
+// since, and the timeline of the days around today is empty.
+test("the Reservations view lists the reservations of the cluster", async ({
+  page,
+}) => {
+  const problems = await openAt(page, "/reservations", { instance: "cluster" });
+  const row = reservationTable(page).getByRole("row", {
+    name: /^maintenance /,
+  });
+
+  await expect(row).toBeVisible();
+  await expect(row.getByText("worker-2")).toBeVisible();
+  await expect(row.getByText("Users: root")).toBeVisible();
+  await expect(row.getByText("01:00:00")).toBeVisible();
+  await expect(page.getByText(/^1 reservation, fetched/)).toBeVisible();
   expect(problems).toEqual([]);
 });
 
@@ -140,6 +164,20 @@ for (const theme of ["light", "dark"] as const) {
       });
       await expect(
         partitionTable(page).getByRole("row", { name: /^all / }),
+      ).toBeVisible();
+
+      expect(await scan(page)).toEqual([]);
+    });
+
+    test("the Reservations view passes the scan with its reservations", async ({
+      page,
+    }) => {
+      await openAt(page, "/reservations", {
+        instance: "cluster",
+        colorScheme: theme,
+      });
+      await expect(
+        reservationTable(page).getByRole("row", { name: /^maintenance / }),
       ).toBeVisible();
 
       expect(await scan(page)).toEqual([]);
