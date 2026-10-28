@@ -21,8 +21,11 @@ connects to a slurmrestd and reads jobs, nodes and partitions
 (`0032-the-slurm-client-as-built`), the clusters come from a profile file
 (`0033-the-profile-file`), and the browser API serves their data from a
 cache (`0034-cluster-data-in-the-browser-api`). The Jobs view shows the
-jobs, in the table primitive (`0035-the-jobs-view-and-its-table`); the other
-views are placeholders. No release yet.
+jobs, in the table primitive (`0035-the-jobs-view-and-its-table`); the
+Overview, Nodes and Partitions views show the cluster, and the header its
+state and the switcher between clusters
+(`0036-the-cluster-views-on-real-data`); the other views are
+placeholders. No release yet.
 Everything Slurm-facing (the slurmrestd client, vendored specs, fixtures,
 the views of cluster data) is built against a slurmrestd on a sind cluster,
 because every spec and fixture comes from an end-to-end run on one

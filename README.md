@@ -19,12 +19,12 @@ from ([`doc/adr/`](doc/adr/)), the build and its checks, and a binary that
 listens on loopback, prints its address, signs the browser in and serves the
 shell of the interface: a header, a sidebar that leads to the twelve views
 the design has, each at an address of its own, keyboard shortcuts and a
-command palette. The views are placeholders that say no cluster is
+command palette. Without a cluster the views say that none is
 configured; the first of them also says which sdash is running, which it
 asks of the first operation of the browser API. The first building blocks
 of the views are there as well, the buttons, fields, menus, dialogs and
-toasts, and a gallery at `/gallery` shows each of them; nothing uses them
-for data yet. There is no release.
+toasts, and a gallery at `/gallery` shows each of them. There is no
+release.
 
 The Slurm client in `internal/slurm/` connects to a slurmrestd with the
 user's token, chooses the data_parser version to speak, and reads jobs,
@@ -37,7 +37,11 @@ and the browser API serves their jobs, nodes and partitions from a cache
 that asks slurmrestd only while a page looks
 ([`doc/adr/0034-cluster-data-in-the-browser-api.md`](doc/adr/0034-cluster-data-in-the-browser-api.md)).
 The Jobs view shows the jobs, a page at a time
-([`doc/adr/0035-the-jobs-view-and-its-table.md`](doc/adr/0035-the-jobs-view-and-its-table.md));
+([`doc/adr/0035-the-jobs-view-and-its-table.md`](doc/adr/0035-the-jobs-view-and-its-table.md)).
+The Overview, Nodes and Partitions views show the cluster at a glance, a
+map of its nodes and a table of its partitions, and the header says in a
+word how the data on the screen stand and switches between the clusters
+([`doc/adr/0036-the-cluster-views-on-real-data.md`](doc/adr/0036-the-cluster-views-on-real-data.md));
 the other views come next.
 The client is tested end to end against clusters that
 [sind](https://github.com/GSI-HPC/sind) creates, which are also where every

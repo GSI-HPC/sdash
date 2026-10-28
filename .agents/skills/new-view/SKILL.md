@@ -71,7 +71,9 @@ a capture of a slurmrestd on a sind cluster
    open drawer live in the query string, through `defineSearchParam` and
    `useSearchParam` (`web/src/routing/`): a reload or a pasted link shows
    the same thing. An event that sets two parameters uses
-   `useSearchChanges`.
+   `useSearchChanges`, and a field of text bound to a parameter shows its
+   text through `useTypedText`, which keeps the keys typed while the
+   address follows.
 7. **Data.** Call the browser API through the client in `web/src/client/`
    only, never with a `fetch` of the view's own. Give the client one
    function for each new operation, written against the types generated
@@ -138,24 +140,33 @@ a capture of a slurmrestd on a sind cluster
 
 ## A view of cluster data
 
-What `web/src/views/Jobs.tsx` set
-(`doc/adr/0035-the-jobs-view-and-its-table.md`):
+What `web/src/views/Jobs.tsx`, `Nodes.tsx`, `Partitions.tsx` and
+`Overview.tsx` set (`doc/adr/0035-the-jobs-view-and-its-table.md`,
+`doc/adr/0036-the-cluster-views-on-real-data.md`):
 
 - The view renders `PageHeader`, then `WithCluster`
   (`web/src/views/WithCluster.tsx`), whose child is a function of the
   cluster's name. `WithCluster` shows the one card for no cluster, a
   cluster the address names and the profile file does not, and a status
   that did not arrive; the view writes none of them.
-- `usePulse(cluster, kinds)` (`web/src/cluster/useCluster.ts`) keeps the
-  kinds the view shows watched. The view's own query has the cluster and
-  its parameters in its key and `placeholderData: keepPreviousData`, and
-  is fetched again when the pulse reports a newer generation than its
-  data have. `DataAge` (`web/src/cluster/DataAge.tsx`) says how old they
-  are.
-- Without data, an `ErrorPanel` takes their place in the card; data with
-  an `error` member stay, under a `Banner`. Both take their words from
+- The view's row in the view table names the kinds of data it shows.
+  `usePulse(cluster, viewOf(id).kinds)` (`web/src/cluster/useCluster.ts`)
+  keeps them watched, and the status pill asks for the same pulse, so the
+  two share one request. The view's own query has the cluster and its
+  parameters in its key, and `useFollow(query, generationOf(pulse, kind))`
+  (`web/src/cluster/useFollow.ts`) fetches it again when the pulse reports
+  a newer generation than its data have, and not again after a failure
+  until the generation moves. A list cut into pages also has
+  `placeholderData: keepPreviousData`. `DataAge`
+  (`web/src/cluster/DataAge.tsx`) says how old the data are.
+- Without data, `Unready` (`web/src/views/Fetching.tsx`) shows a skeleton
+  and then an `ErrorPanel` in their place; data with an `error` member
+  stay, under the `Banner` of `Stale`. Both take their words from
   `failureOf` (`web/src/cluster/failure.ts`), with the message of the
   error as the code.
+- A link to another view is made with `useAddressOf()`
+  (`web/src/cluster/useCluster.ts`), which keeps the cluster of the
+  address and leaves the other parameters behind.
 - The parts of the view that are no component, its parameters, its
   columns and how it writes values, go into a directory named after it,
   `web/src/views/<view>/`, with unit tests beside them.
@@ -163,7 +174,8 @@ What `web/src/views/Jobs.tsx` set
   cuts it; the view hands the table the rows of the page and its sort,
   and keeps the sort and the page in the address.
 - The component test renders the view with `renderApp(address, server)`,
-  where `server` answers the operations of the view. The end-to-end test
+  where `server` answers the operations of the view; `clusterServer()`
+  (`web/src/testing/cluster.ts`) answers for two made-up clusters. The end-to-end test
   opens the sdash with a cluster, `openAt(page, path, { instance:
   "cluster" })`, whose fake slurmrestd answers with the captures of the
   seeded sind cluster; a failure is made with `page.route`.
