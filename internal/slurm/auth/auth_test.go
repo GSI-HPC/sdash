@@ -196,6 +196,18 @@ func TestTheKeeperRenewsATokenBeforeItExpires(t *testing.T) {
 	})
 }
 
+func TestTheKeeperKnowsTheUserOfTheLastToken(t *testing.T) {
+	t.Parallel()
+	synctest.Test(t, func(t *testing.T) {
+		src := &counting{next: func(n int) (Token, error) { return expiring(n, 10*time.Minute), nil }}
+		k := NewKeeper(src)
+		assert.Empty(t, k.User(), "no token yet")
+		_, err := k.Token(t.Context())
+		require.NoError(t, err)
+		assert.Equal(t, "user1", k.User())
+	})
+}
+
 func TestTheKeeperAsksAgainForARefusedToken(t *testing.T) {
 	t.Parallel()
 	src := &counting{next: func(n int) (Token, error) { return expiring(n, time.Hour), nil }}
