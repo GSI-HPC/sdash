@@ -6,7 +6,13 @@
 // them to those shapes, and no shape of slurmrestd's reaches the browser
 // (doc/adr/0034-cluster-data-in-the-browser-api.md). Only tests import it.
 
-import type { JobList, NodeList, PartitionList, Pulse } from "../client/client";
+import type {
+  JobList,
+  NodeList,
+  PartitionList,
+  Pulse,
+  ReservationList,
+} from "../client/client";
 import { type Answer, type Server, status } from "./app";
 
 /** When the data of the cluster were fetched. */
@@ -103,6 +109,54 @@ export const jobCounts: JobList = {
   },
 };
 
+/**
+ * The reservations: one for maintenance tomorrow, one held daily that is
+ * active now, and one in a month without an end, beyond the timeline.
+ */
+export const reservations: ReservationList = {
+  generation: 1,
+  fetchedAt,
+  rows: [
+    {
+      name: "maintenance",
+      nodes: "gpu-[1-2]",
+      nodeCount: 2,
+      cores: 8,
+      startTime: "2026-01-02T08:00:00Z",
+      endTime: "2026-01-02T12:00:00Z",
+      flags: ["MAINT", "SPEC_NODES"],
+      users: ["root"],
+      accounts: [],
+      groups: [],
+      tres: "cpu=8",
+    },
+    {
+      name: "course",
+      nodes: "cpu-1",
+      nodeCount: 1,
+      cores: 8,
+      startTime: "2025-12-31T09:00:00Z",
+      endTime: "2026-01-01T17:00:00Z",
+      flags: ["DAILY"],
+      users: [],
+      accounts: ["physics", "-guests"],
+      groups: [],
+      partition: "main",
+    },
+    {
+      name: "later",
+      nodes: "cpu-2",
+      nodeCount: 1,
+      cores: 8,
+      startTime: "2026-02-01T00:00:00Z",
+      flags: [],
+      users: ["alice"],
+      accounts: [],
+      groups: [],
+    },
+  ],
+};
+
 /** The pulse of a cluster that is connected, as alice, with the kinds asked for. */
 export function pulseOf(url: URL): Pulse {
   return {
@@ -137,6 +191,7 @@ export interface ClusterAnswers {
   readonly nodes?: Answer;
   readonly partitions?: Answer;
   readonly jobs?: Answer;
+  readonly reservations?: Answer;
 }
 
 /**
@@ -170,6 +225,9 @@ export function clusterServer(answers: ClusterAnswers = {}): {
       }
       if (url.pathname.endsWith("/jobs")) {
         return answers.jobs ?? { body: jobCounts };
+      }
+      if (url.pathname.endsWith("/reservations")) {
+        return answers.reservations ?? { body: reservations };
       }
       return undefined;
     },
