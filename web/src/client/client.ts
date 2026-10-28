@@ -20,6 +20,8 @@ import {
   type GetPartitionsData,
   type GetPartitionsResponse,
   type GetPulseData,
+  type GetReservationsData,
+  type GetReservationsResponse,
   type GetPulseResponse,
   type GetSessionData,
   type GetSessionResponse,
@@ -53,6 +55,9 @@ export type NodeList = GetNodesResponse;
 
 /** What the partitions of a cluster answer. */
 export type PartitionList = GetPartitionsResponse;
+
+/** What the reservations of a cluster answer. */
+export type ReservationList = GetReservationsResponse;
 
 /** A kind of a cluster's data. */
 export type DataKind = NonNullable<
@@ -134,6 +139,11 @@ export interface Client {
   getNodes(cluster: string, options?: CallOptions): Promise<NodeList>;
   /** Gives the partitions of the cluster. */
   getPartitions(cluster: string, options?: CallOptions): Promise<PartitionList>;
+  /** Gives the reservations of the cluster. */
+  getReservations(
+    cluster: string,
+    options?: CallOptions,
+  ): Promise<ReservationList>;
 }
 
 /** Sends a request to the API, and rejects with an ApiError if it fails. */
@@ -259,6 +269,15 @@ export function createClient(fetch: typeof globalThis.fetch): Client {
         options,
       );
       return (await bodyOf(response)) as GetPartitionsResponse;
+    },
+    async getReservations(cluster, options = {}) {
+      const path: GetReservationsData["url"] =
+        "/clusters/{cluster}/reservations";
+      const response = await transport.send(
+        clusterPath(path, cluster),
+        options,
+      );
+      return (await bodyOf(response)) as GetReservationsResponse;
     },
   };
 }

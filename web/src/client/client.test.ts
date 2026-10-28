@@ -373,6 +373,7 @@ test("a call on a cluster names it in the path and its parameters in the query",
   await client.getJobs("virgo");
   await client.getNodes("virgo");
   await client.getPartitions("virgo");
+  await client.getReservations("virgo");
   await client.getPulse("virgo", []);
 
   expect(seen.map(({ url }) => url)).toEqual([
@@ -381,6 +382,7 @@ test("a call on a cluster names it in the path and its parameters in the query",
     "/api/v1/clusters/virgo/jobs",
     "/api/v1/clusters/virgo/nodes",
     "/api/v1/clusters/virgo/partitions",
+    "/api/v1/clusters/virgo/reservations",
     "/api/v1/clusters/virgo/pulse",
   ]);
 });

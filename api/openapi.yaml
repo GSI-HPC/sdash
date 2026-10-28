@@ -252,6 +252,23 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
+  /clusters/{cluster}/reservations:
+    get:
+      operationId: getReservations
+      summary: The reservations of a cluster
+      description: Every reservation of the cluster, as getNodes gives the nodes.
+      parameters:
+        - $ref: "#/components/parameters/ClusterName"
+      responses:
+        "200":
+          description: The reservations.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReservationList"
+        default:
+          $ref: "#/components/responses/Error"
+
 components:
   parameters:
     ClusterName:
@@ -349,6 +366,7 @@ components:
         - jobs
         - nodes
         - partitions
+        - reservations
 
     Pulse:
       description: The state of a cluster and of the kinds of its data.
@@ -813,6 +831,94 @@ components:
           format: int64
         qos:
           description: The QOS of the partition.
+          type: string
+
+    ReservationList:
+      description: The reservations of a cluster.
+      type: object
+      required:
+        - generation
+        - fetchedAt
+        - rows
+      properties:
+        generation:
+          description: The generation of the reservations, as the pulse reports it.
+          type: integer
+          format: int64
+        fetchedAt:
+          description: When the reservations were fetched.
+          type: string
+          format: date-time
+        error:
+          description: Why a later fetch failed, which leaves these reservations older than their period.
+          allOf:
+            - $ref: "#/components/schemas/Error"
+        rows:
+          description: The reservations, in slurmctld's order.
+          type: array
+          items:
+            $ref: "#/components/schemas/Reservation"
+
+    Reservation:
+      description: A reservation as slurmctld knows it.
+      type: object
+      required:
+        - name
+        - nodes
+        - nodeCount
+        - cores
+        - flags
+        - users
+        - accounts
+        - groups
+      properties:
+        name:
+          type: string
+        nodes:
+          description: The host list of the reserved nodes.
+          type: string
+        nodeCount:
+          type: integer
+          format: int64
+        cores:
+          type: integer
+          format: int64
+        startTime:
+          description: When the reservation starts. Absent when not set.
+          type: string
+          format: date-time
+        endTime:
+          description: When the reservation ends. Absent when not set or when it has no end.
+          type: string
+          format: date-time
+        flags:
+          description: MAINT, DAILY, IGNORE_JOBS and the like.
+          type: array
+          items:
+            type: string
+        users:
+          description: The users who may use the reservation; a name that starts with "-" is denied it.
+          type: array
+          items:
+            type: string
+        accounts:
+          description: The accounts that may use the reservation, in the same way.
+          type: array
+          items:
+            type: string
+        groups:
+          description: The groups that may use the reservation, in the same way.
+          type: array
+          items:
+            type: string
+        partition:
+          type: string
+        tres:
+          description: What the reservation holds, as "cpu=2".
+          type: string
+        features:
+          type: string
+        licenses:
           type: string
 
     # The one body of every answer that is not a success.

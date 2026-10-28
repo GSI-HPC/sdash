@@ -17,9 +17,10 @@ import (
 
 // Defines values for DataKind.
 const (
-	DataKindJobs       DataKind = "jobs"
-	DataKindNodes      DataKind = "nodes"
-	DataKindPartitions DataKind = "partitions"
+	DataKindJobs         DataKind = "jobs"
+	DataKindNodes        DataKind = "nodes"
+	DataKindPartitions   DataKind = "partitions"
+	DataKindReservations DataKind = "reservations"
 )
 
 // Valid indicates whether the value is a known member of the DataKind enum.
@@ -30,6 +31,8 @@ func (e DataKind) Valid() bool {
 	case DataKindNodes:
 		return true
 	case DataKindPartitions:
+		return true
+	case DataKindReservations:
 		return true
 	default:
 		return false
@@ -507,6 +510,54 @@ type Pulse struct {
 	Kinds []KindPulse `json:"kinds"`
 }
 
+// Reservation A reservation as slurmctld knows it.
+type Reservation struct {
+	// Accounts The accounts that may use the reservation, in the same way.
+	Accounts []string `json:"accounts"`
+	Cores    int64    `json:"cores"`
+
+	// EndTime When the reservation ends. Absent when not set or when it has no end.
+	EndTime  *time.Time `json:"endTime,omitempty"`
+	Features *string    `json:"features,omitempty"`
+
+	// Flags MAINT, DAILY, IGNORE_JOBS and the like.
+	Flags []string `json:"flags"`
+
+	// Groups The groups that may use the reservation, in the same way.
+	Groups    []string `json:"groups"`
+	Licenses  *string  `json:"licenses,omitempty"`
+	Name      string   `json:"name"`
+	NodeCount int64    `json:"nodeCount"`
+
+	// Nodes The host list of the reserved nodes.
+	Nodes     string  `json:"nodes"`
+	Partition *string `json:"partition,omitempty"`
+
+	// StartTime When the reservation starts. Absent when not set.
+	StartTime *time.Time `json:"startTime,omitempty"`
+
+	// Tres What the reservation holds, as "cpu=2".
+	Tres *string `json:"tres,omitempty"`
+
+	// Users The users who may use the reservation; a name that starts with "-" is denied it.
+	Users []string `json:"users"`
+}
+
+// ReservationList The reservations of a cluster.
+type ReservationList struct {
+	// Error Why a later fetch failed, which leaves these reservations older than their period.
+	Error *Error `json:"error,omitempty"`
+
+	// FetchedAt When the reservations were fetched.
+	FetchedAt time.Time `json:"fetchedAt"`
+
+	// Generation The generation of the reservations, as the pulse reports it.
+	Generation int64 `json:"generation"`
+
+	// Rows The reservations, in slurmctld's order.
+	Rows []Reservation `json:"rows"`
+}
+
 // Session The session that a browser signed in with.
 type Session struct {
 	// CsrfToken The token a request that changes anything sends in the header
@@ -600,6 +651,9 @@ type ServerInterface interface {
 	// GetPulse The state of a cluster and of the kinds of its data
 	// (GET /clusters/{cluster}/pulse)
 	GetPulse(w http.ResponseWriter, r *http.Request, cluster ClusterName, params GetPulseParams)
+	// GetReservations The reservations of a cluster
+	// (GET /clusters/{cluster}/reservations)
+	GetReservations(w http.ResponseWriter, r *http.Request, cluster ClusterName)
 	// GetSession The CSRF token of the session that asks
 	// (GET /session)
 	GetSession(w http.ResponseWriter, r *http.Request)
@@ -633,6 +687,12 @@ func (_ Unimplemented) GetPartitions(w http.ResponseWriter, r *http.Request, clu
 // GetPulse The state of a cluster and of the kinds of its data
 // (GET /clusters/{cluster}/pulse)
 func (_ Unimplemented) GetPulse(w http.ResponseWriter, r *http.Request, cluster ClusterName, params GetPulseParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetReservations The reservations of a cluster
+// (GET /clusters/{cluster}/reservations)
+func (_ Unimplemented) GetReservations(w http.ResponseWriter, r *http.Request, cluster ClusterName) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -884,6 +944,32 @@ func (siw *ServerInterfaceWrapper) GetPulse(w http.ResponseWriter, r *http.Reque
 	handler.ServeHTTP(w, r)
 }
 
+// GetReservations operation middleware
+func (siw *ServerInterfaceWrapper) GetReservations(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "cluster" -------------
+	var cluster ClusterName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "cluster", chi.URLParam(r, "cluster"), &cluster, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cluster", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetReservations(w, r, cluster)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetSession operation middleware
 func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Request) {
 
@@ -1042,6 +1128,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/clusters/{cluster}/partitions", wrapper.GetPartitions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/clusters/{cluster}/reservations", wrapper.GetReservations)
 	})
 
 	return r
@@ -1207,6 +1296,45 @@ func (response GetPulsedefaultJSONResponse) VisitGetPulseResponse(w http.Respons
 	return err
 }
 
+type GetReservationsRequestObject struct {
+	Cluster ClusterName `json:"cluster"`
+}
+
+type GetReservationsResponseObject interface {
+	VisitGetReservationsResponse(w http.ResponseWriter) error
+}
+
+type GetReservations200JSONResponse ReservationList
+
+func (response GetReservations200JSONResponse) VisitGetReservationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReservationsdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetReservationsdefaultJSONResponse) VisitGetReservationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetSessionRequestObject struct {
 }
 
@@ -1297,6 +1425,9 @@ type StrictServerInterface interface {
 	// GetPulse The state of a cluster and of the kinds of its data
 	// (GET /clusters/{cluster}/pulse)
 	GetPulse(ctx context.Context, request GetPulseRequestObject) (GetPulseResponseObject, error)
+	// GetReservations The reservations of a cluster
+	// (GET /clusters/{cluster}/reservations)
+	GetReservations(ctx context.Context, request GetReservationsRequestObject) (GetReservationsResponseObject, error)
 	// GetSession The CSRF token of the session that asks
 	// (GET /session)
 	GetSession(ctx context.Context, request GetSessionRequestObject) (GetSessionResponseObject, error)
@@ -1443,6 +1574,32 @@ func (sh *strictHandler) GetPulse(w http.ResponseWriter, r *http.Request, cluste
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetPulseResponseObject); ok {
 		if err := validResponse.VisitGetPulseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetReservations operation middleware
+func (sh *strictHandler) GetReservations(w http.ResponseWriter, r *http.Request, cluster ClusterName) {
+	var request GetReservationsRequestObject
+
+	request.Cluster = cluster
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetReservations(ctx, request.(GetReservationsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetReservations")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetReservationsResponseObject); ok {
+		if err := validResponse.VisitGetReservationsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
