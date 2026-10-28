@@ -125,3 +125,31 @@ func TestTheSeededPartitionMapsWithItsLimits(t *testing.T) {
 		})
 	}
 }
+
+func TestTheSeededReservationMapsWithItsTimesAndUsers(t *testing.T) {
+	t.Parallel()
+	for p, reservations := range captured(t, "slurm-reservations.json", "reservations", ReservationOf) {
+		t.Run(string(p), func(t *testing.T) {
+			t.Parallel()
+			require.Len(t, reservations, 1)
+			r := reservations[0]
+			assert.Equal(t, "maintenance", r.Name)
+			assert.Equal(t, "worker-2", r.Nodes)
+			assert.Equal(t, int64(2), r.Cores)
+			assert.Equal(t, []string{"MAINT", "SPEC_NODES"}, r.Flags)
+			assert.Equal(t, []string{"root"}, r.Users)
+			assert.Nil(t, r.Accounts, "the seed names no account")
+			require.NotNil(t, r.Start)
+			require.NotNil(t, r.End)
+			assert.Equal(t, time.Hour, r.End.Sub(*r.Start))
+		})
+	}
+}
+
+func TestTheNamesOfAReservationArePartedAtTheCommas(t *testing.T) {
+	t.Parallel()
+	r := ReservationOf(&wire.Reservation{Users: "alice, -bob,", Accounts: "physics"})
+	assert.Equal(t, []string{"alice", "-bob"}, r.Users)
+	assert.Equal(t, []string{"physics"}, r.Accounts)
+	assert.Nil(t, r.Groups)
+}
