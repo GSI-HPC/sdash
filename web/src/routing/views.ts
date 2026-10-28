@@ -104,7 +104,7 @@ export const views = [
     icon: "reservations",
     goKey: "r",
     keywords: ["maintenance", "calendar"],
-    kinds: [],
+    kinds: ["reservations"],
   },
   {
     id: "jobs",
