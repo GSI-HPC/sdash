@@ -3,7 +3,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { type DataKind, client } from "../client/client";
+import { type DataKind, type Pulse, client } from "../client/client";
 import { statusQuery } from "../client/query";
 import { defineSearchParam, text } from "../routing/searchParams";
 import { useSearchParam } from "../routing/useSearchParam";
@@ -76,4 +76,15 @@ export function usePulse(cluster: string, kinds: readonly DataKind[]) {
     queryFn: ({ signal }) => client.getPulse(cluster, kinds, { signal }),
     refetchInterval: pulseInterval,
   });
+}
+
+/**
+ * The generation of a kind the pulse reports, or undefined while there is
+ * no pulse or it does not report the kind.
+ */
+export function generationOf(
+  pulse: Pulse | undefined,
+  kind: DataKind,
+): number | undefined {
+  return pulse?.kinds.find((each) => each.kind === kind)?.generation;
 }
