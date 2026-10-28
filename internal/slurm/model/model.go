@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
 // SPDX-License-Identifier: Apache-2.0
 
-// Package model owns sdash's own picture of a cluster's jobs, nodes and
-// partitions, which no data_parser version shapes
+// Package model owns sdash's own picture of a cluster's jobs, nodes,
+// partitions and reservations, which no data_parser version shapes
 // (doc/adr/0009-one-tolerant-wire-model.md). The answers of slurmrestd are
 // mapped to it as they are decoded, and everything above the client, the
 // cache and the browser API alike, sees only this.
@@ -132,6 +132,28 @@ type Partition struct {
 	QOS          string
 }
 
+// Reservation is a reservation as slurmctld knows it.
+type Reservation struct {
+	Name string
+	// Nodes is the host list of the reserved nodes.
+	Nodes     string
+	NodeCount int64
+	Cores     int64
+	// Start and End are nil when not set; End is nil as well for a
+	// reservation without an end.
+	Start, End *time.Time
+	// Flags are MAINT, DAILY, IGNORE_JOBS and the like.
+	Flags []string
+	// Users, Accounts and Groups may use the reservation, unless a name
+	// starts with "-", which denies it.
+	Users, Accounts, Groups []string
+	Partition               string
+	// TRES is what the reservation holds, as "cpu=2".
+	TRES     string
+	Features string
+	Licenses string
+}
+
 // JobOf maps a job of the wire to the model.
 func JobOf(w *wire.Job) Job {
 	j := Job{
@@ -223,6 +245,38 @@ func PartitionOf(w *wire.Partition) Partition {
 	}
 	p.State, _ = split(w.Partition.State)
 	return p
+}
+
+// ReservationOf maps a reservation of the wire to the model.
+func ReservationOf(w *wire.Reservation) Reservation {
+	return Reservation{
+		Name:      w.Name,
+		Nodes:     w.NodeList,
+		NodeCount: w.NodeCount,
+		Cores:     w.CoreCount,
+		Start:     moment(w.StartTime),
+		End:       moment(w.EndTime),
+		Flags:     w.Flags,
+		Users:     names(w.Users),
+		Accounts:  names(w.Accounts),
+		Groups:    names(w.Groups),
+		Partition: w.Partition,
+		TRES:      w.TRES,
+		Features:  w.Features,
+		Licenses:  w.Licenses,
+	}
+}
+
+// names parts a list of names separated by commas; nil for the empty
+// string.
+func names(list string) []string {
+	var out []string
+	for name := range strings.SplitSeq(list, ",") {
+		if name = strings.TrimSpace(name); name != "" {
+			out = append(out, name)
+		}
+	}
+	return out
 }
 
 // split parts a state as slurmrestd sends it, the base state first and its
