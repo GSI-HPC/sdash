@@ -213,15 +213,17 @@ jobs:
       - uses: ./.github/actions/setup-node
 
       # Installs the frontend's packages from the lockfile, builds the UI
-      # and compiles bin/sdash with it embedded.
+      # and compiles bin/sdash with it embedded, and the fake slurmrestd
+      # that gives the tests a cluster.
       - name: Build
-        run: make build
+        run: make build slurmrestdtest
 
       - name: Install the browser
         working-directory: web
         run: npx playwright install --with-deps ${{ matrix.engine }}
 
-      # The tests start bin/sdash themselves, on a free port.
+      # The tests start bin/sdash themselves, on a free port, once without
+      # a cluster and once with the cluster of bin/slurmrestdtest.
       - name: Test in the browser
         working-directory: web
         run: npm run test:browser -- --project=${{ matrix.engine }}

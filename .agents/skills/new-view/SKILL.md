@@ -12,12 +12,12 @@ A view is one page of the app: a route, the component the route loads, the
 operations of the browser API it calls, and its tests. This skill gives the
 order of work and the rule each step has to meet.
 
-The shell of the UI and the primitives, the controls, the overlays and
-what shows data, are there, and `doc/ui.md` describes both: this skill
-names their files. Tables are not built yet. No view shows data yet, so
-there is no data view to copy from. `web/src/views/Overview.tsx` is the nearest, a placeholder with one
-part that calls the browser API. Whoever builds the first two data views
-adds what they set as the pattern to this skill, in the same PR.
+The shell of the UI and the primitives, the controls, the overlays, what
+shows data and the table, are there, and `doc/ui.md` describes both: this
+skill names their files. `web/src/views/Jobs.tsx` is the first view of
+cluster data, and the one to copy from; "A view of cluster data" below
+says what it set. Whoever builds the second adds what it adds to the
+pattern, in the same PR.
 
 A view that shows cluster data is Slurm-facing work: its fixtures come from
 a capture of a slurmrestd on a sind cluster
@@ -135,6 +135,38 @@ a capture of a slurmrestd on a sind cluster
     decision.
 13. **Verify.** Follow the `verify-ui` skill, then the checks of the
     `steward` skill.
+
+## A view of cluster data
+
+What `web/src/views/Jobs.tsx` set
+(`doc/adr/0035-the-jobs-view-and-its-table.md`):
+
+- The view renders `PageHeader`, then `WithCluster`
+  (`web/src/views/WithCluster.tsx`), whose child is a function of the
+  cluster's name. `WithCluster` shows the one card for no cluster, a
+  cluster the address names and the profile file does not, and a status
+  that did not arrive; the view writes none of them.
+- `usePulse(cluster, kinds)` (`web/src/cluster/useCluster.ts`) keeps the
+  kinds the view shows watched. The view's own query has the cluster and
+  its parameters in its key and `placeholderData: keepPreviousData`, and
+  is fetched again when the pulse reports a newer generation than its
+  data have. `DataAge` (`web/src/cluster/DataAge.tsx`) says how old they
+  are.
+- Without data, an `ErrorPanel` takes their place in the card; data with
+  an `error` member stay, under a `Banner`. Both take their words from
+  `failureOf` (`web/src/cluster/failure.ts`), with the message of the
+  error as the code.
+- The parts of the view that are no component, its parameters, its
+  columns and how it writes values, go into a directory named after it,
+  `web/src/views/<view>/`, with unit tests beside them.
+- A list is a `Table` in a `Card` that is `flush`. The server sorts and
+  cuts it; the view hands the table the rows of the page and its sort,
+  and keeps the sort and the page in the address.
+- The component test renders the view with `renderApp(address, server)`,
+  where `server` answers the operations of the view. The end-to-end test
+  opens the sdash with a cluster, `openAt(page, path, { instance:
+  "cluster" })`, whose fake slurmrestd answers with the captures of the
+  seeded sind cluster; a failure is made with `page.route`.
 
 ## Keyboard and ARIA checklist
 

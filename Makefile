@@ -113,9 +113,9 @@ test-components: web/node_modules
 slurmrestdtest:
 	$(GO) build -o bin/slurmrestdtest ./internal/slurm/slurmrestdtest/cmd/slurmrestdtest
 
-## test-browser: build bin/sdash and run the browser tests (Playwright) against it
+## test-browser: build bin/sdash and the fake slurmrestd, and run the browser tests (Playwright) against them
 .PHONY: test-browser
-test-browser: build
+test-browser: build slurmrestdtest
 	cd web && $(NPM) run test:browser
 
 # The sind realm of the end-to-end cluster, which keeps it apart from any

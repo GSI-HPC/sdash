@@ -1106,14 +1106,18 @@ the gallery with them: `shell.spec.ts` for the landmarks, the addresses of
 no view and the layout, at 360 and at 320 px too, `navigation.spec.ts` for
 the ways between views, the browser's history and the arrivals that do not
 go well, `keyboard.spec.ts` for the other shortcuts and the stored
-preferences, `accessibility.spec.ts` for the axe scan of every view in
-both themes and with the sidebar in both forms, and
-`zoom-and-contrast.spec.ts` for an enlarged page and a contrast theme of
-the system. `gallery.spec.ts` uses every control and every overlay of the
-gallery by the keyboard alone, under the server's
-Content-Security-Policy, scans the gallery with each kind of overlay
-open, and tries with the pointer what lies behind an open overlay; the
-tooltip of the cell grid is one of its overlays. `data-display.spec.ts`
-goes through the cell grid, a banner and an error panel by the keyboard
-alone, and shows and scans the grid of 4,000 cells.
-[testing.md](testing.md) says how each layer is run.
+preferences, `accessibility.spec.ts` for the axe scan of every view in both
+themes and with the sidebar in both forms, and `zoom-and-contrast.spec.ts`
+for an enlarged page and a contrast theme of the system. `jobs.spec.ts`
+uses the Jobs view on a cluster, by the keyboard, and scans it with its
+jobs, with none that match, with jobs that may be out of date and with none
+to show. Two sdash are under test: one without a cluster, which the other
+files open, and one whose profile file names the cluster "virgo" of the
+fake slurmrestd, which `openAt(page, path, { instance: "cluster" })` opens.
+`gallery.spec.ts` uses every control and every overlay of the gallery by
+the keyboard alone, under the server's Content-Security-Policy, scans the
+gallery with each kind of overlay open, and tries with the pointer what
+lies behind an open overlay; the tooltip of the cell grid is one of its
+overlays. `data-display.spec.ts` goes through the cell grid, a banner and
+an error panel by the keyboard alone, and shows and scans the grid of 4,000
+cells. [testing.md](testing.md) says how each layer is run.
