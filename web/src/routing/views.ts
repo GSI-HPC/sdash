@@ -11,6 +11,7 @@
 // The module is data and nothing else: it imports no component, so that the
 // unit tests and the end-to-end tests can read it without a browser.
 
+import type { DataKind } from "../client/client";
 import type { IconName } from "../icons/paths";
 
 /** The groups of the navigation, in the order the sidebar shows them. */
@@ -46,6 +47,8 @@ export interface View {
    * its title does not contain.
    */
   readonly keywords: readonly string[];
+  /** The kinds of a cluster's data the view shows and keeps watched. */
+  readonly kinds: readonly DataKind[];
 }
 
 /**
@@ -64,6 +67,7 @@ export const views = [
     icon: "overview",
     goKey: "o",
     keywords: ["home", "dashboard", "summary"],
+    kinds: ["jobs", "nodes", "partitions"],
   },
   {
     id: "nodes",
@@ -75,6 +79,7 @@ export const views = [
     icon: "nodes",
     goKey: "n",
     keywords: ["heat map", "hosts", "racks"],
+    kinds: ["nodes"],
   },
   {
     id: "partitions",
@@ -86,6 +91,7 @@ export const views = [
     icon: "partitions",
     goKey: "p",
     keywords: ["queues"],
+    kinds: ["partitions", "nodes", "jobs"],
   },
   {
     id: "reservations",
@@ -96,6 +102,7 @@ export const views = [
     icon: "reservations",
     goKey: "r",
     keywords: ["maintenance", "calendar"],
+    kinds: [],
   },
   {
     id: "jobs",
@@ -107,6 +114,7 @@ export const views = [
     icon: "jobs",
     goKey: "j",
     keywords: ["queue", "running", "pending", "squeue"],
+    kinds: ["jobs"],
   },
   {
     id: "submit",
@@ -118,6 +126,7 @@ export const views = [
     icon: "submit",
     goKey: "s",
     keywords: ["new", "batch", "sbatch", "script"],
+    kinds: [],
   },
   {
     id: "history",
@@ -129,6 +138,7 @@ export const views = [
     icon: "history",
     goKey: "h",
     keywords: ["finished", "accounting", "sacct"],
+    kinds: [],
   },
   {
     id: "accounts",
@@ -139,6 +149,7 @@ export const views = [
     icon: "accounts",
     goKey: "a",
     keywords: ["associations", "sacctmgr"],
+    kinds: [],
   },
   {
     id: "qos",
@@ -149,6 +160,7 @@ export const views = [
     icon: "qos",
     goKey: "q",
     keywords: ["quality of service", "priority", "shares", "sshare"],
+    kinds: [],
   },
   {
     id: "diagnostics",
@@ -160,6 +172,7 @@ export const views = [
     icon: "diagnostics",
     goKey: "d",
     keywords: ["scheduler", "statistics", "sdiag", "rpc"],
+    kinds: [],
   },
   {
     id: "conf",
@@ -170,6 +183,7 @@ export const views = [
     icon: "conf",
     goKey: "c",
     keywords: ["configuration", "settings"],
+    kinds: [],
   },
   {
     id: "api-explorer",
@@ -181,6 +195,7 @@ export const views = [
     icon: "apiExplorer",
     goKey: "x",
     keywords: ["rest", "slurmrestd", "endpoints", "requests"],
+    kinds: [],
   },
 ] as const satisfies readonly View[];
 

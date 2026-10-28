@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
 
-import { client, type DataKind, JobSortKey } from "../client/client";
+import { client, JobSortKey } from "../client/client";
 import { DataAge } from "../cluster/DataAge";
 import { failureOf } from "../cluster/failure";
-import { usePulse } from "../cluster/useCluster";
+import { generationOf, usePulse } from "../cluster/useCluster";
+import { useFollow, useUser } from "../cluster/useFollow";
 import { PageHeader } from "../layout/PageHeader";
 import { type SearchChange, setTo } from "../routing/searchParams";
 import { useSearchChanges, useSearchParam } from "../routing/useSearchParam";
@@ -37,9 +37,6 @@ import {
   userParam,
 } from "./jobs/params";
 import { WithCluster } from "./WithCluster";
-
-/** The kinds of data the view watches. */
-const kinds: readonly DataKind[] = ["jobs"];
 
 /**
  * The base states the view always offers to filter by, in the handoff's
@@ -89,8 +86,7 @@ function JobsOf({ cluster }: { cluster: string }) {
   const [page, setPage] = useSearchParam(pageParam);
   const changeSearch = useSearchChanges();
 
-  const pulse = usePulse(cluster, kinds);
-  const me = pulse.data?.connection.user;
+  const pulse = usePulse(cluster, viewOf("jobs").kinds);
   const query = queryOf({ text, states, partition, user, sort, order, page });
   const jobs = useQuery({
     queryKey: ["jobs", cluster, query],
@@ -98,36 +94,8 @@ function JobsOf({ cluster }: { cluster: string }) {
     placeholderData: keepPreviousData,
   });
 
-  // The pulse reports a newer generation than the page was cut from: the
-  // page is asked for again. A read that failed with nothing held counts
-  // as the generation the pulse reported when it failed, so that it is
-  // asked for again once the jobs change. Asked for again at once, a read
-  // that fails while sdash holds jobs would be asked for in a loop.
-  const known = pulse.data?.kinds[0]?.generation;
-  const [failure, setFailure] = useState({ at: 0, generation: 0 });
-  if (jobs.isError && jobs.errorUpdatedAt !== failure.at) {
-    setFailure({ at: jobs.errorUpdatedAt, generation: known ?? 0 });
-  }
-  const held =
-    jobs.data?.generation ?? (jobs.isError ? failure.generation : undefined);
-  const { refetch } = jobs;
-  useEffect(() => {
-    if (known !== undefined && held !== undefined && known > held) {
-      void refetch({ cancelRefetch: false });
-    }
-  }, [known, held, refetch]);
-
-  // The user of the token is known once sdash has read the token, which it
-  // does for the first fetch: a pulse that came before it names nobody,
-  // and is asked for again when the jobs arrive rather than at its next
-  // turn, so that "you" and "My jobs" come with them.
-  const refetchPulse = pulse.refetch;
-  const unnamed = pulse.data !== undefined && me === undefined;
-  useEffect(() => {
-    if (unnamed && held !== undefined) {
-      void refetchPulse({ cancelRefetch: false });
-    }
-  }, [unnamed, held, refetchPulse]);
+  const held = useFollow(jobs, generationOf(pulse.data, "jobs"));
+  const me = useUser(pulse, held);
 
   /** Changes the filters, and puts the list back on its first page. */
   function filter(...changes: readonly SearchChange[]) {
@@ -299,7 +267,7 @@ function JobsOf({ cluster }: { cluster: string }) {
               level={2}
               {...(failed.code === undefined ? {} : { code: failed.code })}
               onRetry={() => {
-                void refetch();
+                void jobs.refetch();
               }}
               className="px-4 py-3.5"
             >
