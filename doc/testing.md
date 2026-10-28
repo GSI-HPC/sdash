@@ -294,7 +294,10 @@ daemon's bytes.
 The suite tests slurmrestd itself, what sdash relies on, and the Slurm
 client of `internal/slurm/client` against it: the connection with a token
 that a token command gets, the seeded jobs, nodes and partition, and a
-token slurmctld refuses. The Go tests of the client run against
+token slurmctld refuses. It also builds the binary and runs it with a
+profile file for the cluster, whose token command gets alice's tokens, and
+reads the browser API as a signed-in browser does: the seeded jobs, nodes
+and partition, the pulse, and the answer to a token slurmctld refuses. The
+Go tests of the client, the clusters and the browser API run against
 `internal/slurm/slurmrestdtest`, a fake slurmrestd that answers with the
-vendored captures and error cases and with nothing written by hand. The
-tests that run the built binary come with the first view of cluster data.
+vendored captures and error cases and with nothing written by hand.
