@@ -119,6 +119,13 @@ func New(cfg Config) (*Client, error) {
 	}, nil
 }
 
+// User returns the Slurm user the requests run as, as the last token
+// named it; empty before the first request, and for a token that does not
+// say.
+func (c *Client) User() string {
+	return c.tokens.User()
+}
+
 // endpoint parses and checks the URL of slurmrestd.
 func endpoint(raw string) (*url.URL, error) {
 	u, err := url.Parse(raw)

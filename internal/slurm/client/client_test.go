@@ -84,6 +84,16 @@ func TestConnectSpeaksTheNewestParserAndKnowsTheRelease(t *testing.T) {
 	assert.False(t, conn.Offers("GET", "/slurm/{v}/no-such-thing/"))
 }
 
+func TestTheClientRunsAsTheUserOfTheToken(t *testing.T) {
+	t.Parallel()
+	fake := slurmrestdtest.New(t, newest())
+	c := newClient(t, fake.URL, nil)
+	assert.Empty(t, c.User(), "nothing asked yet")
+	_, err := c.Connect(t.Context())
+	require.NoError(t, err)
+	assert.Equal(t, "alice", c.User())
+}
+
 // Every request names sdash, carries the token and the user it names, and
 // nothing else of the user's (doc/adr/0008-user-agent.md).
 func TestEveryRequestCarriesTheUserAgentAndTheToken(t *testing.T) {

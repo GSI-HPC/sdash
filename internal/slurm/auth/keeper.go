@@ -6,6 +6,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/GSI-HPC/sdash/internal/slurm/errs"
@@ -26,6 +27,9 @@ type Keeper struct {
 	// request whose context ends stops waiting for a slow command.
 	lock chan struct{}
 	held Token
+	// user is the user of the last token the Source gave, read without
+	// the lock, which a slow command holds.
+	user atomic.Pointer[string]
 }
 
 // NewKeeper returns a Keeper of the tokens of src.
@@ -64,7 +68,18 @@ func (k *Keeper) Token(ctx context.Context) (Token, error) {
 		}
 	}
 	k.held = t
+	k.user.Store(&t.User)
 	return t, nil
+}
+
+// User returns the user the last token from the Source named: the user
+// every request runs as. It is empty before the first token, and for a
+// token that does not say.
+func (k *Keeper) User() string {
+	if u := k.user.Load(); u != nil {
+		return *u
+	}
+	return ""
 }
 
 // Refused tells the Keeper that slurmrestd refused t, so that the next
