@@ -10,7 +10,11 @@ import { generationOf, usePulse } from "../cluster/useCluster";
 import { useFollow, useUser } from "../cluster/useFollow";
 import { PageHeader } from "../layout/PageHeader";
 import { type SearchChange, setTo } from "../routing/searchParams";
-import { useSearchChanges, useSearchParam } from "../routing/useSearchParam";
+import {
+  useSearchChanges,
+  useSearchParam,
+  useTypedText,
+} from "../routing/useSearchParam";
 import { viewOf } from "../routing/views";
 import { Banner } from "../primitives/Banner";
 import { Button } from "../primitives/Button";
@@ -101,6 +105,9 @@ function JobsOf({ cluster }: { cluster: string }) {
   function filter(...changes: readonly SearchChange[]) {
     changeSearch([...changes, setTo(pageParam, 1)]);
   }
+  const [typed, type] = useTypedText(text, (value) => {
+    filter(setTo(textParam, value));
+  });
 
   const list = jobs.data;
   const failed = jobs.isError ? failureOf(jobs.error) : undefined;
@@ -139,10 +146,8 @@ function JobsOf({ cluster }: { cluster: string }) {
           placeholder="Filter by id, name, user, account"
           leading="search"
           fill="surface"
-          value={text}
-          onValueChange={(value) => {
-            filter(setTo(textParam, value));
-          }}
+          value={typed}
+          onValueChange={type}
           className="w-full max-w-80"
         />
         <div

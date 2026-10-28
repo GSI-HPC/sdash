@@ -3,13 +3,18 @@
 
 import { MemoryRouter, useLocation, useNavigate } from "react-router";
 import { expect, test } from "vitest";
+import { userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 
 import { PageHeader } from "../layout/PageHeader";
 import { settled } from "../testing/app";
 import { ArrivalProvider } from "./arrival";
-import { defineSearchParam, integer, oneOf, setTo } from "./searchParams";
-import { useSearchChanges, useSearchParam } from "./useSearchParam";
+import { defineSearchParam, integer, oneOf, setTo, text } from "./searchParams";
+import {
+  useSearchChanges,
+  useSearchParam,
+  useTypedText,
+} from "./useSearchParam";
 
 const state = defineSearchParam(
   "state",
@@ -223,4 +228,88 @@ test("a change of the query string leaves the focus on the control that made it"
     .toHaveTextContent("/jobs?state=running&job=4711");
   await settled();
   await expect.element(open).toHaveFocus();
+});
+
+const query = defineSearchParam("q", text, "");
+
+/** A part of a view that takes a few milliseconds to draw, as a list does. */
+function Slow({ text }: { text: string }) {
+  busy(3);
+  return <span>{text}</span>;
+}
+
+/** Keeps the browser busy for a time, as a large list does while it draws. */
+function busy(milliseconds: number) {
+  const until = performance.now() + milliseconds;
+  while (performance.now() < until) {
+    // Nothing but the time.
+  }
+}
+
+/**
+ * A field that finds by a parameter of the address, over a list that is
+ * drawn again for each text: React draws the list between two keys, as the
+ * router changes the address in a transition.
+ */
+function Finder() {
+  const [value, setValue] = useSearchParam(query);
+  const [shown, type] = useTypedText(value, setValue);
+  const { search } = useLocation();
+
+  return (
+    <>
+      <output aria-label="Address">{search}</output>
+      <input
+        aria-label="Find"
+        value={shown}
+        onChange={(event) => {
+          type(event.target.value);
+        }}
+      />
+      <button
+        type="button"
+        onClick={() => {
+          setValue("");
+        }}
+      >
+        Clear
+      </button>
+      {Array.from({ length: 40 }, (_, index) => (
+        <Slow key={index} text={value} />
+      ))}
+    </>
+  );
+}
+
+test("every key typed into a field is kept while the address follows", async () => {
+  const screen = await render(
+    <MemoryRouter initialEntries={["/jobs"]}>
+      <Finder />
+    </MemoryRouter>,
+  );
+  const field = screen.getByRole("textbox", { name: "Find" });
+
+  await userEvent.type(field, "gpu-node");
+
+  await expect.element(field).toHaveValue("gpu-node");
+  await expect
+    .element(screen.getByRole("status", { name: "Address" }))
+    .toHaveTextContent("?q=gpu-node");
+});
+
+test("a change of the address the field did not make replaces what was typed", async () => {
+  const screen = await render(
+    <MemoryRouter initialEntries={["/jobs"]}>
+      <Finder />
+    </MemoryRouter>,
+  );
+  const field = screen.getByRole("textbox", { name: "Find" });
+  await userEvent.type(field, "gpu");
+  await expect
+    .element(screen.getByRole("status", { name: "Address" }))
+    .toHaveTextContent("?q=gpu");
+
+  await screen.getByRole("button", { name: "Clear" }).click();
+
+  await expect.element(field).toHaveValue("");
 });
