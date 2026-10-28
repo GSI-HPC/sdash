@@ -207,6 +207,9 @@ const text: readonly Pair[] = [
   ...onEach("the value of a meter", "--t1", [surface]),
   ...onEach("the value of a meter on one line", "--t2", [surface]),
   ...onEach("the label of a legend", "--t2", [surface]),
+  ...onEach("the header of a table", "--t3", [surface]),
+  ...onEach("a sorted header, or one under the pointer", "--t1", [surface]),
+  ...onEach("a cell of a table", "--t1", [surface]),
   ...onEach("the value of a legend", "--t1", [surface]),
 
   // EmptyState, Skeleton, ErrorPanel: on a card or on the page.

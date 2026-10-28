@@ -31,6 +31,7 @@ import { SkeletonSection } from "./sections/SkeletonSection";
 import { SparklineSection } from "./sections/SparklineSection";
 import { StackedBarSection } from "./sections/StackedBarSection";
 import { StatCardSection } from "./sections/StatCardSection";
+import { TableSection } from "./sections/TableSection";
 import { TabsSection } from "./sections/TabsSection";
 import { ToastSection } from "./sections/ToastSection";
 import { TooltipSection } from "./sections/TooltipSection";
@@ -66,6 +67,7 @@ const content: Record<SectionId, ComponentType> = {
   skeleton: SkeletonSection,
   "error-panel": ErrorPanelSection,
   banner: BannerSection,
+  table: TableSection,
 };
 
 /**

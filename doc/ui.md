@@ -8,9 +8,9 @@ sidebar with the navigation, the main region, the command palette and the
 keyboard shortcuts. The primitives are what a view is built from: the
 controls and overlays, buttons, fields, tabs, tooltips, menus, dialogs,
 the drawer and the toasts, and what shows data, cards, meters, bars,
-sparklines, grids of cells and the states of a panel with nothing to
-show. This document is for whoever builds a view inside the one and out
-of the other. The decisions behind them are in
+sparklines, grids of cells, tables and the states of a panel with
+nothing to show. This document is for whoever builds a view inside the
+one and out of the other. The decisions behind them are in
 [0024](adr/0024-addresses-and-keyboard-in-the-shell.md),
 [0029](adr/0029-ui-primitives-on-base-ui.md) and
 [0030](adr/0030-primitives-that-show-data.md), the stack in
@@ -753,6 +753,16 @@ region and say nothing of one that arrives with its text. An error panel is an a
 for a failure that comes after the page showed: one that is there on
 arrival is found like the rest of the page.
 
+A `Table` lies in a card that runs to its edges (`flush`). It is a native
+table with a caption for its name and a header cell for each column, and
+it sorts nothing itself: the caller hands in the rows in their order. A
+column that sorts has a button in its header, which Tab reaches and Enter
+and Space press; the first press sorts in the column's first direction,
+the next turns it round, and the header of the sorted column says so with
+`aria-sort` and an arrow. A table wider than its card scrolls sideways
+inside it, and is then a stop of the Tab key with the table's name. A
+figure stands at the end of its cell in DM Mono.
+
 The figures of DM Sans, as sdash bundles it, are not all of one width, and
 `tabular-nums` changes nothing. A figure that changes moves the text after
 it; where values stand in a column and have to line up, as on a meter on
@@ -973,6 +983,8 @@ card and 5.99, 11.11 on the track.
 | The tooltip of a cell | At the pointer, with the name and figures of the thing | One tooltip for the grid, beside the cell, with the label, the word of the tone with its swatch, and a detail | Each view says what a cell is; the tooltip is the same for every grid |
 | A grid under a contrast theme of the system | Not drawn | Every cell in the colour of text | The system removes the colours of the cells; their tooltips and names tell them apart |
 | Content on its way | Not drawn | A still skeleton: grey lines, and "Loading…" in words | The handoff has no loading state; a shimmer would move for as long as the wait |
+| The header of a column that sorts | Pressed anywhere; an arrow after the text once sorted | A button around the text and the arrow, and the arrow's room kept while it is not shown | The keyboard reaches a button and a screen reader says it can be pressed; the header does not move when the sort does |
+| The lines of a table | A line under every row | None under the last row | The border of the card lies there |
 | A card whose content failed | Not drawn: failures are banners | An error panel in place of the content: a dot, what failed, what to do, the error in DM Mono, and a button that tries again | A part of a view can fail while the rest works |
 | A banner that can be dismissed | Not drawn | A button "Dismiss" at its end, where the view allows it | A banner about something the user has seen and can do nothing about need not stay |
 
@@ -1027,8 +1039,8 @@ place it is disabled with its reason as a tooltip; the count beside an
 item of the navigation; the API hint beside a page's heading; jobs and
 nodes in the palette.
 
-Of the primitives, the controls, the overlays and what shows data are
-built. Tables, sortable, virtual and as a tree, are not, and neither is
+Of the primitives, the controls, the overlays, what shows data and the
+sortable table are built. A table as a tree is not, and neither is
 the heat map of the Nodes view, whose cells run from `--hm-cold` to the
 accent by a value and dim where a filter leaves them out: the cell grid
 has tones and no scale. Neither are the handoff's editor dialog and its
