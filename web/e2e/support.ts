@@ -13,12 +13,21 @@ import { isApplePlatform } from "../src/shortcuts/keys.ts";
 type ColorScheme = "light" | "dark";
 
 /**
- * The address sdash printed when it started, with the token of its launch.
+ * Which of the two sdash under test a test opens: the one without a
+ * cluster, or the one whose profile file names the cluster of the fake
+ * slurmrestd, "virgo" (playwright.config.ts).
  */
-function launchAddress(): URL {
-  const address = process.env.SDASH_URL;
+export type Instance = "plain" | "cluster";
+
+/**
+ * The address the sdash of the instance printed when it started, with the
+ * token of its launch.
+ */
+function launchAddress(instance: Instance = "plain"): URL {
+  const variable = instance === "plain" ? "SDASH_URL" : "SDASH_CLUSTER_URL";
+  const address = process.env[variable];
   if (!address) {
-    throw new Error("SDASH_URL is not set; playwright.config.ts sets it");
+    throw new Error(`${variable} is not set; playwright.config.ts sets it`);
   }
   return new URL(address);
 }
@@ -148,6 +157,8 @@ export async function scan(page: Page) {
  * Opens sdash at the given address of the application, as a link to a view
  * does: the server answers it with the page, and the page has to find its
  * way to the view from the address alone. Returns what open returns.
+ * `instance` is the sdash to open, the one without a cluster unless said
+ * otherwise.
  *
  * The token of the launch travels with the address, which sdash takes at
  * any address, so the interface is loaded once. Loaded at the root first
@@ -159,9 +170,12 @@ export async function scan(page: Page) {
 export async function openAt(
   page: Page,
   path: string,
-  { colorScheme }: { colorScheme?: ColorScheme } = {},
+  {
+    colorScheme,
+    instance,
+  }: { colorScheme?: ColorScheme; instance?: Instance } = {},
 ): Promise<string[]> {
-  const launch = launchAddress();
+  const launch = launchAddress(instance);
   const address = new URL(path, launch);
   for (const [name, value] of launch.searchParams) {
     address.searchParams.set(name, value);

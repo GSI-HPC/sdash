@@ -160,8 +160,12 @@ what the policy made it refuse, so a primitive that needed an inline style
 would fail there and nowhere else. They run in Chromium, Firefox and
 WebKit, the engines behind the supported browsers
 ([0014](adr/0014-accessibility-and-browsers.md)). `make test-browser` builds
-`bin/sdash` and runs them; the tests start the binary themselves on a free
-port and stop it again. `npm run test:browser -- --project=chromium` in
+`bin/sdash` and `bin/slurmrestdtest`, a fake slurmrestd that answers with
+the captures of a sind cluster, and runs them. The tests start two sdash
+themselves, each on a free port, and stop them again: one without a
+cluster, and one whose profile file names the fake as the cluster "virgo"
+([0035](adr/0035-the-jobs-view-and-its-table.md)). Started by hand, the
+two addresses go into `SDASH_URL` and `SDASH_CLUSTER_URL`. `npm run test:browser -- --project=chromium` in
 `web/` runs one engine.
 
 A test in a browser that says nothing happened, that a key did not switch
