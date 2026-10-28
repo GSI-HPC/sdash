@@ -20,6 +20,8 @@ import (
 	"github.com/GSI-HPC/go-clikit/localweb"
 	"github.com/GSI-HPC/go-clikit/localweb/launch"
 
+	"github.com/GSI-HPC/sdash/internal/clusters"
+	"github.com/GSI-HPC/sdash/internal/profile"
 	"github.com/GSI-HPC/sdash/internal/server"
 	"github.com/GSI-HPC/sdash/internal/static"
 	"github.com/GSI-HPC/sdash/internal/version"
@@ -173,6 +175,10 @@ func serve(ctx context.Context, p Process, o options) error {
 	if err != nil {
 		return err
 	}
+	set, err := loadClusters(ctx, p, logger, o.config)
+	if err != nil {
+		return err
+	}
 
 	srv, err := server.New(ctx, server.Config{
 		Listen: listen,
@@ -190,6 +196,7 @@ func serve(ctx context.Context, p Process, o options) error {
 		API: server.NewAPI(server.APIConfig{
 			Build:    version.Get(),
 			ReadOnly: o.readOnly,
+			Clusters: set,
 			Logger:   logger,
 		}),
 		Logger: logger,
@@ -240,6 +247,37 @@ func serve(ctx context.Context, p Process, o options) error {
 		defer func() { _ = os.Remove(file) }()
 	}
 	return srv.Run(ctx)
+}
+
+// loadClusters reads the profile file, the one named by --config or else
+// the default one, and builds its clusters, whose fetches end with ctx. A
+// default file that does not exist is no clusters; a file that is wrong in
+// any way is a configuration error, reported before anything is started.
+func loadClusters(ctx context.Context, p Process, logger *slog.Logger, config string) (*clusters.Set, error) {
+	path, optional := config, false
+	if path == "" {
+		var err error
+		if path, err = profile.DefaultPath(p.getenv); err != nil {
+			logger.Info("reading no profile file", "reason", err)
+			return clusters.New(ctx, profile.Profile{}, clusters.Options{})
+		}
+		optional = true
+	}
+	prof, err := profile.Load(path, optional, p.getenv)
+	if err != nil {
+		return nil, cobratree.Usage(err)
+	}
+	if prof.Path == "" {
+		logger.Info("no profile file names a cluster", "path", path)
+	}
+	set, err := clusters.New(ctx, prof, clusters.Options{Getenv: p.getenv, Logger: logger})
+	if err != nil {
+		return nil, cobratree.Usage(fmt.Errorf("profile file %s: %w", path, err))
+	}
+	for _, c := range set.All() {
+		logger.Info("serve a cluster", "cluster", c.Name, "endpoint", c.Endpoint)
+	}
+	return set, nil
 }
 
 // acquireInstance returns the guard that keeps one sdash server per user,
