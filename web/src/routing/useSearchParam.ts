@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
 // SPDX-License-Identifier: Apache-2.0
 
+import { startTransition, useOptimistic } from "react";
 import { useSearchParams } from "react-router";
 
 import {
@@ -68,4 +69,33 @@ export function useSearchParam<Value>(
   }
 
   return [readSearchParam(search, param), set];
+}
+
+/**
+ * The text of a field whose value is a parameter of the query string, and
+ * the function its changes go to: `write` is called with each text typed,
+ * and puts it into the address.
+ *
+ * The router changes the address in a transition, so the address lags
+ * behind a user who types fast. A field that showed the address's text
+ * would be put back to that text after each key, and the next key would
+ * be added to it, losing the one before. The field shows the text typed
+ * until the address has it, as an optimistic state of the transition; a
+ * change of the address that the field did not make, Back or a button
+ * that clears the filters, shows at once.
+ */
+export function useTypedText(
+  value: string,
+  write: (text: string) => void,
+): [string, (text: string) => void] {
+  const [shown, show] = useOptimistic(value);
+
+  function type(text: string) {
+    startTransition(() => {
+      show(text);
+      write(text);
+    });
+  }
+
+  return [shown, type];
 }

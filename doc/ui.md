@@ -355,6 +355,19 @@ Two setters of `useSearchParam` called in one event do not add up. The
 router hands each the query string it last rendered, so the second
 navigation undoes the first.
 
+The router changes the address in a transition, so the address lags
+behind a user who types fast, and a field that showed the address's text
+would lose keys. A field of text bound to a parameter shows what was typed
+until the address has it, through `useTypedText`:
+
+```tsx
+const [text] = useSearchParam(textParam);
+const [typed, type] = useTypedText(text, (value) => {
+  changeSearch([setTo(textParam, value), setTo(page, 1)]);
+});
+<Input value={typed} onValueChange={type} />;
+```
+
 The cluster a view of cluster data shows is the parameter `cluster`, with
 the name the profile file gives it, and the first cluster of the file
 where the address names none
