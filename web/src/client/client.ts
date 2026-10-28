@@ -13,6 +13,14 @@
 import {
   ErrorCode,
   type Error as ErrorBody,
+  type GetJobsData,
+  type GetJobsResponse,
+  type GetNodesData,
+  type GetNodesResponse,
+  type GetPartitionsData,
+  type GetPartitionsResponse,
+  type GetPulseData,
+  type GetPulseResponse,
   type GetSessionData,
   type GetSessionResponse,
   type GetStatusData,
@@ -26,6 +34,26 @@ export type Status = GetStatusResponse;
 
 /** What the session operation answers. */
 export type Session = GetSessionResponse;
+
+/** What the pulse of a cluster answers. */
+export type Pulse = GetPulseResponse;
+
+/** What a page of the jobs of a cluster answers. */
+export type JobList = GetJobsResponse;
+
+/** The filters, the order and the window of a page of jobs. */
+export type JobQuery = NonNullable<GetJobsData["query"]>;
+
+/** What the nodes of a cluster answer. */
+export type NodeList = GetNodesResponse;
+
+/** What the partitions of a cluster answer. */
+export type PartitionList = GetPartitionsResponse;
+
+/** A kind of a cluster's data. */
+export type DataKind = NonNullable<
+  NonNullable<GetPulseData["query"]>["kinds"]
+>[number];
 
 /**
  * The base path of the API, the server of api/openapi.yaml. It is relative,
@@ -82,6 +110,26 @@ export interface Client {
    * a request that could change something; a view has no use for it.
    */
   getSession(options?: CallOptions): Promise<Session>;
+  /**
+   * Says whether sdash is connected to the cluster, and how far each kind
+   * asked for has got. The kinds asked for stay watched: sdash fetches
+   * them from the cluster for as long as a page asks.
+   */
+  getPulse(
+    cluster: string,
+    kinds: readonly DataKind[],
+    options?: CallOptions,
+  ): Promise<Pulse>;
+  /** Gives a page of the jobs of the cluster. */
+  getJobs(
+    cluster: string,
+    query?: JobQuery,
+    options?: CallOptions,
+  ): Promise<JobList>;
+  /** Gives the nodes of the cluster. */
+  getNodes(cluster: string, options?: CallOptions): Promise<NodeList>;
+  /** Gives the partitions of the cluster. */
+  getPartitions(cluster: string, options?: CallOptions): Promise<PartitionList>;
 }
 
 /** Sends a request to the API, and rejects with an ApiError if it fails. */
@@ -180,7 +228,61 @@ export function createClient(fetch: typeof globalThis.fetch): Client {
       const response = await transport.send(url, options);
       return (await bodyOf(response)) as GetSessionResponse;
     },
+    async getPulse(cluster, kinds, options = {}) {
+      const path: GetPulseData["url"] = "/clusters/{cluster}/pulse";
+      const url = clusterPath(path, cluster) + queryOf({ kinds });
+      const response = await transport.send(url, options);
+      return (await bodyOf(response)) as GetPulseResponse;
+    },
+    async getJobs(cluster, query = {}, options = {}) {
+      const path: GetJobsData["url"] = "/clusters/{cluster}/jobs";
+      const url = clusterPath(path, cluster) + queryOf(query);
+      const response = await transport.send(url, options);
+      return (await bodyOf(response)) as GetJobsResponse;
+    },
+    async getNodes(cluster, options = {}) {
+      const path: GetNodesData["url"] = "/clusters/{cluster}/nodes";
+      const response = await transport.send(
+        clusterPath(path, cluster),
+        options,
+      );
+      return (await bodyOf(response)) as GetNodesResponse;
+    },
+    async getPartitions(cluster, options = {}) {
+      const path: GetPartitionsData["url"] = "/clusters/{cluster}/partitions";
+      const response = await transport.send(
+        clusterPath(path, cluster),
+        options,
+      );
+      return (await bodyOf(response)) as GetPartitionsResponse;
+    },
   };
+}
+
+/** The path of an operation on a cluster, with its name as one segment. */
+function clusterPath(path: string, cluster: string): string {
+  return path.replace("{cluster}", encodeURIComponent(cluster));
+}
+
+/**
+ * The query string of the parameters, as the document has them read: an
+ * array is one parameter for each of its values (style form, explode), and
+ * a parameter that is undefined is left out. Empty when there is none.
+ */
+function queryOf(
+  parameters: Record<string, string | number | readonly string[] | undefined>,
+): string {
+  const query = new URLSearchParams();
+  for (const [name, value] of Object.entries(parameters)) {
+    if (value === undefined) {
+      continue;
+    }
+    for (const one of typeof value === "object" ? value : [value]) {
+      query.append(name, String(one));
+    }
+  }
+  const text = query.toString();
+  return text === "" ? "" : `?${text}`;
 }
 
 /**

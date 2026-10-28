@@ -16,6 +16,7 @@ import (
 	"github.com/GSI-HPC/go-clikit/localweb/session"
 
 	"github.com/GSI-HPC/sdash/internal/api"
+	"github.com/GSI-HPC/sdash/internal/clusters"
 	"github.com/GSI-HPC/sdash/internal/version"
 )
 
@@ -25,6 +26,9 @@ type APIConfig struct {
 	Build version.Info
 	// ReadOnly says that sdash was started with --read-only.
 	ReadOnly bool
+	// Clusters are the clusters of the profile file, whose data the API
+	// gives; nil for none.
+	Clusters *clusters.Set
 	// Logger receives what goes wrong while a request is answered. Nothing
 	// is logged without one.
 	Logger *slog.Logger
@@ -39,7 +43,7 @@ type APIConfig struct {
 // checks; mounted anywhere else it would answer everyone.
 func NewAPI(cfg APIConfig) http.Handler {
 	logger := cmp.Or(cfg.Logger, slog.New(slog.DiscardHandler))
-	return newAPIHandler(operations{status: newStatus(cfg, logger)}, logger)
+	return newAPIHandler(operations{status: newStatus(cfg, logger), clusters: cfg.Clusters}, logger)
 }
 
 // newAPIHandler puts the generated routing in front of an implementation of
@@ -61,9 +65,7 @@ func newAPIHandler(operations api.StrictServerInterface, logger *slog.Logger) ht
 	})
 
 	// What the generated code calls when it cannot read the parameters or
-	// the body of a request. No operation has either yet, so nothing calls
-	// it; it is set all the same, because the generated default answers in
-	// plain text and would be forgotten when the first parameter arrives.
+	// the body of a request: its own default answers in plain text.
 	badRequest := func(w http.ResponseWriter, _ *http.Request, err error) {
 		writeError(w, http.StatusBadRequest, api.ErrorCodeBadRequest, err.Error())
 	}
@@ -123,6 +125,9 @@ type operations struct {
 	// status is the answer of GetStatus. Nothing in it changes while the
 	// process runs, so it is put together once.
 	status api.Status
+	// clusters are the clusters whose data the operations give; nil for
+	// none.
+	clusters *clusters.Set
 }
 
 // GetSession gives the CSRF token of the session that asks. The session check
@@ -146,10 +151,13 @@ func newStatus(cfg APIConfig, logger *slog.Logger) api.Status {
 		Platform:  cfg.Build.Platform,
 		ReadOnly:  cfg.ReadOnly,
 		// Empty and not nil: the document promises a list, and a nil slice
-		// is sent as null. No cluster can be configured yet, since
-		// everything that speaks to Slurm waits for
-		// doc/adr/0016-e2e-and-fixtures-on-sind.md.
+		// is sent as null.
 		Clusters: []api.Cluster{},
+	}
+	if cfg.Clusters != nil {
+		for _, c := range cfg.Clusters.All() {
+			status.Clusters = append(status.Clusters, api.Cluster{Name: c.Name, Endpoint: c.Endpoint})
+		}
 	}
 	if cfg.Build.Commit != "" {
 		status.Commit = &cfg.Build.Commit
