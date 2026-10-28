@@ -13,6 +13,15 @@ import { heading, open, scan } from "./support.ts";
 // fail matches it under whatever host and port sdash is bound to.
 const statusOperation = "**/api/v1/status";
 
+/**
+ * The part of the Overview that says which sdash is running. The view has
+ * another status region while it waits for the clusters, so the one of
+ * this part is found inside it.
+ */
+function about(page: Page) {
+  return page.getByRole("main").getByRole("region", { name: "About" });
+}
+
 // The whole way of the browser API, once: the built interface calls the
 // server it was served by, with the session the printed address gave it,
 // and shows the answer (doc/adr/0011-openapi-first-browser-api.md). What
@@ -26,10 +35,9 @@ test("the Overview says which sdash is running", async ({ page }) => {
   const status = (await answer.json()) as Status;
 
   await expect(heading(page)).toHaveText("Overview");
-  const about = page.getByRole("main").getByRole("region", { name: "About" });
   // In the status region, where a screen reader announces it.
-  await expect(about.getByRole("status")).toContainText(status.version);
-  await expect(about.getByRole("status")).toContainText(status.platform);
+  await expect(about(page).getByRole("status")).toContainText(status.version);
+  await expect(about(page).getByRole("status")).toContainText(status.platform);
   await expect(page.getByRole("alert")).toHaveCount(0);
 
   expect(problems).toEqual([]);
@@ -58,7 +66,7 @@ test("a read-only sdash says so in the status region", async ({ page }) => {
   await answerReadOnly(page);
   const problems = await open(page);
 
-  await expect(page.getByRole("status")).toContainText(
+  await expect(about(page).getByRole("status")).toContainText(
     "Read-only: this sdash changes nothing on a cluster",
   );
   await expect(page.getByRole("alert")).toHaveCount(0);
@@ -104,7 +112,7 @@ for (const theme of ["light", "dark"] as const) {
       await answerReadOnly(page);
       await open(page, { colorScheme: theme });
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
-      await expect(page.getByRole("status")).toContainText("Read-only");
+      await expect(about(page).getByRole("status")).toContainText("Read-only");
 
       expect(await scan(page)).toEqual([]);
     });

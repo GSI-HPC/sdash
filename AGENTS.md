@@ -15,13 +15,14 @@ Personal, uncommitted instructions belong in `AGENTS.local.md` or
 ## Status
 
 A scaffold: the build, the checks, the decision records, and the shell of
-the UI (`doc/ui.md`) around placeholder views. Its primitives, controls,
-overlays, what shows data and tables, are in a gallery at `/gallery`. The
-Slurm client connects to a slurmrestd and reads jobs, nodes and partitions
+the UI (`doc/ui.md`) around its views. Its primitives, controls, overlays,
+what shows data and tables, are in a gallery at `/gallery`. The Slurm client
+connects to a slurmrestd and reads jobs, nodes and partitions
 (`0032-the-slurm-client-as-built`), the clusters come from a profile file
 (`0033-the-profile-file`), and the browser API serves their data from a
-cache (`0034-cluster-data-in-the-browser-api`); no view shows them yet. No
-release yet.
+cache (`0034-cluster-data-in-the-browser-api`). The Jobs view shows the
+jobs, in the table primitive (`0035-the-jobs-view-and-its-table`); the other
+views are placeholders. No release yet.
 Everything Slurm-facing (the slurmrestd client, vendored specs, fixtures,
 the views of cluster data) is built against a slurmrestd on a sind cluster,
 because every spec and fixture comes from an end-to-end run on one
@@ -72,8 +73,9 @@ else.
   string), `layout/` (the shell), `nav/`, `views/`, `shortcuts/`,
   `palette/`, `primitives/` (on Base UI), `gallery/` (every primitive),
   `icons/`, `theme/`, `storage/`, `status/` (which sdash is running),
-  `client/`, the generated `api/`, `styles/` (`tokens.css`, the design
-  tokens), `testing/` (shared by tests).
+  `cluster/` (which cluster a view shows, and its pulse), `client/`, the
+  generated `api/`, `styles/` (`tokens.css`, the design tokens), `testing/`
+  (shared by tests).
 - `doc/`: `adr/`, the decision records and their index; `design/`, the UI
   design handoff; `research/`, the Radar and slurmrestd studies.
 - `.github/`: `workflows/ci.yml` and `release.yml`; `actions/setup-go` and

@@ -221,7 +221,12 @@ export function heading(page: Page): Locator {
 export async function settled(page: Page, title: string): Promise<void> {
   await expect(heading(page)).toHaveText(title);
   if (title === "Overview") {
-    await expect(page.getByRole("status")).toContainText("Version");
+    await expect(
+      page
+        .getByRole("main")
+        .getByRole("region", { name: "About" })
+        .getByRole("status"),
+    ).toContainText("Version");
   }
 }
 

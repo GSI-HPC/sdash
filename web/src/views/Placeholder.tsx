@@ -5,15 +5,16 @@ import type { ReactNode } from "react";
 
 import { PageHeader } from "../layout/PageHeader";
 import { type ViewId, viewOf } from "../routing/views";
-import { NoCluster } from "./NoCluster";
+import { Card } from "../primitives/Card";
+import { EmptyState } from "../primitives/EmptyState";
+import { WithCluster } from "./WithCluster";
 
 /**
  * A view before it is built: the page header with the view's title and the
- * line of the view table that says what it will show, and the card that
- * says no cluster is configured. Every view of cluster data is this until
- * the Slurm-facing work can start
- * (doc/adr/0016-e2e-and-fixtures-on-sind.md); a view that is built
- * replaces it in its own file under views/.
+ * line of the view table that says what it will show, and a card that says
+ * why it shows nothing: that no cluster is configured, or else that the
+ * view is not built yet. A view that is built replaces it in its own file
+ * under views/.
  *
  * Children follow the card, for what a view can show already.
  */
@@ -29,7 +30,15 @@ export function Placeholder({
   return (
     <div className="flex flex-col gap-3.5">
       <PageHeader title={title} summary={summary} />
-      <NoCluster />
+      <WithCluster>
+        {() => (
+          <Card className="max-w-140">
+            <EmptyState title="Not built yet" level={2}>
+              This view does not show the data of a cluster yet.
+            </EmptyState>
+          </Card>
+        )}
+      </WithCluster>
       {children}
     </div>
   );

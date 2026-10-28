@@ -130,3 +130,19 @@ export function oneOf<const Word extends string>(
     format: (value) => value,
   };
 }
+
+/**
+ * Words, separated by commas, such as the states a list is filtered by,
+ * in the order they were given. Nothing is no words. A word is never
+ * empty, so "a,,b" and a comma at an end are no value of this codec.
+ */
+export const words: Codec<readonly string[]> = {
+  parse(written) {
+    if (written === "") {
+      return [];
+    }
+    const list = written.split(",");
+    return list.includes("") ? undefined : list;
+  },
+  format: (value) => value.join(","),
+};

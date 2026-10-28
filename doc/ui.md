@@ -12,16 +12,17 @@ sparklines, grids of cells, tables and the states of a panel with
 nothing to show. This document is for whoever builds a view inside the
 one and out of the other. The decisions behind them are in
 [0024](adr/0024-addresses-and-keyboard-in-the-shell.md),
-[0029](adr/0029-ui-primitives-on-base-ui.md) and
-[0030](adr/0030-primitives-that-show-data.md), the stack in
+[0029](adr/0029-ui-primitives-on-base-ui.md),
+[0030](adr/0030-primitives-that-show-data.md) and
+[0035](adr/0035-the-jobs-view-and-its-table.md), the stack in
 [0013](adr/0013-frontend-stack.md), and the look comes from the
 [design handoff](design/README.md), which they depart from in the places
 [listed below](#departures-from-the-handoff).
 
-No view shows cluster data yet
-([0016](adr/0016-e2e-and-fixtures-on-sind.md)). Each is a placeholder: its
-page header and a card that says no cluster is configured. The Overview
-also says which sdash is running.
+The Jobs view shows the jobs of a cluster. Every other view is a
+placeholder: its page header and a card that says that no cluster is
+configured, or else that the view is not built yet. The Overview also
+says which sdash is running.
 
 ## Where things are
 
@@ -32,7 +33,8 @@ Everything is under `web/src/`.
 | `routing/` | The view table (`views.ts`), the routes, what happens on arriving at a view, the helper for state in the query string |
 | `layout/` | The shell: header, sidebar, main region, skip link, page header, the shell's commands |
 | `nav/` | The navigation inside the sidebar |
-| `views/` | One component for each view, the shared placeholder, the not-found view |
+| `views/` | One component for each view, the shared placeholder, the not-found view; a view's own parts in a directory named after it, such as `views/jobs/` |
+| `cluster/` | Which cluster a view shows, its pulse, the words for a failure of its data, and their age |
 | `shortcuts/` | The shortcut registry, its hook, the help dialog |
 | `palette/` | The command palette and its scoring |
 | `primitives/` | The controls and overlays every view is built from, one file each, on Base UI. The one directory that imports Base UI |
@@ -333,12 +335,13 @@ setFilter("running", { history: "push" }); // adds one, which Back undoes
 ```
 
 `routing/searchParams.ts` has `defineSearchParam` and the codecs `text`,
-`integer` and `oneOf`; `routing/useSearchParam.ts` has the hook. A text in
-the address that is no value of the parameter reads as the fallback, and a
-value that is the fallback is left out of the address. A value has one
-spelling, so that a state has one address: `integer` reads `7` and `-3`,
-and takes `007`, `+7`, `-0` and `7` with a space for no number. No view
-uses the helper yet.
+`integer`, `oneOf` and `words`, a list separated by commas;
+`routing/useSearchParam.ts` has the hook. A text in the address that is no
+value of the parameter reads as the fallback, and a value that is the
+fallback is left out of the address. A value has one spelling, so that a
+state has one address: `integer` reads `7` and `-3`, and takes `007`, `+7`,
+`-0` and `7` with a space for no number. The Jobs view keeps its filters,
+its sort and its page there (`views/jobs/params.ts`).
 
 An event that changes two parameters, a filter that also puts the list
 back on its first page, makes one navigation of it with `useSearchChanges`:
@@ -352,8 +355,13 @@ Two setters of `useSearchParam` called in one event do not add up. The
 router hands each the query string it last rendered, so the second
 navigation undoes the first.
 
-Which cluster is shown is not in the address; that is left open in
-[0024](adr/0024-addresses-and-keyboard-in-the-shell.md).
+The cluster a view of cluster data shows is the parameter `cluster`, with
+the name the profile file gives it, and the first cluster of the file
+where the address names none
+([0035](adr/0035-the-jobs-view-and-its-table.md)). `useCluster` in
+`cluster/` reads it; `views/WithCluster.tsx` renders a view's content for
+that cluster, or the one card that says why there is none: no cluster in
+the file, a name the file does not have, or no answer from sdash.
 
 ## Primitives
 
@@ -763,6 +771,14 @@ the next turns it round, and the header of the sorted column says so with
 inside it, and is then a stop of the Tab key with the table's name. A
 figure stands at the end of its cell in DM Mono.
 
+A view of cluster data asks for the pulse of its kinds every 10 seconds
+(`usePulse`), which keeps sdash fetching them, and asks for its data again
+when the pulse reports a newer generation; meanwhile it shows what it had.
+Beside its data it says how old they are (`DataAge`). Without data, an
+`ErrorPanel` says why, in the words `failureOf` gives the code of the
+error; data that are older than a failed fetch stay, under a `Banner` that
+says the same ([0035](adr/0035-the-jobs-view-and-its-table.md)).
+
 The figures of DM Sans, as sdash bundles it, are not all of one width, and
 `tabular-nums` changes nothing. A figure that changes moves the text after
 it; where values stand in a column and have to line up, as on a meter on
@@ -1028,6 +1044,13 @@ card and 5.99, 11.11 on the track.
 | The tooltip of a grid | Follows the pointer | Follows whichever of the keyboard and the pointer moved last, the pointer after a rest of 300 ms; a pointer that did not move takes nothing; a touch shows it | WCAG 2.1, 1.4.13; a scroll under a still pointer must not take away what the keyboard brought up |
 | Dismissing a banner by the keyboard | Not drawn | The focus goes to the first stop of the Tab key after the banner, or to the heading of the view; in a dialog, to the next stop in it or to the dialog | The focus would fall to the body, and the next Tab start at the top of the page |
 
+| Where | The handoff | The Jobs view | Why |
+| --- | --- | --- | --- |
+| The list of jobs | Every job, in a box as high as the window less 250 px, with its header fixed | 50 jobs a page, with buttons for the page before and after, in a card as high as its rows | The server cuts the list into pages ([0035](adr/0035-the-jobs-view-and-its-table.md)) |
+| The chips of the states | All, Running, Pending, Completing, Suspended, Cancelled; one at a time | All, and Running, Pending, Suspended, Completed, Cancelled, Failed and Timeout with any other state a job is in; several at once | slurmrestd reports COMPLETING as a flag of a job that ended, not as a state; a job that ended in failure is as worth finding as one that waits |
+| The age of the data | Not drawn | The count of the jobs, then "fetched" and how long ago, and the time | What the view shows is up to a period old ([0010](adr/0010-read-through-cache-and-polling.md)) |
+| A column of time | "Time", elapsed over the limit with a bar, sortable | "Time and limit", the two in Slurm's spelling without the bar, not sortable; a running job's time at the moment its data were fetched | The server sorts by the limit and not by the time used; the bar waits for the designer |
+
 ### Not built yet
 
 These are parts of the handoff's shell that wait for a cluster
@@ -1038,6 +1061,10 @@ says "No cluster"; the cluster switcher's name, version and menu, in whose
 place it is disabled with its reason as a tooltip; the count beside an
 item of the navigation; the API hint beside a page's heading; jobs and
 nodes in the palette.
+
+Of the Jobs view: the job page its ids lead to, the drawer a row opens,
+the boxes that select rows and the bar of what to do with them, the
+"Submit job" button, and the GPUs of a job.
 
 Of the primitives, the controls, the overlays, what shows data and the
 sortable table are built. A table as a tree is not, and neither is

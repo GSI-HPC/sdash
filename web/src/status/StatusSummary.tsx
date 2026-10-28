@@ -4,7 +4,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useId } from "react";
 
-import { ApiError, client } from "../client/client";
+import { ApiError } from "../client/client";
+import { statusQuery } from "../client/query";
 
 /**
  * Says which sdash serves the page: its version and the platform it was
@@ -26,10 +27,7 @@ import { ApiError, client } from "../client/client";
  */
 export function StatusSummary() {
   const headingId = useId();
-  const status = useQuery({
-    queryKey: ["status"],
-    queryFn: ({ signal }) => client.getStatus({ signal }),
-  });
+  const status = useQuery(statusQuery);
 
   return (
     <section aria-labelledby={headingId} className="mt-2">
