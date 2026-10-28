@@ -33,6 +33,7 @@ import { StackedBarSection } from "./sections/StackedBarSection";
 import { StatCardSection } from "./sections/StatCardSection";
 import { TableSection } from "./sections/TableSection";
 import { TabsSection } from "./sections/TabsSection";
+import { TimelineSection } from "./sections/TimelineSection";
 import { ToastSection } from "./sections/ToastSection";
 import { TooltipSection } from "./sections/TooltipSection";
 
@@ -62,6 +63,7 @@ const content: Record<SectionId, ComponentType> = {
   "stacked-bar": StackedBarSection,
   legend: LegendSection,
   sparkline: SparklineSection,
+  timeline: TimelineSection,
   "cell-grid": CellGridSection,
   "empty-state": EmptyStateSection,
   skeleton: SkeletonSection,

@@ -46,6 +46,7 @@ export const sections = [
   { id: "stacked-bar", title: "StackedBar" },
   { id: "legend", title: "Legend" },
   { id: "sparkline", title: "Sparkline" },
+  { id: "timeline", title: "Timeline" },
   { id: "cell-grid", title: "CellGrid" },
   { id: "empty-state", title: "EmptyState" },
   { id: "skeleton", title: "Skeleton" },
