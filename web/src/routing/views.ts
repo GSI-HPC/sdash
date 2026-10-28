@@ -65,7 +65,7 @@ export const views = [
     path: "/overview",
     title: "Overview",
     summary:
-      "The cluster at a glance: nodes, allocated CPUs and GPUs, jobs, partitions and reservations.",
+      "The cluster at a glance: its nodes, the CPUs allocated, its jobs and its partitions.",
     group: "Cluster",
     icon: "overview",
     goKey: "o",
