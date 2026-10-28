@@ -16,12 +16,12 @@ Personal, uncommitted instructions belong in `AGENTS.local.md` or
 
 A scaffold: the build, the checks, the decision records, and the shell of
 the UI (`doc/ui.md`) around placeholder views. Its primitives, controls,
-overlays and what shows data, are in a gallery at `/gallery`; tables are
-next. The Slurm client connects to a slurmrestd and reads jobs, nodes and
-partitions (`0032-the-slurm-client-as-built`), the clusters come from a
-profile file (`0033-the-profile-file`), and the browser API serves their
-data from a cache (`0034-cluster-data-in-the-browser-api`); no view shows
-them yet. No release yet.
+overlays, what shows data and tables, are in a gallery at `/gallery`. The
+Slurm client connects to a slurmrestd and reads jobs, nodes and partitions
+(`0032-the-slurm-client-as-built`), the clusters come from a profile file
+(`0033-the-profile-file`), and the browser API serves their data from a
+cache (`0034-cluster-data-in-the-browser-api`); no view shows them yet. No
+release yet.
 Everything Slurm-facing (the slurmrestd client, vendored specs, fixtures,
 the views of cluster data) is built against a slurmrestd on a sind cluster,
 because every spec and fixture comes from an end-to-end run on one

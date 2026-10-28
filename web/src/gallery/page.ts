@@ -51,6 +51,7 @@ export const sections = [
   { id: "skeleton", title: "Skeleton" },
   { id: "error-panel", title: "ErrorPanel" },
   { id: "banner", title: "Banner" },
+  { id: "table", title: "Table" },
 ] as const;
 
 /** The id of one of the sections. */
