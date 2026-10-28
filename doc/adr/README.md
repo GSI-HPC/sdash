@@ -50,3 +50,4 @@ ordered by subject.
 | [0031](0031-slurmrestd-end-to-end-on-26-05.md) | End-to-end tests against slurmrestd start on Slurm 26.05 | accepted |
 | [0032](0032-the-slurm-client-as-built.md) | The Slurm client as built | proposed |
 | [0033](0033-the-profile-file.md) | The profile file | proposed |
+| [0034](0034-cluster-data-in-the-browser-api.md) | The data of a cluster in the browser API | proposed |
