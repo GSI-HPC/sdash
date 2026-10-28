@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
 // SPDX-License-Identifier: Apache-2.0
 
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, queryOptions } from "@tanstack/react-query";
+
+import { client } from "./client";
 
 /**
  * Makes the store of what the interface has fetched from the server: one
@@ -27,3 +29,13 @@ export function createQueryClient(): QueryClient {
     },
   });
 }
+
+/**
+ * The query of the status operation: which sdash runs, and the clusters
+ * of its profile file. Every part of the page that needs it asks with
+ * these options, so that the page asks the server once.
+ */
+export const statusQuery = queryOptions({
+  queryKey: ["status"],
+  queryFn: ({ signal }) => client.getStatus({ signal }),
+});

@@ -11,6 +11,7 @@ import {
   readSearchParam,
   setTo,
   text,
+  words,
   writeSearchParam,
 } from "./searchParams";
 
@@ -21,6 +22,7 @@ const state = defineSearchParam(
 );
 const page = defineSearchParam("page", integer, 1);
 const filter = defineSearchParam("q", text, "");
+const states = defineSearchParam("states", words, []);
 
 /** The query string of an address. */
 function query(search: string): URLSearchParams {
@@ -62,6 +64,19 @@ describe("reading a parameter", () => {
   ])("gives the fallback for what is not a whole number: %s", (search) => {
     expect(readSearchParam(query(search), page)).toBe(1);
   });
+
+  test("reads words in the order they stand in, and nothing as none", () => {
+    expect(readSearchParam(query("states=b,a"), states)).toEqual(["b", "a"]);
+    expect(readSearchParam(query("states=a"), states)).toEqual(["a"]);
+    expect(readSearchParam(query("states="), states)).toEqual([]);
+  });
+
+  test.each(["states=a,,b", "states=a,", "states=,a", "states=,"])(
+    "gives the fallback for words of which one is empty: %s",
+    (search) => {
+      expect(readSearchParam(query(search), states)).toEqual([]);
+    },
+  );
 
   test("reads a negative number and zero", () => {
     expect(readSearchParam(query("page=-3"), page)).toBe(-3);
@@ -105,6 +120,13 @@ describe("reading a parameter", () => {
 });
 
 describe("writing a parameter", () => {
+  test("writes words with commas between them, and leaves none out of the address", () => {
+    expect(writeSearchParam(query(""), states, ["a", "b"]).toString()).toBe(
+      "states=a%2Cb",
+    );
+    expect(writeSearchParam(query("states=a"), states, []).toString()).toBe("");
+  });
+
   test("puts the value into the query string", () => {
     expect(writeSearchParam(query(""), state, "running").toString()).toBe(
       "state=running",

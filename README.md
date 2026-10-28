@@ -36,7 +36,9 @@ command, file or variable its token comes from
 and the browser API serves their jobs, nodes and partitions from a cache
 that asks slurmrestd only while a page looks
 ([`doc/adr/0034-cluster-data-in-the-browser-api.md`](doc/adr/0034-cluster-data-in-the-browser-api.md)).
-No view shows them yet.
+The Jobs view shows the jobs, a page at a time
+([`doc/adr/0035-the-jobs-view-and-its-table.md`](doc/adr/0035-the-jobs-view-and-its-table.md));
+the other views come next.
 The client is tested end to end against clusters that
 [sind](https://github.com/GSI-HPC/sind) creates, which are also where every
 test fixture and every vendored slurmrestd specification comes from. sind

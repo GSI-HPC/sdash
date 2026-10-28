@@ -47,18 +47,38 @@ function HistoryButtons() {
 }
 
 /**
- * Renders the application as a page that was opened at the given address,
- * with a store of its own and a server that answers the status operation.
+ * An answer of the fake server: a body, sent as JSON, and its status, 200
+ * unless said otherwise.
  */
-export function renderApp(address = "/") {
-  vi.stubGlobal("fetch", () =>
-    Promise.resolve(
-      new Response(JSON.stringify(status), {
-        status: 200,
+export interface Answer {
+  readonly body: unknown;
+  readonly status?: number;
+}
+
+/**
+ * The server of a test: the answer to a request for the URL, a path below
+ * the API's base path with its query string, or undefined for the status
+ * operation's answer above.
+ */
+export type Server = (url: URL) => Answer | undefined;
+
+/**
+ * Renders the application as a page that was opened at the given address,
+ * with a store of its own and a server that answers the status operation,
+ * and what else `server` answers.
+ */
+export function renderApp(address = "/", server: Server = () => undefined) {
+  vi.stubGlobal("fetch", (input: string) => {
+    const answer = server(new URL(input, location.origin)) ?? {
+      body: status,
+    };
+    return Promise.resolve(
+      new Response(JSON.stringify(answer.body), {
+        status: answer.status ?? 200,
         headers: { "Content-Type": "application/json" },
       }),
-    ),
-  );
+    );
+  });
   return render(
     // In strict mode, as main.tsx mounts the application: React then runs
     // every effect twice while developing, and a registration that does

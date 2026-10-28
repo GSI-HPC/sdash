@@ -51,3 +51,4 @@ ordered by subject.
 | [0032](0032-the-slurm-client-as-built.md) | The Slurm client as built | proposed |
 | [0033](0033-the-profile-file.md) | The profile file | proposed |
 | [0034](0034-cluster-data-in-the-browser-api.md) | The data of a cluster in the browser API | proposed |
+| [0035](0035-the-jobs-view-and-its-table.md) | The Jobs view and its table | proposed |

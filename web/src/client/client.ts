@@ -25,9 +25,10 @@ import {
   type GetSessionResponse,
   type GetStatusData,
   type GetStatusResponse,
+  JobSortKey,
 } from "../api/types.gen";
 
-export { ErrorCode };
+export { ErrorCode, JobSortKey };
 
 /** What the status operation answers. */
 export type Status = GetStatusResponse;
@@ -40,6 +41,9 @@ export type Pulse = GetPulseResponse;
 
 /** What a page of the jobs of a cluster answers. */
 export type JobList = GetJobsResponse;
+
+/** One job of a page of jobs. */
+export type Job = JobList["rows"][number];
 
 /** The filters, the order and the window of a page of jobs. */
 export type JobQuery = NonNullable<GetJobsData["query"]>;
