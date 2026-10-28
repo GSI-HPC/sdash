@@ -74,6 +74,9 @@ func TestTheFirstReadConnectsAndFetchesTheKindAsTheUser(t *testing.T) {
 	parts, err := c.Partitions.Get(t.Context())
 	require.NoError(t, err)
 	assert.Equal(t, "all", parts.Data[0].Name)
+	reservations, err := c.Reservations.Get(t.Context())
+	require.NoError(t, err)
+	assert.Equal(t, "maintenance", reservations.Data[0].Name)
 
 	connects := 0
 	for _, r := range fake.Requests() {

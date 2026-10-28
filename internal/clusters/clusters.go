@@ -32,9 +32,10 @@ import (
 // The least time between two fetches of a kind
 // (doc/adr/0010-read-through-cache-and-polling.md).
 const (
-	JobsInterval       = 30 * time.Second
-	NodesInterval      = 30 * time.Second
-	PartitionsInterval = 60 * time.Second
+	JobsInterval         = 30 * time.Second
+	NodesInterval        = 30 * time.Second
+	PartitionsInterval   = 60 * time.Second
+	ReservationsInterval = 60 * time.Second
 )
 
 // Options is what the clusters are built with besides the profile.
@@ -105,9 +106,10 @@ type Cluster struct {
 	// Endpoint is the URL of its slurmrestd.
 	Endpoint string
 
-	Jobs       *cache.Cache[[]model.Job]
-	Nodes      *cache.Cache[[]model.Node]
-	Partitions *cache.Cache[[]model.Partition]
+	Jobs         *cache.Cache[[]model.Job]
+	Nodes        *cache.Cache[[]model.Node]
+	Partitions   *cache.Cache[[]model.Partition]
+	Reservations *cache.Cache[[]model.Reservation]
 
 	ctx    context.Context
 	client *client.Client
@@ -145,17 +147,16 @@ func newCluster(ctx context.Context, pc profile.Cluster, c *client.Client, log *
 		Interval: PartitionsInterval,
 		Fetch: func(ctx context.Context) ([]model.Partition, error) {
 			return list(ctx, cl, func(conn *client.Conn, each func(*wire.Partition) error) error {
-				parts, err := conn.Partitions(ctx)
-				if err != nil {
-					return err
-				}
-				for i := range parts {
-					if err := each(&parts[i]); err != nil {
-						return err
-					}
-				}
-				return nil
+				return all(conn.Partitions(ctx))(each)
 			}, model.PartitionOf)
+		},
+	})
+	cl.Reservations = cache.New(ctx, cache.Config[[]model.Reservation]{
+		Interval: ReservationsInterval,
+		Fetch: func(ctx context.Context) ([]model.Reservation, error) {
+			return list(ctx, cl, func(conn *client.Conn, each func(*wire.Reservation) error) error {
+				return all(conn.Reservations(ctx))(each)
+			}, model.ReservationOf)
 		},
 	})
 	return cl
@@ -183,6 +184,22 @@ func list[W, M any](ctx context.Context, c *Cluster, fetch func(*client.Conn, fu
 		return nil, err
 	}
 	return all, nil
+}
+
+// all hands each element of a list read whole to each, as a streamed list
+// is handed: list takes either.
+func all[W any](got []W, err error) func(func(*W) error) error {
+	return func(each func(*W) error) error {
+		if err != nil {
+			return err
+		}
+		for i := range got {
+			if err := each(&got[i]); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 }
 
 // State is what a cluster's connection is at one moment.
