@@ -47,8 +47,8 @@ export type Status = {
      */
     readOnly: boolean;
     /**
-     * The clusters sdash is configured for. The list is always
-     * present, and empty when there is none.
+     * The clusters the profile file names, in its order. The list is
+     * always present, and empty when there is none.
      *
      */
     clusters: Array<Cluster>;
@@ -71,9 +71,404 @@ export type Session = {
  */
 export type Cluster = {
     /**
-     * The name the user gave the cluster in the configuration.
+     * The name the user gave the cluster in the profile file.
      */
     name: string;
+    /**
+     * The URL of the cluster's slurmrestd.
+     */
+    endpoint: string;
+};
+
+/**
+ * A kind of a cluster's data, which sdash fetches and holds as one.
+ */
+export const DataKind = {
+    JOBS: 'jobs',
+    NODES: 'nodes',
+    PARTITIONS: 'partitions'
+} as const;
+
+/**
+ * A kind of a cluster's data, which sdash fetches and holds as one.
+ */
+export type DataKind = typeof DataKind[keyof typeof DataKind];
+
+/**
+ * The state of a cluster and of the kinds of its data.
+ */
+export type Pulse = {
+    connection: Connection;
+    /**
+     * Each kind asked for, in the order asked.
+     */
+    kinds: Array<KindPulse>;
+};
+
+/**
+ * The connection to a cluster's slurmrestd. sdash connects when a kind
+ * of the cluster's data is first asked for, and a connection that
+ * failed is tried again with the next fetch.
+ *
+ */
+export type Connection = {
+    /**
+     * Whether sdash has connected. A request through the connection
+     * can still fail; the kinds say so.
+     *
+     */
+    connected: boolean;
+    /**
+     * The Slurm release of slurmrestd, as major.minor.micro. Absent until connected.
+     */
+    release?: string;
+    /**
+     * The data_parser version sdash speaks to it. Absent until connected.
+     */
+    parser?: string;
+    /**
+     * Whether sdash was tested on the release line of slurmrestd. A
+     * newer line works with what sdash knows of the newest one it was
+     * tested on. Absent until connected.
+     *
+     */
+    tested?: boolean;
+    /**
+     * The Slurm user every request runs as, as the token names it.
+     * Absent until a token named one.
+     *
+     */
+    user?: string;
+    /**
+     * Why the last attempt to connect failed. Absent once one succeeded.
+     */
+    error?: Error;
+};
+
+/**
+ * How far the data of one kind have got.
+ */
+export type KindPulse = {
+    kind: DataKind;
+    /**
+     * Grows when a fetch brings data that differ from those held; 0
+     * while sdash holds none.
+     *
+     */
+    generation: number;
+    /**
+     * When the data held were fetched. Absent while sdash holds none.
+     */
+    fetchedAt?: string;
+    /**
+     * The seconds between two fetches while the kind is watched: its
+     * interval, or ten times the last fetch when that took longer.
+     *
+     */
+    period: number;
+    /**
+     * Why the last fetch failed. The data held, if any, are then those
+     * of an earlier one. Absent when the last fetch succeeded.
+     *
+     */
+    error?: Error;
+};
+
+/**
+ * A key the jobs sort by.
+ */
+export const JobSortKey = {
+    ID: 'id',
+    NAME: 'name',
+    USER: 'user',
+    ACCOUNT: 'account',
+    PARTITION: 'partition',
+    STATE: 'state',
+    REASON: 'reason',
+    PRIORITY: 'priority',
+    CPUS: 'cpus',
+    NODES: 'nodes',
+    TIME_LIMIT: 'timeLimit',
+    SUBMITTED: 'submitted',
+    STARTED: 'started',
+    ENDED: 'ended'
+} as const;
+
+/**
+ * A key the jobs sort by.
+ */
+export type JobSortKey = typeof JobSortKey[keyof typeof JobSortKey];
+
+/**
+ * The direction of a sort.
+ */
+export const SortOrder = { ASC: 'asc', DESC: 'desc' } as const;
+
+/**
+ * The direction of a sort.
+ */
+export type SortOrder = typeof SortOrder[keyof typeof SortOrder];
+
+/**
+ * A page of the jobs of a cluster, and what the whole list holds.
+ */
+export type JobList = {
+    /**
+     * The generation of the jobs the page was cut from, as the pulse reports it.
+     */
+    generation: number;
+    /**
+     * When those jobs were fetched.
+     */
+    fetchedAt: string;
+    /**
+     * Why a later fetch failed, which leaves these jobs older than their period.
+     */
+    error?: Error;
+    /**
+     * How many jobs the filters keep, of which the page is a window.
+     */
+    total: number;
+    /**
+     * The jobs of the window.
+     */
+    rows: Array<Job>;
+    facets: JobFacets;
+};
+
+/**
+ * The jobs of the whole list, before the filters, counted by the
+ * values of the fields a page filters by: the most frequent first.
+ *
+ */
+export type JobFacets = {
+    states: Array<Facet>;
+    users: Array<Facet>;
+    partitions: Array<Facet>;
+};
+
+/**
+ * A value of a field, and how many have it.
+ */
+export type Facet = {
+    value: string;
+    count: number;
+};
+
+/**
+ * A job as slurmctld knows it.
+ */
+export type Job = {
+    /**
+     * The job's own id. A task of an array has one of its own.
+     */
+    id: number;
+    /**
+     * The id as Slurm's tools write it: 8_2 for a task of an array,
+     * 8_[1-3] for the tasks an array still has pending, 8 for any
+     * other job.
+     *
+     */
+    displayId: string;
+    /**
+     * The id of the array the job belongs to.
+     */
+    arrayJobId?: number;
+    /**
+     * The index of the job in its array. Absent for the record of
+     * the tasks still pending.
+     *
+     */
+    arrayTaskId?: number;
+    /**
+     * The tasks of an array still pending, 1-3 say.
+     */
+    arrayTasks?: string;
+    name: string;
+    user: string;
+    group?: string;
+    account: string;
+    partition: string;
+    qos: string;
+    /**
+     * The base state, RUNNING, PENDING and the like.
+     */
+    state: string;
+    /**
+     * The flags of the state, COMPLETING and the like.
+     */
+    flags: Array<string>;
+    /**
+     * Why the job waits, or ended as it did.
+     */
+    reason?: string;
+    priority?: number;
+    submitTime?: string;
+    eligibleTime?: string;
+    startTime?: string;
+    /**
+     * When the job ended, or will end at the latest.
+     */
+    endTime?: string;
+    /**
+     * The time limit in minutes. Absent when there is none.
+     */
+    timeLimit?: number;
+    /**
+     * The host list of the job's nodes, worker-[0-1] say.
+     */
+    nodes?: string;
+    nodeCount?: number;
+    cpus?: number;
+    exitCode?: ExitCode;
+    reservation?: string;
+    dependency?: string;
+    workDir?: string;
+    stdout?: string;
+    stderr?: string;
+};
+
+/**
+ * How a job ended. Absent for a job that has not.
+ */
+export type ExitCode = {
+    /**
+     * SUCCESS, ERROR, SIGNALED or CORE_DUMPED.
+     */
+    status: string;
+    returnCode?: number;
+    /**
+     * The name of the signal that ended the job.
+     */
+    signal?: string;
+};
+
+/**
+ * The nodes of a cluster.
+ */
+export type NodeList = {
+    /**
+     * The generation of the nodes, as the pulse reports it.
+     */
+    generation: number;
+    /**
+     * When the nodes were fetched.
+     */
+    fetchedAt: string;
+    /**
+     * Why a later fetch failed, which leaves these nodes older than their period.
+     */
+    error?: Error;
+    /**
+     * The nodes, in slurmctld's order.
+     */
+    rows: Array<Node>;
+};
+
+/**
+ * A node as slurmctld knows it.
+ */
+export type Node = {
+    name: string;
+    /**
+     * The base state, IDLE, ALLOCATED, MIXED and the like.
+     */
+    state: string;
+    /**
+     * The flags of the state, DRAIN among them.
+     */
+    flags: Array<string>;
+    /**
+     * Why the node is drained or down.
+     */
+    reason?: string;
+    partitions: Array<string>;
+    features: Array<string>;
+    cpus: number;
+    allocCpus: number;
+    /**
+     * The load average.
+     */
+    load: number;
+    /**
+     * The memory in megabytes.
+     */
+    memory: number;
+    /**
+     * The memory allocated to jobs, in megabytes.
+     */
+    allocMemory: number;
+    /**
+     * The free memory the node reports, in megabytes.
+     */
+    freeMemory?: number;
+    /**
+     * The generic resources the node offers, gpu:a100:4 say.
+     */
+    gres?: string;
+    /**
+     * The generic resources in use.
+     */
+    gresUsed?: string;
+    architecture?: string;
+    bootTime?: string;
+    reservation?: string;
+};
+
+/**
+ * The partitions of a cluster.
+ */
+export type PartitionList = {
+    /**
+     * The generation of the partitions, as the pulse reports it.
+     */
+    generation: number;
+    /**
+     * When the partitions were fetched.
+     */
+    fetchedAt: string;
+    /**
+     * Why a later fetch failed, which leaves these partitions older than their period.
+     */
+    error?: Error;
+    /**
+     * The partitions, in slurmctld's order.
+     */
+    rows: Array<Partition>;
+};
+
+/**
+ * A partition as slurmctld knows it.
+ */
+export type Partition = {
+    name: string;
+    /**
+     * UP, DOWN, DRAIN or INACTIVE.
+     */
+    state: string;
+    /**
+     * The host list of the partition's nodes.
+     */
+    nodes: string;
+    nodeCount: number;
+    cpus: number;
+    /**
+     * The most minutes a job may run. Absent when there is no limit.
+     */
+    maxTime?: number;
+    /**
+     * The minutes a job runs when it asks for none. Absent when not set.
+     */
+    defaultTime?: number;
+    /**
+     * The most nodes a job may have. Absent when there is no limit.
+     */
+    maxNodes?: number;
+    priorityTier: number;
+    /**
+     * The QOS of the partition.
+     */
+    qos?: string;
 };
 
 /**
@@ -104,6 +499,21 @@ export type Error = {
  * - `method_not_allowed`: the API has something at this address, but
  * not for this method.
  * - `internal`: sdash failed while answering; its log says why.
+ * - `unauthenticated`: the cluster's slurmrestd refused the token, or
+ * sdash could not get one. The token command, file or variable of
+ * the profile file has to give a valid one.
+ * - `forbidden`: Slurm refused the request to the user of the token.
+ * - `unavailable`: slurmrestd, slurmctld or slurmdbd could not be
+ * reached. sdash tries again with the next fetch.
+ * - `unsupported`: the cluster's slurmrestd offers no data_parser
+ * version sdash speaks, or not the operation asked for.
+ * - `upstream`: slurmrestd answered with something sdash cannot use,
+ * or refused the request for another reason; the message says
+ * which.
+ *
+ * An Error of the last five comes with the status 502 when it is the
+ * answer, and stands in the member `error` of an answer that holds
+ * older data.
  *
  */
 export const ErrorCode = {
@@ -114,7 +524,12 @@ export const ErrorCode = {
     READ_ONLY: 'read_only',
     NOT_FOUND: 'not_found',
     METHOD_NOT_ALLOWED: 'method_not_allowed',
-    INTERNAL: 'internal'
+    INTERNAL: 'internal',
+    UNAUTHENTICATED: 'unauthenticated',
+    FORBIDDEN: 'forbidden',
+    UNAVAILABLE: 'unavailable',
+    UNSUPPORTED: 'unsupported',
+    UPSTREAM: 'upstream'
 } as const;
 
 /**
@@ -134,9 +549,29 @@ export const ErrorCode = {
  * - `method_not_allowed`: the API has something at this address, but
  * not for this method.
  * - `internal`: sdash failed while answering; its log says why.
+ * - `unauthenticated`: the cluster's slurmrestd refused the token, or
+ * sdash could not get one. The token command, file or variable of
+ * the profile file has to give a valid one.
+ * - `forbidden`: Slurm refused the request to the user of the token.
+ * - `unavailable`: slurmrestd, slurmctld or slurmdbd could not be
+ * reached. sdash tries again with the next fetch.
+ * - `unsupported`: the cluster's slurmrestd offers no data_parser
+ * version sdash speaks, or not the operation asked for.
+ * - `upstream`: slurmrestd answered with something sdash cannot use,
+ * or refused the request for another reason; the message says
+ * which.
+ *
+ * An Error of the last five comes with the status 502 when it is the
+ * answer, and stands in the member `error` of an answer that holds
+ * older data.
  *
  */
 export type ErrorCode = typeof ErrorCode[keyof typeof ErrorCode];
+
+/**
+ * The name of the cluster, as the profile file gives it.
+ */
+export type ClusterName = string;
 
 export type GetStatusData = {
     body?: never;
@@ -191,3 +626,173 @@ export type GetSessionResponses = {
 };
 
 export type GetSessionResponse = GetSessionResponses[keyof GetSessionResponses];
+
+export type GetPulseData = {
+    body?: never;
+    path: {
+        /**
+         * The name of the cluster, as the profile file gives it.
+         */
+        cluster: string;
+    };
+    query?: {
+        /**
+         * The kinds to report on and keep watched.
+         */
+        kinds?: Array<DataKind>;
+    };
+    url: '/clusters/{cluster}/pulse';
+};
+
+export type GetPulseErrors = {
+    /**
+     * The request was not answered with what it asked for. The status says
+     * what kind of failure it is, and the body what caused it.
+     *
+     */
+    default: Error;
+};
+
+export type GetPulseError = GetPulseErrors[keyof GetPulseErrors];
+
+export type GetPulseResponses = {
+    /**
+     * The state of the cluster.
+     */
+    200: Pulse;
+};
+
+export type GetPulseResponse = GetPulseResponses[keyof GetPulseResponses];
+
+export type GetJobsData = {
+    body?: never;
+    path: {
+        /**
+         * The name of the cluster, as the profile file gives it.
+         */
+        cluster: string;
+    };
+    query?: {
+        /**
+         * Keeps the jobs in one of these base states.
+         */
+        state?: Array<string>;
+        /**
+         * Keeps the jobs of this user.
+         */
+        user?: string;
+        /**
+         * Keeps the jobs of this partition.
+         */
+        partition?: string;
+        /**
+         * Keeps the jobs whose id, name, user or account contains this
+         * text, whatever the case.
+         *
+         */
+        q?: string;
+        /**
+         * The key to sort by; the id when absent.
+         */
+        sort?: JobSortKey;
+        /**
+         * The direction of the sort. A job that lacks the key comes last
+         * either way, and the id breaks a tie.
+         *
+         */
+        order?: SortOrder;
+        /**
+         * How many of the sorted jobs to skip.
+         */
+        offset?: number;
+        /**
+         * How many jobs to give at most; all that are left when absent.
+         */
+        limit?: number;
+    };
+    url: '/clusters/{cluster}/jobs';
+};
+
+export type GetJobsErrors = {
+    /**
+     * The request was not answered with what it asked for. The status says
+     * what kind of failure it is, and the body what caused it.
+     *
+     */
+    default: Error;
+};
+
+export type GetJobsError = GetJobsErrors[keyof GetJobsErrors];
+
+export type GetJobsResponses = {
+    /**
+     * The page of jobs.
+     */
+    200: JobList;
+};
+
+export type GetJobsResponse = GetJobsResponses[keyof GetJobsResponses];
+
+export type GetNodesData = {
+    body?: never;
+    path: {
+        /**
+         * The name of the cluster, as the profile file gives it.
+         */
+        cluster: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/nodes';
+};
+
+export type GetNodesErrors = {
+    /**
+     * The request was not answered with what it asked for. The status says
+     * what kind of failure it is, and the body what caused it.
+     *
+     */
+    default: Error;
+};
+
+export type GetNodesError = GetNodesErrors[keyof GetNodesErrors];
+
+export type GetNodesResponses = {
+    /**
+     * The nodes.
+     */
+    200: NodeList;
+};
+
+export type GetNodesResponse = GetNodesResponses[keyof GetNodesResponses];
+
+export type GetPartitionsData = {
+    body?: never;
+    path: {
+        /**
+         * The name of the cluster, as the profile file gives it.
+         */
+        cluster: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/partitions';
+};
+
+export type GetPartitionsErrors = {
+    /**
+     * The request was not answered with what it asked for. The status says
+     * what kind of failure it is, and the body what caused it.
+     *
+     */
+    default: Error;
+};
+
+export type GetPartitionsError = GetPartitionsErrors[keyof GetPartitionsErrors];
+
+export type GetPartitionsResponses = {
+    /**
+     * The partitions.
+     */
+    200: PartitionList;
+};
+
+export type GetPartitionsResponse = GetPartitionsResponses[keyof GetPartitionsResponses];

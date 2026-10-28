@@ -65,7 +65,7 @@ paths:
       summary: The running sdash and the clusters it is configured for
       description: |
         Says which sdash is running, as `sdash version` does, whether it
-        runs read-only, and which clusters it is configured for.
+        runs read-only, and which clusters its profile file names.
       responses:
         "200":
           description: The status of the running sdash.
@@ -97,7 +97,171 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
+  /clusters/{cluster}/pulse:
+    get:
+      operationId: getPulse
+      summary: The state of a cluster and of the kinds of its data
+      description: |
+        Says whether sdash is connected to the cluster's slurmrestd, and for
+        each kind asked for, how far its data have got: the generation, which
+        grows when the data change, the time of the last fetch, and the
+        failure of the last fetch, if it failed. The page asks for the
+        pulse often and reads a kind again when its generation has grown.
+
+        The answer comes from what sdash holds and sends nothing upstream.
+        But it keeps each kind asked for watched: sdash fetches a kind of a
+        cluster from slurmrestd only for as long as a page asks for it, and
+        stops two periods after the last time one did.
+      parameters:
+        - $ref: "#/components/parameters/ClusterName"
+        - name: kinds
+          in: query
+          description: The kinds to report on and keep watched.
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/DataKind"
+      responses:
+        "200":
+          description: The state of the cluster.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pulse"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /clusters/{cluster}/jobs:
+    get:
+      operationId: getJobs
+      summary: A page of the jobs of a cluster
+      description: |
+        The jobs slurmctld lets the user see, filtered, sorted and cut to a
+        window on the server, so that the page holds only what it shows.
+        The first read of a cluster waits for its jobs; later reads answer
+        with what sdash holds, which a fetch in the background renews.
+
+        When sdash holds no jobs and cannot fetch them, the answer is the
+        status 502 with an Error that says why.
+      parameters:
+        - $ref: "#/components/parameters/ClusterName"
+        - name: state
+          in: query
+          description: Keeps the jobs in one of these base states.
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+        - name: user
+          in: query
+          description: Keeps the jobs of this user.
+          required: false
+          schema:
+            type: string
+        - name: partition
+          in: query
+          description: Keeps the jobs of this partition.
+          required: false
+          schema:
+            type: string
+        - name: q
+          in: query
+          description: |
+            Keeps the jobs whose id, name, user or account contains this
+            text, whatever the case.
+          required: false
+          schema:
+            type: string
+        - name: sort
+          in: query
+          description: The key to sort by; the id when absent.
+          required: false
+          schema:
+            $ref: "#/components/schemas/JobSortKey"
+        - name: order
+          in: query
+          description: |
+            The direction of the sort. A job that lacks the key comes last
+            either way, and the id breaks a tie.
+          required: false
+          schema:
+            $ref: "#/components/schemas/SortOrder"
+        - name: offset
+          in: query
+          description: How many of the sorted jobs to skip.
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+        - name: limit
+          in: query
+          description: How many jobs to give at most; all that are left when absent.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: The page of jobs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobList"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /clusters/{cluster}/nodes:
+    get:
+      operationId: getNodes
+      summary: The nodes of a cluster
+      description: |
+        Every node of the cluster, as getJobs gives the jobs but whole: a
+        cluster has far fewer nodes than jobs.
+      parameters:
+        - $ref: "#/components/parameters/ClusterName"
+      responses:
+        "200":
+          description: The nodes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NodeList"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /clusters/{cluster}/partitions:
+    get:
+      operationId: getPartitions
+      summary: The partitions of a cluster
+      description: Every partition of the cluster, as getNodes gives the nodes.
+      parameters:
+        - $ref: "#/components/parameters/ClusterName"
+      responses:
+        "200":
+          description: The partitions.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartitionList"
+        default:
+          $ref: "#/components/responses/Error"
+
 components:
+  parameters:
+    ClusterName:
+      name: cluster
+      in: path
+      description: The name of the cluster, as the profile file gives it.
+      required: true
+      schema:
+        type: string
+
   schemas:
     # The members that describe the build are named as "sdash version
     # --json" names them (internal/version), and the commit and the date are
@@ -144,8 +308,8 @@ components:
           type: boolean
         clusters:
           description: |
-            The clusters sdash is configured for. The list is always
-            present, and empty when there is none.
+            The clusters the profile file names, in its order. The list is
+            always present, and empty when there is none.
           type: array
           items:
             $ref: "#/components/schemas/Cluster"
@@ -162,19 +326,493 @@ components:
             `X-Sdash-CSRF`.
           type: string
 
-    # A cluster has a name and nothing else for now. What sdash says about a
-    # cluster is defined from what its slurmrestd serves, and that waits,
-    # with everything that speaks to Slurm, for
-    # doc/adr/0016-e2e-and-fixtures-on-sind.md. Until then the server has no
-    # cluster to list.
+    # What sdash knows of a cluster without asking it. What it learns by
+    # asking is in the Pulse.
     Cluster:
       description: A Slurm cluster sdash is configured for.
       type: object
       required:
         - name
+        - endpoint
       properties:
         name:
-          description: The name the user gave the cluster in the configuration.
+          description: The name the user gave the cluster in the profile file.
+          type: string
+        endpoint:
+          description: The URL of the cluster's slurmrestd.
+          type: string
+
+    DataKind:
+      description: A kind of a cluster's data, which sdash fetches and holds as one.
+      type: string
+      enum:
+        - jobs
+        - nodes
+        - partitions
+
+    Pulse:
+      description: The state of a cluster and of the kinds of its data.
+      type: object
+      required:
+        - connection
+        - kinds
+      properties:
+        connection:
+          $ref: "#/components/schemas/Connection"
+        kinds:
+          description: Each kind asked for, in the order asked.
+          type: array
+          items:
+            $ref: "#/components/schemas/KindPulse"
+
+    Connection:
+      description: |
+        The connection to a cluster's slurmrestd. sdash connects when a kind
+        of the cluster's data is first asked for, and a connection that
+        failed is tried again with the next fetch.
+      type: object
+      required:
+        - connected
+      properties:
+        connected:
+          description: |
+            Whether sdash has connected. A request through the connection
+            can still fail; the kinds say so.
+          type: boolean
+        release:
+          description: The Slurm release of slurmrestd, as major.minor.micro. Absent until connected.
+          type: string
+        parser:
+          description: The data_parser version sdash speaks to it. Absent until connected.
+          type: string
+        tested:
+          description: |
+            Whether sdash was tested on the release line of slurmrestd. A
+            newer line works with what sdash knows of the newest one it was
+            tested on. Absent until connected.
+          type: boolean
+        user:
+          description: |
+            The Slurm user every request runs as, as the token names it.
+            Absent until a token named one.
+          type: string
+        error:
+          description: Why the last attempt to connect failed. Absent once one succeeded.
+          allOf:
+            - $ref: "#/components/schemas/Error"
+
+    KindPulse:
+      description: How far the data of one kind have got.
+      type: object
+      required:
+        - kind
+        - generation
+        - period
+      properties:
+        kind:
+          $ref: "#/components/schemas/DataKind"
+        generation:
+          description: |
+            Grows when a fetch brings data that differ from those held; 0
+            while sdash holds none.
+          type: integer
+          format: int64
+        fetchedAt:
+          description: When the data held were fetched. Absent while sdash holds none.
+          type: string
+          format: date-time
+        period:
+          description: |
+            The seconds between two fetches while the kind is watched: its
+            interval, or ten times the last fetch when that took longer.
+          type: integer
+        error:
+          description: |
+            Why the last fetch failed. The data held, if any, are then those
+            of an earlier one. Absent when the last fetch succeeded.
+          allOf:
+            - $ref: "#/components/schemas/Error"
+
+    JobSortKey:
+      description: A key the jobs sort by.
+      type: string
+      enum:
+        - id
+        - name
+        - user
+        - account
+        - partition
+        - state
+        - reason
+        - priority
+        - cpus
+        - nodes
+        - timeLimit
+        - submitted
+        - started
+        - ended
+
+    SortOrder:
+      description: The direction of a sort.
+      type: string
+      enum:
+        - asc
+        - desc
+
+    JobList:
+      description: A page of the jobs of a cluster, and what the whole list holds.
+      type: object
+      required:
+        - generation
+        - fetchedAt
+        - total
+        - rows
+        - facets
+      properties:
+        generation:
+          description: The generation of the jobs the page was cut from, as the pulse reports it.
+          type: integer
+          format: int64
+        fetchedAt:
+          description: When those jobs were fetched.
+          type: string
+          format: date-time
+        error:
+          description: Why a later fetch failed, which leaves these jobs older than their period.
+          allOf:
+            - $ref: "#/components/schemas/Error"
+        total:
+          description: How many jobs the filters keep, of which the page is a window.
+          type: integer
+        rows:
+          description: The jobs of the window.
+          type: array
+          items:
+            $ref: "#/components/schemas/Job"
+        facets:
+          $ref: "#/components/schemas/JobFacets"
+
+    JobFacets:
+      description: |
+        The jobs of the whole list, before the filters, counted by the
+        values of the fields a page filters by: the most frequent first.
+      type: object
+      required:
+        - states
+        - users
+        - partitions
+      properties:
+        states:
+          type: array
+          items:
+            $ref: "#/components/schemas/Facet"
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/Facet"
+        partitions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Facet"
+
+    Facet:
+      description: A value of a field, and how many have it.
+      type: object
+      required:
+        - value
+        - count
+      properties:
+        value:
+          type: string
+        count:
+          type: integer
+
+    # A member that slurmctld may leave unset, or set to nothing, is
+    # optional and absent then, never null and never an empty string.
+    Job:
+      description: A job as slurmctld knows it.
+      type: object
+      required:
+        - id
+        - displayId
+        - name
+        - user
+        - account
+        - partition
+        - qos
+        - state
+        - flags
+      properties:
+        id:
+          description: The job's own id. A task of an array has one of its own.
+          type: integer
+          format: int64
+        displayId:
+          description: |
+            The id as Slurm's tools write it: 8_2 for a task of an array,
+            8_[1-3] for the tasks an array still has pending, 8 for any
+            other job.
+          type: string
+        arrayJobId:
+          description: The id of the array the job belongs to.
+          type: integer
+          format: int64
+        arrayTaskId:
+          description: |
+            The index of the job in its array. Absent for the record of
+            the tasks still pending.
+          type: integer
+          format: int64
+        arrayTasks:
+          description: The tasks of an array still pending, 1-3 say.
+          type: string
+        name:
+          type: string
+        user:
+          type: string
+        group:
+          type: string
+        account:
+          type: string
+        partition:
+          type: string
+        qos:
+          type: string
+        state:
+          description: The base state, RUNNING, PENDING and the like.
+          type: string
+        flags:
+          description: The flags of the state, COMPLETING and the like.
+          type: array
+          items:
+            type: string
+        reason:
+          description: Why the job waits, or ended as it did.
+          type: string
+        priority:
+          type: integer
+          format: int64
+        submitTime:
+          type: string
+          format: date-time
+        eligibleTime:
+          type: string
+          format: date-time
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          description: When the job ended, or will end at the latest.
+          type: string
+          format: date-time
+        timeLimit:
+          description: The time limit in minutes. Absent when there is none.
+          type: integer
+          format: int64
+        nodes:
+          description: The host list of the job's nodes, worker-[0-1] say.
+          type: string
+        nodeCount:
+          type: integer
+          format: int64
+        cpus:
+          type: integer
+          format: int64
+        exitCode:
+          $ref: "#/components/schemas/ExitCode"
+        reservation:
+          type: string
+        dependency:
+          type: string
+        workDir:
+          type: string
+        stdout:
+          type: string
+        stderr:
+          type: string
+
+    ExitCode:
+      description: How a job ended. Absent for a job that has not.
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          description: SUCCESS, ERROR, SIGNALED or CORE_DUMPED.
+          type: string
+        returnCode:
+          type: integer
+          format: int64
+        signal:
+          description: The name of the signal that ended the job.
+          type: string
+
+    NodeList:
+      description: The nodes of a cluster.
+      type: object
+      required:
+        - generation
+        - fetchedAt
+        - rows
+      properties:
+        generation:
+          description: The generation of the nodes, as the pulse reports it.
+          type: integer
+          format: int64
+        fetchedAt:
+          description: When the nodes were fetched.
+          type: string
+          format: date-time
+        error:
+          description: Why a later fetch failed, which leaves these nodes older than their period.
+          allOf:
+            - $ref: "#/components/schemas/Error"
+        rows:
+          description: The nodes, in slurmctld's order.
+          type: array
+          items:
+            $ref: "#/components/schemas/Node"
+
+    Node:
+      description: A node as slurmctld knows it.
+      type: object
+      required:
+        - name
+        - state
+        - flags
+        - partitions
+        - features
+        - cpus
+        - allocCpus
+        - load
+        - memory
+        - allocMemory
+      properties:
+        name:
+          type: string
+        state:
+          description: The base state, IDLE, ALLOCATED, MIXED and the like.
+          type: string
+        flags:
+          description: The flags of the state, DRAIN among them.
+          type: array
+          items:
+            type: string
+        reason:
+          description: Why the node is drained or down.
+          type: string
+        partitions:
+          type: array
+          items:
+            type: string
+        features:
+          type: array
+          items:
+            type: string
+        cpus:
+          type: integer
+          format: int64
+        allocCpus:
+          type: integer
+          format: int64
+        load:
+          description: The load average.
+          type: number
+          format: double
+        memory:
+          description: The memory in megabytes.
+          type: integer
+          format: int64
+        allocMemory:
+          description: The memory allocated to jobs, in megabytes.
+          type: integer
+          format: int64
+        freeMemory:
+          description: The free memory the node reports, in megabytes.
+          type: integer
+          format: int64
+        gres:
+          description: The generic resources the node offers, gpu:a100:4 say.
+          type: string
+        gresUsed:
+          description: The generic resources in use.
+          type: string
+        architecture:
+          type: string
+        bootTime:
+          type: string
+          format: date-time
+        reservation:
+          type: string
+
+    PartitionList:
+      description: The partitions of a cluster.
+      type: object
+      required:
+        - generation
+        - fetchedAt
+        - rows
+      properties:
+        generation:
+          description: The generation of the partitions, as the pulse reports it.
+          type: integer
+          format: int64
+        fetchedAt:
+          description: When the partitions were fetched.
+          type: string
+          format: date-time
+        error:
+          description: Why a later fetch failed, which leaves these partitions older than their period.
+          allOf:
+            - $ref: "#/components/schemas/Error"
+        rows:
+          description: The partitions, in slurmctld's order.
+          type: array
+          items:
+            $ref: "#/components/schemas/Partition"
+
+    Partition:
+      description: A partition as slurmctld knows it.
+      type: object
+      required:
+        - name
+        - state
+        - nodes
+        - nodeCount
+        - cpus
+        - priorityTier
+      properties:
+        name:
+          type: string
+        state:
+          description: UP, DOWN, DRAIN or INACTIVE.
+          type: string
+        nodes:
+          description: The host list of the partition's nodes.
+          type: string
+        nodeCount:
+          type: integer
+          format: int64
+        cpus:
+          type: integer
+          format: int64
+        maxTime:
+          description: The most minutes a job may run. Absent when there is no limit.
+          type: integer
+          format: int64
+        defaultTime:
+          description: The minutes a job runs when it asks for none. Absent when not set.
+          type: integer
+          format: int64
+        maxNodes:
+          description: The most nodes a job may have. Absent when there is no limit.
+          type: integer
+          format: int64
+        priorityTier:
+          type: integer
+          format: int64
+        qos:
+          description: The QOS of the partition.
           type: string
 
     # The one body of every answer that is not a success.
@@ -212,6 +850,21 @@ components:
         - `method_not_allowed`: the API has something at this address, but
           not for this method.
         - `internal`: sdash failed while answering; its log says why.
+        - `unauthenticated`: the cluster's slurmrestd refused the token, or
+          sdash could not get one. The token command, file or variable of
+          the profile file has to give a valid one.
+        - `forbidden`: Slurm refused the request to the user of the token.
+        - `unavailable`: slurmrestd, slurmctld or slurmdbd could not be
+          reached. sdash tries again with the next fetch.
+        - `unsupported`: the cluster's slurmrestd offers no data_parser
+          version sdash speaks, or not the operation asked for.
+        - `upstream`: slurmrestd answered with something sdash cannot use,
+          or refused the request for another reason; the message says
+          which.
+
+        An Error of the last five comes with the status 502 when it is the
+        answer, and stands in the member `error` of an answer that holds
+        older data.
       type: string
       enum:
         - bad_request
@@ -222,6 +875,11 @@ components:
         - not_found
         - method_not_allowed
         - internal
+        - unauthenticated
+        - forbidden
+        - unavailable
+        - unsupported
+        - upstream
 
   responses:
     Error:

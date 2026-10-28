@@ -6,23 +6,51 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/oapi-codegen/runtime"
 )
+
+// Defines values for DataKind.
+const (
+	DataKindJobs       DataKind = "jobs"
+	DataKindNodes      DataKind = "nodes"
+	DataKindPartitions DataKind = "partitions"
+)
+
+// Valid indicates whether the value is a known member of the DataKind enum.
+func (e DataKind) Valid() bool {
+	switch e {
+	case DataKindJobs:
+		return true
+	case DataKindNodes:
+		return true
+	case DataKindPartitions:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for ErrorCode.
 const (
 	ErrorCodeBadRequest       ErrorCode = "bad_request"
 	ErrorCodeCrossOrigin      ErrorCode = "cross_origin"
 	ErrorCodeCsrf             ErrorCode = "csrf"
+	ErrorCodeForbidden        ErrorCode = "forbidden"
 	ErrorCodeInternal         ErrorCode = "internal"
 	ErrorCodeMethodNotAllowed ErrorCode = "method_not_allowed"
 	ErrorCodeNotFound         ErrorCode = "not_found"
 	ErrorCodeNotSignedIn      ErrorCode = "not_signed_in"
 	ErrorCodeReadOnly         ErrorCode = "read_only"
+	ErrorCodeUnauthenticated  ErrorCode = "unauthenticated"
+	ErrorCodeUnavailable      ErrorCode = "unavailable"
+	ErrorCodeUnsupported      ErrorCode = "unsupported"
+	ErrorCodeUpstream         ErrorCode = "upstream"
 )
 
 // Valid indicates whether the value is a known member of the ErrorCode enum.
@@ -34,6 +62,8 @@ func (e ErrorCode) Valid() bool {
 		return true
 	case ErrorCodeCsrf:
 		return true
+	case ErrorCodeForbidden:
+		return true
 	case ErrorCodeInternal:
 		return true
 	case ErrorCodeMethodNotAllowed:
@@ -44,6 +74,86 @@ func (e ErrorCode) Valid() bool {
 		return true
 	case ErrorCodeReadOnly:
 		return true
+	case ErrorCodeUnauthenticated:
+		return true
+	case ErrorCodeUnavailable:
+		return true
+	case ErrorCodeUnsupported:
+		return true
+	case ErrorCodeUpstream:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JobSortKey.
+const (
+	JobSortKeyAccount   JobSortKey = "account"
+	JobSortKeyCpus      JobSortKey = "cpus"
+	JobSortKeyEnded     JobSortKey = "ended"
+	JobSortKeyId        JobSortKey = "id"
+	JobSortKeyName      JobSortKey = "name"
+	JobSortKeyNodes     JobSortKey = "nodes"
+	JobSortKeyPartition JobSortKey = "partition"
+	JobSortKeyPriority  JobSortKey = "priority"
+	JobSortKeyReason    JobSortKey = "reason"
+	JobSortKeyStarted   JobSortKey = "started"
+	JobSortKeyState     JobSortKey = "state"
+	JobSortKeySubmitted JobSortKey = "submitted"
+	JobSortKeyTimeLimit JobSortKey = "timeLimit"
+	JobSortKeyUser      JobSortKey = "user"
+)
+
+// Valid indicates whether the value is a known member of the JobSortKey enum.
+func (e JobSortKey) Valid() bool {
+	switch e {
+	case JobSortKeyAccount:
+		return true
+	case JobSortKeyCpus:
+		return true
+	case JobSortKeyEnded:
+		return true
+	case JobSortKeyId:
+		return true
+	case JobSortKeyName:
+		return true
+	case JobSortKeyNodes:
+		return true
+	case JobSortKeyPartition:
+		return true
+	case JobSortKeyPriority:
+		return true
+	case JobSortKeyReason:
+		return true
+	case JobSortKeyStarted:
+		return true
+	case JobSortKeyState:
+		return true
+	case JobSortKeySubmitted:
+		return true
+	case JobSortKeyTimeLimit:
+		return true
+	case JobSortKeyUser:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SortOrder.
+const (
+	SortOrderAsc  SortOrder = "asc"
+	SortOrderDesc SortOrder = "desc"
+)
+
+// Valid indicates whether the value is a known member of the SortOrder enum.
+func (e SortOrder) Valid() bool {
+	switch e {
+	case SortOrderAsc:
+		return true
+	case SortOrderDesc:
+		return true
 	default:
 		return false
 	}
@@ -51,9 +161,42 @@ func (e ErrorCode) Valid() bool {
 
 // Cluster A Slurm cluster sdash is configured for.
 type Cluster struct {
-	// Name The name the user gave the cluster in the configuration.
+	// Endpoint The URL of the cluster's slurmrestd.
+	Endpoint string `json:"endpoint"`
+
+	// Name The name the user gave the cluster in the profile file.
 	Name string `json:"name"`
 }
+
+// Connection The connection to a cluster's slurmrestd. sdash connects when a kind
+// of the cluster's data is first asked for, and a connection that
+// failed is tried again with the next fetch.
+type Connection struct {
+	// Connected Whether sdash has connected. A request through the connection
+	// can still fail; the kinds say so.
+	Connected bool `json:"connected"`
+
+	// Error Why the last attempt to connect failed. Absent once one succeeded.
+	Error *Error `json:"error,omitempty"`
+
+	// Parser The data_parser version sdash speaks to it. Absent until connected.
+	Parser *string `json:"parser,omitempty"`
+
+	// Release The Slurm release of slurmrestd, as major.minor.micro. Absent until connected.
+	Release *string `json:"release,omitempty"`
+
+	// Tested Whether sdash was tested on the release line of slurmrestd. A
+	// newer line works with what sdash knows of the newest one it was
+	// tested on. Absent until connected.
+	Tested *bool `json:"tested,omitempty"`
+
+	// User The Slurm user every request runs as, as the token names it.
+	// Absent until a token named one.
+	User *string `json:"user,omitempty"`
+}
+
+// DataKind A kind of a cluster's data, which sdash fetches and holds as one.
+type DataKind string
 
 // Error Why a request was not answered with what it asked for.
 type Error struct {
@@ -73,6 +216,21 @@ type Error struct {
 	// - `method_not_allowed`: the API has something at this address, but
 	//   not for this method.
 	// - `internal`: sdash failed while answering; its log says why.
+	// - `unauthenticated`: the cluster's slurmrestd refused the token, or
+	//   sdash could not get one. The token command, file or variable of
+	//   the profile file has to give a valid one.
+	// - `forbidden`: Slurm refused the request to the user of the token.
+	// - `unavailable`: slurmrestd, slurmctld or slurmdbd could not be
+	//   reached. sdash tries again with the next fetch.
+	// - `unsupported`: the cluster's slurmrestd offers no data_parser
+	//   version sdash speaks, or not the operation asked for.
+	// - `upstream`: slurmrestd answered with something sdash cannot use,
+	//   or refused the request for another reason; the message says
+	//   which.
+	//
+	// An Error of the last five comes with the status 502 when it is the
+	// answer, and stands in the member `error` of an answer that holds
+	// older data.
 	Code ErrorCode `json:"code"`
 
 	// Message The cause in one line, for the person at the browser.
@@ -95,7 +253,259 @@ type Error struct {
 //   - `method_not_allowed`: the API has something at this address, but
 //     not for this method.
 //   - `internal`: sdash failed while answering; its log says why.
+//   - `unauthenticated`: the cluster's slurmrestd refused the token, or
+//     sdash could not get one. The token command, file or variable of
+//     the profile file has to give a valid one.
+//   - `forbidden`: Slurm refused the request to the user of the token.
+//   - `unavailable`: slurmrestd, slurmctld or slurmdbd could not be
+//     reached. sdash tries again with the next fetch.
+//   - `unsupported`: the cluster's slurmrestd offers no data_parser
+//     version sdash speaks, or not the operation asked for.
+//   - `upstream`: slurmrestd answered with something sdash cannot use,
+//     or refused the request for another reason; the message says
+//     which.
+//
+// An Error of the last five comes with the status 502 when it is the
+// answer, and stands in the member `error` of an answer that holds
+// older data.
 type ErrorCode string
+
+// ExitCode How a job ended. Absent for a job that has not.
+type ExitCode struct {
+	ReturnCode *int64 `json:"returnCode,omitempty"`
+
+	// Signal The name of the signal that ended the job.
+	Signal *string `json:"signal,omitempty"`
+
+	// Status SUCCESS, ERROR, SIGNALED or CORE_DUMPED.
+	Status string `json:"status"`
+}
+
+// Facet A value of a field, and how many have it.
+type Facet struct {
+	Count int    `json:"count"`
+	Value string `json:"value"`
+}
+
+// Job A job as slurmctld knows it.
+type Job struct {
+	Account string `json:"account"`
+
+	// ArrayJobId The id of the array the job belongs to.
+	ArrayJobId *int64 `json:"arrayJobId,omitempty"`
+
+	// ArrayTaskId The index of the job in its array. Absent for the record of
+	// the tasks still pending.
+	ArrayTaskId *int64 `json:"arrayTaskId,omitempty"`
+
+	// ArrayTasks The tasks of an array still pending, 1-3 say.
+	ArrayTasks *string `json:"arrayTasks,omitempty"`
+	Cpus       *int64  `json:"cpus,omitempty"`
+	Dependency *string `json:"dependency,omitempty"`
+
+	// DisplayId The id as Slurm's tools write it: 8_2 for a task of an array,
+	// 8_[1-3] for the tasks an array still has pending, 8 for any
+	// other job.
+	DisplayId    string     `json:"displayId"`
+	EligibleTime *time.Time `json:"eligibleTime,omitempty"`
+
+	// EndTime When the job ended, or will end at the latest.
+	EndTime *time.Time `json:"endTime,omitempty"`
+
+	// ExitCode How a job ended. Absent for a job that has not.
+	ExitCode *ExitCode `json:"exitCode,omitempty"`
+
+	// Flags The flags of the state, COMPLETING and the like.
+	Flags []string `json:"flags"`
+	Group *string  `json:"group,omitempty"`
+
+	// Id The job's own id. A task of an array has one of its own.
+	Id        int64  `json:"id"`
+	Name      string `json:"name"`
+	NodeCount *int64 `json:"nodeCount,omitempty"`
+
+	// Nodes The host list of the job's nodes, worker-[0-1] say.
+	Nodes     *string `json:"nodes,omitempty"`
+	Partition string  `json:"partition"`
+	Priority  *int64  `json:"priority,omitempty"`
+	Qos       string  `json:"qos"`
+
+	// Reason Why the job waits, or ended as it did.
+	Reason      *string    `json:"reason,omitempty"`
+	Reservation *string    `json:"reservation,omitempty"`
+	StartTime   *time.Time `json:"startTime,omitempty"`
+
+	// State The base state, RUNNING, PENDING and the like.
+	State      string     `json:"state"`
+	Stderr     *string    `json:"stderr,omitempty"`
+	Stdout     *string    `json:"stdout,omitempty"`
+	SubmitTime *time.Time `json:"submitTime,omitempty"`
+
+	// TimeLimit The time limit in minutes. Absent when there is none.
+	TimeLimit *int64  `json:"timeLimit,omitempty"`
+	User      string  `json:"user"`
+	WorkDir   *string `json:"workDir,omitempty"`
+}
+
+// JobFacets The jobs of the whole list, before the filters, counted by the
+// values of the fields a page filters by: the most frequent first.
+type JobFacets struct {
+	Partitions []Facet `json:"partitions"`
+	States     []Facet `json:"states"`
+	Users      []Facet `json:"users"`
+}
+
+// JobList A page of the jobs of a cluster, and what the whole list holds.
+type JobList struct {
+	// Error Why a later fetch failed, which leaves these jobs older than their period.
+	Error *Error `json:"error,omitempty"`
+
+	// Facets The jobs of the whole list, before the filters, counted by the
+	// values of the fields a page filters by: the most frequent first.
+	Facets JobFacets `json:"facets"`
+
+	// FetchedAt When those jobs were fetched.
+	FetchedAt time.Time `json:"fetchedAt"`
+
+	// Generation The generation of the jobs the page was cut from, as the pulse reports it.
+	Generation int64 `json:"generation"`
+
+	// Rows The jobs of the window.
+	Rows []Job `json:"rows"`
+
+	// Total How many jobs the filters keep, of which the page is a window.
+	Total int `json:"total"`
+}
+
+// JobSortKey A key the jobs sort by.
+type JobSortKey string
+
+// KindPulse How far the data of one kind have got.
+type KindPulse struct {
+	// Error Why the last fetch failed. The data held, if any, are then those
+	// of an earlier one. Absent when the last fetch succeeded.
+	Error *Error `json:"error,omitempty"`
+
+	// FetchedAt When the data held were fetched. Absent while sdash holds none.
+	FetchedAt *time.Time `json:"fetchedAt,omitempty"`
+
+	// Generation Grows when a fetch brings data that differ from those held; 0
+	// while sdash holds none.
+	Generation int64 `json:"generation"`
+
+	// Kind A kind of a cluster's data, which sdash fetches and holds as one.
+	Kind DataKind `json:"kind"`
+
+	// Period The seconds between two fetches while the kind is watched: its
+	// interval, or ten times the last fetch when that took longer.
+	Period int `json:"period"`
+}
+
+// Node A node as slurmctld knows it.
+type Node struct {
+	AllocCpus int64 `json:"allocCpus"`
+
+	// AllocMemory The memory allocated to jobs, in megabytes.
+	AllocMemory  int64      `json:"allocMemory"`
+	Architecture *string    `json:"architecture,omitempty"`
+	BootTime     *time.Time `json:"bootTime,omitempty"`
+	Cpus         int64      `json:"cpus"`
+	Features     []string   `json:"features"`
+
+	// Flags The flags of the state, DRAIN among them.
+	Flags []string `json:"flags"`
+
+	// FreeMemory The free memory the node reports, in megabytes.
+	FreeMemory *int64 `json:"freeMemory,omitempty"`
+
+	// Gres The generic resources the node offers, gpu:a100:4 say.
+	Gres *string `json:"gres,omitempty"`
+
+	// GresUsed The generic resources in use.
+	GresUsed *string `json:"gresUsed,omitempty"`
+
+	// Load The load average.
+	Load float64 `json:"load"`
+
+	// Memory The memory in megabytes.
+	Memory     int64    `json:"memory"`
+	Name       string   `json:"name"`
+	Partitions []string `json:"partitions"`
+
+	// Reason Why the node is drained or down.
+	Reason      *string `json:"reason,omitempty"`
+	Reservation *string `json:"reservation,omitempty"`
+
+	// State The base state, IDLE, ALLOCATED, MIXED and the like.
+	State string `json:"state"`
+}
+
+// NodeList The nodes of a cluster.
+type NodeList struct {
+	// Error Why a later fetch failed, which leaves these nodes older than their period.
+	Error *Error `json:"error,omitempty"`
+
+	// FetchedAt When the nodes were fetched.
+	FetchedAt time.Time `json:"fetchedAt"`
+
+	// Generation The generation of the nodes, as the pulse reports it.
+	Generation int64 `json:"generation"`
+
+	// Rows The nodes, in slurmctld's order.
+	Rows []Node `json:"rows"`
+}
+
+// Partition A partition as slurmctld knows it.
+type Partition struct {
+	Cpus int64 `json:"cpus"`
+
+	// DefaultTime The minutes a job runs when it asks for none. Absent when not set.
+	DefaultTime *int64 `json:"defaultTime,omitempty"`
+
+	// MaxNodes The most nodes a job may have. Absent when there is no limit.
+	MaxNodes *int64 `json:"maxNodes,omitempty"`
+
+	// MaxTime The most minutes a job may run. Absent when there is no limit.
+	MaxTime   *int64 `json:"maxTime,omitempty"`
+	Name      string `json:"name"`
+	NodeCount int64  `json:"nodeCount"`
+
+	// Nodes The host list of the partition's nodes.
+	Nodes        string `json:"nodes"`
+	PriorityTier int64  `json:"priorityTier"`
+
+	// Qos The QOS of the partition.
+	Qos *string `json:"qos,omitempty"`
+
+	// State UP, DOWN, DRAIN or INACTIVE.
+	State string `json:"state"`
+}
+
+// PartitionList The partitions of a cluster.
+type PartitionList struct {
+	// Error Why a later fetch failed, which leaves these partitions older than their period.
+	Error *Error `json:"error,omitempty"`
+
+	// FetchedAt When the partitions were fetched.
+	FetchedAt time.Time `json:"fetchedAt"`
+
+	// Generation The generation of the partitions, as the pulse reports it.
+	Generation int64 `json:"generation"`
+
+	// Rows The partitions, in slurmctld's order.
+	Rows []Partition `json:"rows"`
+}
+
+// Pulse The state of a cluster and of the kinds of its data.
+type Pulse struct {
+	// Connection The connection to a cluster's slurmrestd. sdash connects when a kind
+	// of the cluster's data is first asked for, and a connection that
+	// failed is tried again with the next fetch.
+	Connection Connection `json:"connection"`
+
+	// Kinds Each kind asked for, in the order asked.
+	Kinds []KindPulse `json:"kinds"`
+}
 
 // Session The session that a browser signed in with.
 type Session struct {
@@ -104,10 +514,13 @@ type Session struct {
 	CsrfToken string `json:"csrfToken"`
 }
 
+// SortOrder The direction of a sort.
+type SortOrder string
+
 // Status The running sdash and the clusters it is configured for.
 type Status struct {
-	// Clusters The clusters sdash is configured for. The list is always
-	// present, and empty when there is none.
+	// Clusters The clusters the profile file names, in its order. The list is
+	// always present, and empty when there is none.
 	Clusters []Cluster `json:"clusters"`
 
 	// Commit The git revision the binary was built from. Absent when the
@@ -135,8 +548,58 @@ type Status struct {
 	Version string `json:"version"`
 }
 
+// ClusterName defines model for ClusterName.
+type ClusterName = string
+
+// GetJobsParams defines parameters for GetJobs.
+type GetJobsParams struct {
+	// State Keeps the jobs in one of these base states.
+	State *[]string `form:"state,omitempty" json:"state,omitempty"`
+
+	// User Keeps the jobs of this user.
+	User *string `form:"user,omitempty" json:"user,omitempty"`
+
+	// Partition Keeps the jobs of this partition.
+	Partition *string `form:"partition,omitempty" json:"partition,omitempty"`
+
+	// Q Keeps the jobs whose id, name, user or account contains this
+	// text, whatever the case.
+	Q *string `form:"q,omitempty" json:"q,omitempty"`
+
+	// Sort The key to sort by; the id when absent.
+	Sort *JobSortKey `form:"sort,omitempty" json:"sort,omitempty"`
+
+	// Order The direction of the sort. A job that lacks the key comes last
+	// either way, and the id breaks a tie.
+	Order *SortOrder `form:"order,omitempty" json:"order,omitempty"`
+
+	// Offset How many of the sorted jobs to skip.
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Limit How many jobs to give at most; all that are left when absent.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// GetPulseParams defines parameters for GetPulse.
+type GetPulseParams struct {
+	// Kinds The kinds to report on and keep watched.
+	Kinds *[]DataKind `form:"kinds,omitempty" json:"kinds,omitempty"`
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// GetJobs A page of the jobs of a cluster
+	// (GET /clusters/{cluster}/jobs)
+	GetJobs(w http.ResponseWriter, r *http.Request, cluster ClusterName, params GetJobsParams)
+	// GetNodes The nodes of a cluster
+	// (GET /clusters/{cluster}/nodes)
+	GetNodes(w http.ResponseWriter, r *http.Request, cluster ClusterName)
+	// GetPartitions The partitions of a cluster
+	// (GET /clusters/{cluster}/partitions)
+	GetPartitions(w http.ResponseWriter, r *http.Request, cluster ClusterName)
+	// GetPulse The state of a cluster and of the kinds of its data
+	// (GET /clusters/{cluster}/pulse)
+	GetPulse(w http.ResponseWriter, r *http.Request, cluster ClusterName, params GetPulseParams)
 	// GetSession The CSRF token of the session that asks
 	// (GET /session)
 	GetSession(w http.ResponseWriter, r *http.Request)
@@ -148,6 +611,30 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// GetJobs A page of the jobs of a cluster
+// (GET /clusters/{cluster}/jobs)
+func (_ Unimplemented) GetJobs(w http.ResponseWriter, r *http.Request, cluster ClusterName, params GetJobsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetNodes The nodes of a cluster
+// (GET /clusters/{cluster}/nodes)
+func (_ Unimplemented) GetNodes(w http.ResponseWriter, r *http.Request, cluster ClusterName) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetPartitions The partitions of a cluster
+// (GET /clusters/{cluster}/partitions)
+func (_ Unimplemented) GetPartitions(w http.ResponseWriter, r *http.Request, cluster ClusterName) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetPulse The state of a cluster and of the kinds of its data
+// (GET /clusters/{cluster}/pulse)
+func (_ Unimplemented) GetPulse(w http.ResponseWriter, r *http.Request, cluster ClusterName, params GetPulseParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // GetSession The CSRF token of the session that asks
 // (GET /session)
@@ -169,6 +656,233 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetJobs operation middleware
+func (siw *ServerInterfaceWrapper) GetJobs(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "cluster" -------------
+	var cluster ClusterName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "cluster", chi.URLParam(r, "cluster"), &cluster, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cluster", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetJobsParams
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "user" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "user", r.URL.Query(), &params.User, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "user"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "partition" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "partition", r.URL.Query(), &params.Partition, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "partition"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "partition", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "sort", r.URL.Query(), &params.Sort, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sort"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "order" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "order", r.URL.Query(), &params.Order, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "order"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "order", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "offset", r.URL.Query(), &params.Offset, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "offset"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "offset", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetJobs(w, r, cluster, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetNodes operation middleware
+func (siw *ServerInterfaceWrapper) GetNodes(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "cluster" -------------
+	var cluster ClusterName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "cluster", chi.URLParam(r, "cluster"), &cluster, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cluster", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetNodes(w, r, cluster)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPartitions operation middleware
+func (siw *ServerInterfaceWrapper) GetPartitions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "cluster" -------------
+	var cluster ClusterName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "cluster", chi.URLParam(r, "cluster"), &cluster, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cluster", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPartitions(w, r, cluster)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPulse operation middleware
+func (siw *ServerInterfaceWrapper) GetPulse(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "cluster" -------------
+	var cluster ClusterName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "cluster", chi.URLParam(r, "cluster"), &cluster, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cluster", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetPulseParams
+
+	// ------------- Optional query parameter "kinds" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "kinds", r.URL.Query(), &params.Kinds, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "kinds"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "kinds", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPulse(w, r, cluster, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // GetSession operation middleware
 func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Request) {
@@ -317,11 +1031,181 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/session", wrapper.GetSession)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/clusters/{cluster}/pulse", wrapper.GetPulse)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/clusters/{cluster}/jobs", wrapper.GetJobs)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/clusters/{cluster}/nodes", wrapper.GetNodes)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/clusters/{cluster}/partitions", wrapper.GetPartitions)
+	})
 
 	return r
 }
 
 type ErrorJSONResponse Error
+
+type GetJobsRequestObject struct {
+	Cluster ClusterName `json:"cluster"`
+	Params  GetJobsParams
+}
+
+type GetJobsResponseObject interface {
+	VisitGetJobsResponse(w http.ResponseWriter) error
+}
+
+type GetJobs200JSONResponse JobList
+
+func (response GetJobs200JSONResponse) VisitGetJobsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetJobsdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetJobsdefaultJSONResponse) VisitGetJobsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetNodesRequestObject struct {
+	Cluster ClusterName `json:"cluster"`
+}
+
+type GetNodesResponseObject interface {
+	VisitGetNodesResponse(w http.ResponseWriter) error
+}
+
+type GetNodes200JSONResponse NodeList
+
+func (response GetNodes200JSONResponse) VisitGetNodesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetNodesdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetNodesdefaultJSONResponse) VisitGetNodesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPartitionsRequestObject struct {
+	Cluster ClusterName `json:"cluster"`
+}
+
+type GetPartitionsResponseObject interface {
+	VisitGetPartitionsResponse(w http.ResponseWriter) error
+}
+
+type GetPartitions200JSONResponse PartitionList
+
+func (response GetPartitions200JSONResponse) VisitGetPartitionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPartitionsdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetPartitionsdefaultJSONResponse) VisitGetPartitionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPulseRequestObject struct {
+	Cluster ClusterName `json:"cluster"`
+	Params  GetPulseParams
+}
+
+type GetPulseResponseObject interface {
+	VisitGetPulseResponse(w http.ResponseWriter) error
+}
+
+type GetPulse200JSONResponse Pulse
+
+func (response GetPulse200JSONResponse) VisitGetPulseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPulsedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetPulsedefaultJSONResponse) VisitGetPulseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type GetSessionRequestObject struct {
 }
@@ -401,6 +1285,18 @@ func (response GetStatusdefaultJSONResponse) VisitGetStatusResponse(w http.Respo
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// GetJobs A page of the jobs of a cluster
+	// (GET /clusters/{cluster}/jobs)
+	GetJobs(ctx context.Context, request GetJobsRequestObject) (GetJobsResponseObject, error)
+	// GetNodes The nodes of a cluster
+	// (GET /clusters/{cluster}/nodes)
+	GetNodes(ctx context.Context, request GetNodesRequestObject) (GetNodesResponseObject, error)
+	// GetPartitions The partitions of a cluster
+	// (GET /clusters/{cluster}/partitions)
+	GetPartitions(ctx context.Context, request GetPartitionsRequestObject) (GetPartitionsResponseObject, error)
+	// GetPulse The state of a cluster and of the kinds of its data
+	// (GET /clusters/{cluster}/pulse)
+	GetPulse(ctx context.Context, request GetPulseRequestObject) (GetPulseResponseObject, error)
 	// GetSession The CSRF token of the session that asks
 	// (GET /session)
 	GetSession(ctx context.Context, request GetSessionRequestObject) (GetSessionResponseObject, error)
@@ -446,6 +1342,112 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// GetJobs operation middleware
+func (sh *strictHandler) GetJobs(w http.ResponseWriter, r *http.Request, cluster ClusterName, params GetJobsParams) {
+	var request GetJobsRequestObject
+
+	request.Cluster = cluster
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetJobs(ctx, request.(GetJobsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetJobs")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetJobsResponseObject); ok {
+		if err := validResponse.VisitGetJobsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetNodes operation middleware
+func (sh *strictHandler) GetNodes(w http.ResponseWriter, r *http.Request, cluster ClusterName) {
+	var request GetNodesRequestObject
+
+	request.Cluster = cluster
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetNodes(ctx, request.(GetNodesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetNodes")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetNodesResponseObject); ok {
+		if err := validResponse.VisitGetNodesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPartitions operation middleware
+func (sh *strictHandler) GetPartitions(w http.ResponseWriter, r *http.Request, cluster ClusterName) {
+	var request GetPartitionsRequestObject
+
+	request.Cluster = cluster
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPartitions(ctx, request.(GetPartitionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPartitions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPartitionsResponseObject); ok {
+		if err := validResponse.VisitGetPartitionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPulse operation middleware
+func (sh *strictHandler) GetPulse(w http.ResponseWriter, r *http.Request, cluster ClusterName, params GetPulseParams) {
+	var request GetPulseRequestObject
+
+	request.Cluster = cluster
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPulse(ctx, request.(GetPulseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPulse")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPulseResponseObject); ok {
+		if err := validResponse.VisitGetPulseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // GetSession operation middleware

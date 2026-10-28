@@ -253,6 +253,22 @@ func (f failingOperations) GetStatus(context.Context, api.GetStatusRequestObject
 	return nil, f.err
 }
 
+func (f failingOperations) GetPulse(context.Context, api.GetPulseRequestObject) (api.GetPulseResponseObject, error) {
+	return nil, f.err
+}
+
+func (f failingOperations) GetJobs(context.Context, api.GetJobsRequestObject) (api.GetJobsResponseObject, error) {
+	return nil, f.err
+}
+
+func (f failingOperations) GetNodes(context.Context, api.GetNodesRequestObject) (api.GetNodesResponseObject, error) {
+	return nil, f.err
+}
+
+func (f failingOperations) GetPartitions(context.Context, api.GetPartitionsRequestObject) (api.GetPartitionsResponseObject, error) {
+	return nil, f.err
+}
+
 // An error from inside sdash may name a path, a host or a command. The log
 // is where the user looks for it; the answer says only that there is
 // something to look for.

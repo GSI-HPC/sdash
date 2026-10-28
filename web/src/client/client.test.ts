@@ -357,6 +357,51 @@ test("a refusal of another kind keeps the token", async () => {
   expect(seen.filter(({ url }) => url.endsWith("/session"))).toHaveLength(1);
 });
 
+// The operations on a cluster name it in their path, and the document has
+// an array in the query sent as one parameter for each of its values.
+test("a call on a cluster names it in the path and its parameters in the query", async () => {
+  const { client, seen } = clientOf(() => json(200, {}));
+
+  await client.getPulse("virgo", ["jobs", "nodes"]);
+  await client.getJobs("a b/c", {
+    state: ["PENDING", "RUNNING"],
+    sort: "submitted",
+    order: "desc",
+    offset: 0,
+    limit: 50,
+  });
+  await client.getJobs("virgo");
+  await client.getNodes("virgo");
+  await client.getPartitions("virgo");
+  await client.getPulse("virgo", []);
+
+  expect(seen.map(({ url }) => url)).toEqual([
+    "/api/v1/clusters/virgo/pulse?kinds=jobs&kinds=nodes",
+    "/api/v1/clusters/a%20b%2Fc/jobs?state=PENDING&state=RUNNING&sort=submitted&order=desc&offset=0&limit=50",
+    "/api/v1/clusters/virgo/jobs",
+    "/api/v1/clusters/virgo/nodes",
+    "/api/v1/clusters/virgo/partitions",
+    "/api/v1/clusters/virgo/pulse",
+  ]);
+});
+
+// What a cluster could not give is an Error of one of the codes of the
+// upstream, and reaches the caller as such.
+test("a read the cluster cannot answer rejects with the code of the cause", async () => {
+  const { client } = clientOf(() =>
+    json(502, { code: "unauthenticated", message: "the token expired" }),
+  );
+
+  const error = await failureOf(client.getJobs("virgo"));
+
+  expect(error).toBeInstanceOf(ApiError);
+  expect(error).toMatchObject({
+    status: 502,
+    code: ErrorCode.UNAUTHENTICATED,
+    message: "the token expired",
+  });
+});
+
 /** A transport whose requests go to a function that stands in for the server. */
 function transportOf(respond: (url: string) => Response | Promise<Response>) {
   const seen: Seen[] = [];
