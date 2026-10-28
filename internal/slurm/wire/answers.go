@@ -176,3 +176,33 @@ type Partition struct {
 	} `json:"qos"`
 	NodeSets string `json:"node_sets"`
 }
+
+// Reservations is the answer of the reservation list, and of a reservation
+// by its name.
+type Reservations struct {
+	Envelope
+	Reservations []Reservation `json:"reservations"`
+}
+
+// Reservation is a reservation as slurmctld knows it.
+type Reservation struct {
+	Name string `json:"name"`
+	// NodeList is the host list of the reserved nodes.
+	NodeList  string `json:"node_list"`
+	NodeCount int64  `json:"node_count"`
+	CoreCount int64  `json:"core_count"`
+	StartTime Time   `json:"start_time"`
+	EndTime   Time   `json:"end_time"`
+	// Flags are MAINT, DAILY, IGNORE_JOBS and the like.
+	Flags []string `json:"flags"`
+	// Users and Accounts are lists of names separated by commas, each of
+	// which may be denied by a leading "-".
+	Users     string `json:"users"`
+	Accounts  string `json:"accounts"`
+	Groups    string `json:"groups"`
+	Partition string `json:"partition"`
+	// TRES is what the reservation holds, as "cpu=2".
+	TRES     string `json:"tres"`
+	Features string `json:"features"`
+	Licenses string `json:"licenses"`
+}

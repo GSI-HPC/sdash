@@ -132,13 +132,15 @@ func (d document) conformStruct(at string, typ reflect.Type, s *schema) []string
 func TestTheWireStructsConformToEveryVendoredDocument(t *testing.T) {
 	t.Parallel()
 	answers := map[string]any{
-		"/slurm/{v}/ping/":                      Pings{},
-		"/slurm/{v}/jobs/":                      Jobs{},
-		"/slurm/{v}/job/{job_id}":               Jobs{},
-		"/slurm/{v}/nodes/":                     Nodes{},
-		"/slurm/{v}/node/{node_name}":           Nodes{},
-		"/slurm/{v}/partitions/":                Partitions{},
-		"/slurm/{v}/partition/{partition_name}": Partitions{},
+		"/slurm/{v}/ping/":                          Pings{},
+		"/slurm/{v}/jobs/":                          Jobs{},
+		"/slurm/{v}/job/{job_id}":                   Jobs{},
+		"/slurm/{v}/nodes/":                         Nodes{},
+		"/slurm/{v}/node/{node_name}":               Nodes{},
+		"/slurm/{v}/partitions/":                    Partitions{},
+		"/slurm/{v}/partition/{partition_name}":     Partitions{},
+		"/slurm/{v}/reservations/":                  Reservations{},
+		"/slurm/{v}/reservation/{reservation_name}": Reservations{},
 	}
 	for _, p := range versions.Known() {
 		doc := readDocument(t, p)

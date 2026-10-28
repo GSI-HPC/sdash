@@ -124,6 +124,16 @@ func TestJobsStreamsTheSeededJobs(t *testing.T) {
 	assert.Equal(t, []int64{1, 2, 3, 4, 5, 6, 7, 8}, ids)
 }
 
+func TestReservationsReadsTheSeededReservation(t *testing.T) {
+	t.Parallel()
+	conn, fake := connect(t)
+	reservations, err := conn.Reservations(t.Context())
+	require.NoError(t, err)
+	require.Len(t, reservations, 1)
+	assert.Equal(t, "maintenance", reservations[0].Name)
+	assert.Equal(t, "/slurm/"+string(newest())+"/reservations/", fake.Requests()[2].URL.Path)
+}
+
 func TestAnErrorOfTheCallerStopsTheListAndComesBackAsItIs(t *testing.T) {
 	t.Parallel()
 	conn, _ := connect(t)
