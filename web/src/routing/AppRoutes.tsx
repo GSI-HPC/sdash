@@ -70,13 +70,14 @@ const Gallery = lazy(async () => ({
  * "/nodes": a view would then have addresses nobody gave it.
  *
  * The redirect from the root replaces the entry in the history, so that
- * Back leaves sdash and does not bounce off the root.
+ * Back leaves sdash and does not bounce off the root. It keeps the query
+ * string, which names the cluster to show.
  */
 export function AppRoutes() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const target = leadsTo(pathname);
   if (target !== pathname) {
-    return <Navigate to={target} replace />;
+    return <Navigate to={{ pathname: target, search }} replace />;
   }
   if (pathname === galleryPath) {
     return <Gallery />;

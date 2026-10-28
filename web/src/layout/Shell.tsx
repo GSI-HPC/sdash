@@ -4,6 +4,7 @@
 import { type ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { createPath, useLocation, useNavigate } from "react-router";
 
+import { useAddressOf } from "../cluster/useCluster";
 import { galleryPath } from "../gallery/page";
 import { CommandPalette } from "../palette/CommandPalette";
 import { PopupContainer } from "../primitives/popups";
@@ -50,6 +51,7 @@ interface OpenDialog {
 export function Shell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const addressOf = useAddressOf();
   const { pathname } = location;
   const theme = useTheme();
   const { characterKeys, setCharacterKeys } = useContext(SettingsContext);
@@ -122,8 +124,9 @@ export function Shell({ children }: { children: ReactNode }) {
       // Going to the address that shows already would add an entry to the
       // history that looks no different, and Back would then seem to do
       // nothing. A link of the navigation adds none either.
-      if (createPath(location) !== view.path) {
-        void navigate(view.path);
+      const target = addressOf(view.path);
+      if (createPath(location) !== target) {
+        void navigate(target);
       }
     },
     togglePalette: () => {

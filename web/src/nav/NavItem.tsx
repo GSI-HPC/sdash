@@ -3,6 +3,7 @@
 
 import { Link } from "react-router";
 
+import { useAddressOf } from "../cluster/useCluster";
 import { Icon } from "../icons/Icon";
 import { Tooltip } from "../primitives/Tooltip";
 import type { View } from "../routing/views";
@@ -42,10 +43,12 @@ export function NavItem({
   current: boolean;
   rail: boolean;
 }) {
+  const addressOf = useAddressOf();
+
   return (
     <Tooltip label={view.title} side="right" disabled={!rail}>
       <Link
-        to={view.path}
+        to={addressOf(view.path)}
         aria-current={current ? "page" : undefined}
         className={`group/item relative flex h-8 items-center gap-2.5 rounded-[5px] px-2.5 whitespace-nowrap hover:no-underline ${
           rail ? "justify-center" : ""
