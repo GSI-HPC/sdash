@@ -11,7 +11,9 @@ package slurmrestdtest
 
 import (
 	"bufio"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -61,9 +63,21 @@ type Server struct {
 // release its document was captured on, and stops it when the test ends.
 func New(t testing.TB, p versions.Parser) *Server {
 	t.Helper()
+	s, err := Start(p)
+	if err != nil {
+		t.Fatalf("slurmrestdtest: %v", err)
+	}
+	t.Cleanup(s.Close)
+	return s
+}
+
+// Start starts a fake slurmrestd as New does, for a program that is no test:
+// the caller closes it. It reads the captures from the checkout the program
+// was built in, so a program built with -trimpath cannot find them.
+func Start(p versions.Parser) (*Server, error) {
 	_, file, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("slurmrestdtest: cannot tell where its sources are")
+	if !ok || !filepath.IsAbs(file) {
+		return nil, errors.New("cannot tell where the sources of the checkout are")
 	}
 	slurm := filepath.Join(filepath.Dir(file), "..")
 	s := &Server{
@@ -73,18 +87,26 @@ func New(t testing.TB, p versions.Parser) *Server {
 	}
 	release, err := s.release()
 	if err != nil {
-		t.Fatalf("slurmrestdtest: %v", err)
+		return nil, err
 	}
 	s.errors = filepath.Join(slurm, "releases", "testdata", release, "errors-"+p.Dir())
 	if err := s.readCaptures(); err != nil {
-		t.Fatalf("slurmrestdtest: %v", err)
+		return nil, err
 	}
 	if err := s.readStatus(); err != nil {
-		t.Fatalf("slurmrestdtest: %v", err)
+		return nil, err
 	}
 	s.Server = httptest.NewServer(http.HandlerFunc(s.serve))
-	t.Cleanup(s.Close)
-	return s
+	return s, nil
+}
+
+// TokenFor returns a token of the shape scontrol token writes, which names
+// user. Only the client reads it: the server takes any token as SetToken
+// says.
+func TokenFor(user string) string {
+	claims, _ := json.Marshal(map[string]string{"sun": user}) // a map of strings always marshals
+	part := base64.RawURLEncoding.EncodeToString
+	return part([]byte(`{"alg":"HS256"}`)) + "." + part(claims) + "." + part([]byte("sig"))
 }
 
 // release names the directory of the release the document of the parser was

@@ -106,6 +106,13 @@ test-ui: web/node_modules
 test-components: web/node_modules
 	cd web && $(NPM) run test:components
 
+## slurmrestdtest: compile bin/slurmrestdtest, the fake slurmrestd the browser tests give sdash
+# Without -trimpath: the program reads the captures from the sources of the
+# checkout, and finds them by the path the build leaves in it.
+.PHONY: slurmrestdtest
+slurmrestdtest:
+	$(GO) build -o bin/slurmrestdtest ./internal/slurm/slurmrestdtest/cmd/slurmrestdtest
+
 ## test-browser: build bin/sdash and run the browser tests (Playwright) against it
 .PHONY: test-browser
 test-browser: build

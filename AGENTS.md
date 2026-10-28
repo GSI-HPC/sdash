@@ -55,7 +55,8 @@ else.
   kinds of failure, `auth` the token, `wire` the structs of the answers and
   their streaming decoder, `client` the connection, `model` sdash's own
   jobs, nodes and partitions, `cache` the read-through cache of one kind,
-  and `slurmrestdtest` a fake slurmrestd that answers with the captures.
+  and `slurmrestdtest` a fake slurmrestd that answers with the captures,
+  which `cmd/slurmrestdtest` runs as a program for the browser tests.
 - `internal/static/dist/`: what the binary embeds. `make build` copies the UI
   build there; a tracked placeholder lets `go build ./...` work without Node.
 - `api/openapi.yaml`: the browser API (OpenAPI 3.0.3, base path `/api/v1`),
@@ -94,6 +95,7 @@ make lint             # golangci-lint v2 (.golangci.yml, gofmt + goimports)
 make lint-ui          # ESLint and Prettier on the frontend
 make test-ui          # Vitest, the unit tests
 make test-components  # Vitest browser mode, the component tests
+make slurmrestdtest   # bin/slurmrestdtest, the fake slurmrestd of the browser tests
 make test-browser     # build, then Playwright with the axe scan on bin/sdash
 make tidy             # go mod tidy and go mod verify
 make vuln             # govulncheck
