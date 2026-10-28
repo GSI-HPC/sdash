@@ -71,7 +71,7 @@ func TestTheStatusListsTheClustersOfTheProfile(t *testing.T) {
 func TestAClusterTheProfileDoesNotNameIsNotFound(t *testing.T) {
 	t.Parallel()
 	h, _ := clusterAPI(t)
-	for _, path := range []string{"pulse", "jobs", "nodes", "partitions"} {
+	for _, path := range []string{"pulse", "jobs", "nodes", "partitions", "reservations"} {
 		got := ask(h, "/api/v1/clusters/lyra/"+path)
 		assert.Equal(t, http.StatusNotFound, got.Code, path)
 		assert.Equal(t, api.ErrorCodeNotFound, apiError(t, got).Code, path)
@@ -145,7 +145,7 @@ func TestTheJobsSortByTheKeysTheDocumentNames(t *testing.T) {
 	assert.Equal(t, model.SortKeys(), keys)
 }
 
-func TestTheNodesAndPartitionsComeWhole(t *testing.T) {
+func TestTheNodesPartitionsAndReservationsComeWhole(t *testing.T) {
 	t.Parallel()
 	h, _ := clusterAPI(t)
 	var nodes api.NodeList
@@ -162,6 +162,18 @@ func TestTheNodesAndPartitionsComeWhole(t *testing.T) {
 	require.Len(t, parts.Rows, 1)
 	assert.Equal(t, "worker-[0-2]", parts.Rows[0].Nodes)
 	assert.Nil(t, parts.Rows[0].MaxTime, "the seeded partition has no limit")
+
+	var reservations api.ReservationList
+	decodeOK(t, ask(h, "/api/v1/clusters/virgo/reservations"), &reservations)
+	require.Len(t, reservations.Rows, 1)
+	maint := reservations.Rows[0]
+	assert.Equal(t, "maintenance", maint.Name)
+	assert.Equal(t, []string{"MAINT", "SPEC_NODES"}, maint.Flags)
+	assert.Equal(t, []string{"root"}, maint.Users)
+	assert.Equal(t, []string{}, maint.Accounts, "a list is sent empty, never null")
+	require.NotNil(t, maint.StartTime)
+	require.NotNil(t, maint.EndTime)
+	assert.Nil(t, maint.Partition, "the seed names no partition")
 }
 
 func TestThePulseReportsTheConnectionAndHowFarEachKindHasGot(t *testing.T) {
@@ -187,7 +199,7 @@ func TestThePulseReportsTheConnectionAndHowFarEachKindHasGot(t *testing.T) {
 	assert.Equal(t, int(clusters.NodesInterval.Seconds()), after.Kinds[0].Period)
 	assert.Equal(t, api.DataKindJobs, after.Kinds[1].Kind)
 
-	got := ask(h, "/api/v1/clusters/virgo/pulse?kinds=reservations")
+	got := ask(h, "/api/v1/clusters/virgo/pulse?kinds=licenses")
 	assert.Equal(t, http.StatusBadRequest, got.Code)
 }
 

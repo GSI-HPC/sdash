@@ -86,7 +86,8 @@ export type Cluster = {
 export const DataKind = {
     JOBS: 'jobs',
     NODES: 'nodes',
-    PARTITIONS: 'partitions'
+    PARTITIONS: 'partitions',
+    RESERVATIONS: 'reservations'
 } as const;
 
 /**
@@ -472,6 +473,72 @@ export type Partition = {
 };
 
 /**
+ * The reservations of a cluster.
+ */
+export type ReservationList = {
+    /**
+     * The generation of the reservations, as the pulse reports it.
+     */
+    generation: number;
+    /**
+     * When the reservations were fetched.
+     */
+    fetchedAt: string;
+    /**
+     * Why a later fetch failed, which leaves these reservations older than their period.
+     */
+    error?: Error;
+    /**
+     * The reservations, in slurmctld's order.
+     */
+    rows: Array<Reservation>;
+};
+
+/**
+ * A reservation as slurmctld knows it.
+ */
+export type Reservation = {
+    name: string;
+    /**
+     * The host list of the reserved nodes.
+     */
+    nodes: string;
+    nodeCount: number;
+    cores: number;
+    /**
+     * When the reservation starts. Absent when not set.
+     */
+    startTime?: string;
+    /**
+     * When the reservation ends. Absent when not set or when it has no end.
+     */
+    endTime?: string;
+    /**
+     * MAINT, DAILY, IGNORE_JOBS and the like.
+     */
+    flags: Array<string>;
+    /**
+     * The users who may use the reservation; a name that starts with "-" is denied it.
+     */
+    users: Array<string>;
+    /**
+     * The accounts that may use the reservation, in the same way.
+     */
+    accounts: Array<string>;
+    /**
+     * The groups that may use the reservation, in the same way.
+     */
+    groups: Array<string>;
+    partition?: string;
+    /**
+     * What the reservation holds, as "cpu=2".
+     */
+    tres?: string;
+    features?: string;
+    licenses?: string;
+};
+
+/**
  * Why a request was not answered with what it asked for.
  */
 export type Error = {
@@ -796,3 +863,35 @@ export type GetPartitionsResponses = {
 };
 
 export type GetPartitionsResponse = GetPartitionsResponses[keyof GetPartitionsResponses];
+
+export type GetReservationsData = {
+    body?: never;
+    path: {
+        /**
+         * The name of the cluster, as the profile file gives it.
+         */
+        cluster: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/reservations';
+};
+
+export type GetReservationsErrors = {
+    /**
+     * The request was not answered with what it asked for. The status says
+     * what kind of failure it is, and the body what caused it.
+     *
+     */
+    default: Error;
+};
+
+export type GetReservationsError = GetReservationsErrors[keyof GetReservationsErrors];
+
+export type GetReservationsResponses = {
+    /**
+     * The reservations.
+     */
+    200: ReservationList;
+};
+
+export type GetReservationsResponse = GetReservationsResponses[keyof GetReservationsResponses];

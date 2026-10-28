@@ -42,6 +42,8 @@ func (o operations) GetPulse(_ context.Context, r api.GetPulseRequestObject) (ap
 			kp = kindPulse(c.Nodes)
 		case api.DataKindPartitions:
 			kp = kindPulse(c.Partitions)
+		case api.DataKindReservations:
+			kp = kindPulse(c.Reservations)
 		default:
 			return api.GetPulsedefaultJSONResponse(badRequest(fmt.Sprintf("there is no kind of data %q", k))), nil
 		}
@@ -157,6 +159,28 @@ func (o operations) GetPartitions(ctx context.Context, r api.GetPartitionsReques
 		list.Rows[i] = partitionOf(p)
 	}
 	return api.GetPartitions200JSONResponse(list), nil
+}
+
+// GetReservations gives the reservations of a cluster.
+func (o operations) GetReservations(ctx context.Context, r api.GetReservationsRequestObject) (api.GetReservationsResponseObject, error) {
+	c, refused := o.cluster(r.Cluster)
+	if c == nil {
+		return api.GetReservationsdefaultJSONResponse(refused), nil
+	}
+	snap, err := c.Reservations.Get(ctx)
+	if err != nil {
+		return api.GetReservationsdefaultJSONResponse(upstream(err)), nil
+	}
+	list := api.ReservationList{
+		Generation: int64(snap.Generation),
+		FetchedAt:  snap.Fetched,
+		Error:      errorOf(snap.Err),
+		Rows:       make([]api.Reservation, len(snap.Data)),
+	}
+	for i, res := range snap.Data {
+		list.Rows[i] = reservationOf(res)
+	}
+	return api.GetReservations200JSONResponse(list), nil
 }
 
 // failure is the body and the status of an answer that is not a success,
@@ -301,6 +325,25 @@ func partitionOf(p model.Partition) api.Partition {
 		MaxNodes:     p.MaxNodes,
 		PriorityTier: p.PriorityTier,
 		Qos:          optional(p.QOS),
+	}
+}
+
+func reservationOf(r model.Reservation) api.Reservation {
+	return api.Reservation{
+		Name:      r.Name,
+		Nodes:     r.Nodes,
+		NodeCount: r.NodeCount,
+		Cores:     r.Cores,
+		StartTime: r.Start,
+		EndTime:   r.End,
+		Flags:     nonNil(r.Flags),
+		Users:     nonNil(r.Users),
+		Accounts:  nonNil(r.Accounts),
+		Groups:    nonNil(r.Groups),
+		Partition: optional(r.Partition),
+		Tres:      optional(r.TRES),
+		Features:  optional(r.Features),
+		Licenses:  optional(r.Licenses),
 	}
 }
 
