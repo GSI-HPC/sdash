@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
+import { useLocation } from "react-router";
 
 import { type DataKind, type Pulse, client } from "../client/client";
 import { statusQuery } from "../client/query";
@@ -87,4 +89,31 @@ export function generationOf(
   kind: DataKind,
 ): number | undefined {
   return pulse?.kinds.find((each) => each.kind === kind)?.generation;
+}
+
+/**
+ * Gives the address of another page with the cluster the address names,
+ * so that a move from one view to the next keeps showing that cluster,
+ * and with the parameters given. The other parameters of the address
+ * belong to the view that set them and are left behind.
+ */
+export function useAddressOf(): (
+  path: string,
+  more?: Readonly<Record<string, string>>,
+) => string {
+  const { search } = useLocation();
+  const named = new URLSearchParams(search).get(clusterParam.name);
+  return useCallback(
+    (path: string, more: Readonly<Record<string, string>> = {}) => {
+      const next = new URLSearchParams(
+        named === null || named === "" ? {} : { [clusterParam.name]: named },
+      );
+      for (const [name, value] of Object.entries(more)) {
+        next.set(name, value);
+      }
+      const query = next.toString();
+      return query === "" ? path : `${path}?${query}`;
+    },
+    [named],
+  );
 }

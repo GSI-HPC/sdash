@@ -3,6 +3,7 @@
 
 import { Link, useLocation } from "react-router";
 
+import { useAddressOf } from "../cluster/useCluster";
 import { PageHeader } from "../layout/PageHeader";
 import { startView } from "../routing/views";
 
@@ -17,6 +18,7 @@ import { startView } from "../routing/views";
  */
 export function NotFound() {
   const { pathname } = useLocation();
+  const addressOf = useAddressOf();
 
   return (
     <div className="flex flex-col gap-3.5">
@@ -26,7 +28,7 @@ export function NotFound() {
       />
       <p className="font-mono text-[0.78125rem] break-all">{pathname}</p>
       <p>
-        <Link to={startView.path}>Go to the {startView.title}</Link>
+        <Link to={addressOf(startView.path)}>Go to the {startView.title}</Link>
       </p>
     </div>
   );
