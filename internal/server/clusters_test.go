@@ -5,7 +5,6 @@ package server
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -23,10 +22,9 @@ import (
 	"github.com/GSI-HPC/sdash/internal/slurm/versions"
 )
 
-// aliceToken is a token of the shape scontrol token writes, which names
-// alice; the fake slurmrestd does not check it.
-var aliceToken = base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"HS256"}`)) + "." +
-	base64.RawURLEncoding.EncodeToString([]byte(`{"sun":"alice"}`)) + ".c2ln"
+// aliceToken is a token that names alice; the fake slurmrestd does not
+// check it.
+var aliceToken = slurmrestdtest.TokenFor("alice")
 
 // clusterAPI is a router that serves the API with one cluster, virgo, whose
 // slurmrestd is a fake that answers with the captures of the seeded sind
