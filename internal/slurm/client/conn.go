@@ -205,6 +205,15 @@ func (c *Conn) Partitions(ctx context.Context) ([]wire.Partition, error) {
 	return answer.Partitions, nil
 }
 
+// Reservations returns the reservations.
+func (c *Conn) Reservations(ctx context.Context) ([]wire.Reservation, error) {
+	var answer wire.Reservations
+	if err := c.c.get(ctx, c.Profile, c.path("slurm", "reservations/"), decode(&answer)); err != nil {
+		return nil, err
+	}
+	return answer.Reservations, nil
+}
+
 // decode reads a small answer whole into v, a struct that embeds the
 // envelope.
 func decode[T interface{ Head() *wire.Envelope }](v T) reader {

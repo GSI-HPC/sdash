@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -133,6 +134,30 @@ func TestTheSeededPartitionDecodes(t *testing.T) {
 			assert.Equal(t, int64(6), all.CPUs.Total)
 			assert.Equal(t, []string{"UP"}, all.Partition.State)
 			assert.True(t, all.Maximums.Time.Infinite, "the partition sets no limit")
+		})
+	}
+}
+
+func TestTheSeededReservationDecodes(t *testing.T) {
+	t.Parallel()
+	for _, p := range versions.Known() {
+		t.Run(string(p), func(t *testing.T) {
+			t.Parallel()
+			var answer Reservations
+			require.NoError(t, json.Unmarshal(fixture(t, p, "slurm-reservations.json"), &answer))
+			require.Len(t, answer.Reservations, 1)
+			maint := answer.Reservations[0]
+			assert.Equal(t, "maintenance", maint.Name)
+			assert.Equal(t, "worker-2", maint.NodeList)
+			assert.Equal(t, int64(1), maint.NodeCount)
+			assert.Equal(t, int64(2), maint.CoreCount)
+			assert.Equal(t, []string{"MAINT", "SPEC_NODES"}, maint.Flags)
+			assert.Equal(t, "root", maint.Users)
+			start, ok := maint.StartTime.Value()
+			require.True(t, ok)
+			end, ok := maint.EndTime.Value()
+			require.True(t, ok)
+			assert.Equal(t, time.Hour, end.Sub(start), "the seed reserves the node for an hour")
 		})
 	}
 }
