@@ -162,6 +162,30 @@ func TestTheSeededReservationDecodes(t *testing.T) {
 	}
 }
 
+func TestTheCapturedDiagDecodes(t *testing.T) {
+	t.Parallel()
+	for _, p := range versions.Known() {
+		t.Run(string(p), func(t *testing.T) {
+			t.Parallel()
+			var answer Diag
+			require.NoError(t, json.Unmarshal(fixture(t, p, "slurm-diag.json"), &answer))
+			stats := answer.Statistics
+			since, ok := stats.Since.Value()
+			require.True(t, ok)
+			now, ok := stats.RequestTime.Value()
+			require.True(t, ok)
+			assert.False(t, now.Before(since), "the counters were reset before the request")
+			require.NotEmpty(t, stats.RPCsByType)
+			assert.Equal(t, "REQUEST_PING", stats.RPCsByType[0].Message)
+			users := make([]string, len(stats.RPCsByUser))
+			for i, u := range stats.RPCsByUser {
+				users[i] = u.User
+			}
+			assert.Contains(t, users, "alice")
+		})
+	}
+}
+
 func TestThePingDecodes(t *testing.T) {
 	t.Parallel()
 	for _, p := range versions.Known() {
