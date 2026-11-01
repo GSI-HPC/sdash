@@ -34,6 +34,34 @@ test("the Jobs view shows the jobs of the cluster, the newest first, the user's 
   expect(problems).toEqual([]);
 });
 
+// The drawer of a job is in the address, so Back closes it
+// (doc/adr/0039-the-job-and-node-drawers.md).
+test("a job opens in a drawer from its id, Back closes it, and its node opens from it", async ({
+  page,
+}) => {
+  const problems = await openAt(page, "/jobs", { instance: "cluster" });
+
+  await jobsTable(page).getByRole("link", { name: "4", exact: true }).click();
+  const drawer = page.getByRole("dialog", { name: "running-a" });
+  await expect(drawer).toBeVisible();
+  await expect(page).toHaveURL(/[?&]job=4(&|$)/);
+  await expect(
+    drawer.getByText("cpu=2,mem=512M,node=1,billing=2"),
+  ).toBeVisible();
+
+  await page.goBack();
+  await expect(drawer).toBeHidden();
+  await page.goForward();
+  await expect(drawer).toBeVisible();
+
+  await drawer.getByRole("link", { name: "worker-0" }).click();
+  // The page behind the drawer is hidden from assistive technology, its
+  // heading with it, so the address says which view it is.
+  await expect(page).toHaveURL(/\/nodes\?node=worker-0$/);
+  await expect(page.getByRole("dialog", { name: "worker-0" })).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
 // A filter lives in the address, so a reload and a link keep it
 // (doc/adr/0024-addresses-and-keyboard-in-the-shell.md); the server does
 // the filtering.
@@ -127,6 +155,18 @@ for (const theme of ["light", "dark"] as const) {
     test("the Jobs view passes the scan with its jobs", async ({ page }) => {
       await openAt(page, "/jobs", { instance: "cluster", colorScheme: theme });
       await expect(jobsTable(page).locator("tbody tr")).toHaveCount(8);
+
+      expect(await scan(page)).toEqual([]);
+    });
+
+    test("the Jobs view passes the scan with the drawer of a job open", async ({
+      page,
+    }) => {
+      await openAt(page, "/jobs?job=2", {
+        instance: "cluster",
+        colorScheme: theme,
+      });
+      await expect(page.getByRole("dialog", { name: "fails" })).toBeVisible();
 
       expect(await scan(page)).toEqual([]);
     });
