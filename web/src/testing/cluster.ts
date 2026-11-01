@@ -7,6 +7,7 @@
 // (doc/adr/0034-cluster-data-in-the-browser-api.md). Only tests import it.
 
 import type {
+  Diagnostics,
   JobList,
   NodeList,
   PartitionList,
@@ -157,6 +158,62 @@ export const reservations: ReservationList = {
   ],
 };
 
+/**
+ * The diagnostics: 40 jobs submitted since midnight, a main scheduler
+ * that took 1.2 ms for its last cycle, a backfill that is idle, and calls
+ * of two message types and of two users.
+ */
+export const diagnostics: Diagnostics = {
+  generation: 1,
+  fetchedAt,
+  now: fetchedAt,
+  since: "2026-01-01T00:00:00Z",
+  serverThreads: 6,
+  agentQueue: 2,
+  dbdAgentQueue: 0,
+  clockCost: 25,
+  jobs: {
+    submitted: 40,
+    started: 36,
+    completed: 30,
+    canceled: 3,
+    failed: 1,
+    pending: 2,
+    running: 3,
+    countedAt: fetchedAt,
+  },
+  main: {
+    lastCycle: 1200,
+    maxCycle: 45000,
+    meanCycle: 2500,
+    cycles: 700,
+    meanDepth: 12,
+    cyclesPerMinute: 4,
+    queueLength: 2,
+  },
+  backfill: {
+    active: false,
+    lastCycle: 1500000,
+    maxCycle: 4200000,
+    meanCycle: 900,
+    cycles: 90,
+    lastDepth: 7,
+    lastTried: 5,
+    queueLength: 2,
+    backfilled: 1234,
+    backfilledSinceReset: 12,
+    lastCycleAt: "2026-01-01T11:59:30Z",
+  },
+  rpcsByType: [
+    { name: "REQUEST_JOB_INFO", count: 1200, mean: 800, total: 960000 },
+    { name: "REQUEST_PING", count: 300, mean: 40, total: 12000 },
+  ],
+  rpcsByUser: [
+    { name: "alice", count: 900, mean: 700, total: 630000 },
+    { name: "bob", count: 150, mean: 1500, total: 225000 },
+  ],
+};
+
 /** The pulse of a cluster that is connected, as alice, with the kinds asked for. */
 export function pulseOf(url: URL): Pulse {
   return {
@@ -192,6 +249,7 @@ export interface ClusterAnswers {
   readonly partitions?: Answer;
   readonly jobs?: Answer;
   readonly reservations?: Answer;
+  readonly diagnostics?: Answer;
 }
 
 /**
@@ -228,6 +286,9 @@ export function clusterServer(answers: ClusterAnswers = {}): {
       }
       if (url.pathname.endsWith("/reservations")) {
         return answers.reservations ?? { body: reservations };
+      }
+      if (url.pathname.endsWith("/diagnostics")) {
+        return answers.diagnostics ?? { body: diagnostics };
       }
       return undefined;
     },

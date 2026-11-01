@@ -70,7 +70,7 @@ export const views = [
     icon: "overview",
     goKey: "o",
     keywords: ["home", "dashboard", "summary"],
-    kinds: ["jobs", "nodes", "partitions"],
+    kinds: ["jobs", "nodes", "partitions", "diagnostics"],
   },
   {
     id: "nodes",
@@ -174,7 +174,7 @@ export const views = [
     icon: "diagnostics",
     goKey: "d",
     keywords: ["scheduler", "statistics", "sdiag", "rpc"],
-    kinds: [],
+    kinds: ["diagnostics"],
   },
   {
     id: "conf",
