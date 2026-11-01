@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { Badge } from "../../primitives/Badge";
+import { timeOf } from "../moments";
 import type { TableColumn } from "../../primitives/Table";
 import {
   accessOf,
@@ -9,7 +10,6 @@ import {
   phaseOf,
   phases,
   type Reservation,
-  timeOf,
 } from "./reservations";
 
 /** A number of things, with the word in the singular or the plural. */
@@ -53,12 +53,12 @@ export function reservationColumns(
     {
       id: "start",
       header: "Start",
-      cell: (reservation) => timeOf(reservation.startTime, "Not set"),
+      cell: (reservation) => timeOf(reservation.startTime, "Not set", now),
     },
     {
       id: "end",
       header: "End",
-      cell: (reservation) => timeOf(reservation.endTime, "No end"),
+      cell: (reservation) => timeOf(reservation.endTime, "No end", now),
     },
     {
       id: "duration",
