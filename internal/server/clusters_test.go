@@ -71,7 +71,7 @@ func TestTheStatusListsTheClustersOfTheProfile(t *testing.T) {
 func TestAClusterTheProfileDoesNotNameIsNotFound(t *testing.T) {
 	t.Parallel()
 	h, _ := clusterAPI(t)
-	for _, path := range []string{"pulse", "jobs", "nodes", "partitions", "reservations", "diagnostics"} {
+	for _, path := range []string{"pulse", "jobs", "jobs/4", "nodes", "partitions", "reservations", "diagnostics"} {
 		got := ask(h, "/api/v1/clusters/lyra/"+path)
 		assert.Equal(t, http.StatusNotFound, got.Code, path)
 		assert.Equal(t, api.ErrorCodeNotFound, apiError(t, got).Code, path)
@@ -93,6 +93,30 @@ func TestTheJobsAreFilteredSortedAndCutOnTheServer(t *testing.T) {
 	assert.Nil(t, list.Error)
 	assert.Contains(t, list.Facets.States, api.Facet{Value: "RUNNING", Count: 2})
 	assert.Contains(t, list.Facets.Users, api.Facet{Value: "bob", Count: 2})
+}
+
+func TestAJobIsGivenByItsOwnIDFromTheJobsOfTheList(t *testing.T) {
+	t.Parallel()
+	h, _ := clusterAPI(t)
+	var item api.JobItem
+	decodeOK(t, ask(h, "/api/v1/clusters/virgo/jobs/4"), &item)
+	assert.Equal(t, "running-a", item.Job.Name)
+	assert.Equal(t, []string{"worker-0"}, item.Job.NodeNames)
+	assert.Equal(t, "worker-0", *item.Job.BatchHost)
+	assert.Equal(t, int64(1), item.Generation)
+
+	var onNode api.JobList
+	decodeOK(t, ask(h, "/api/v1/clusters/virgo/jobs?node=worker-0"), &onNode)
+	var ids []int64
+	for _, j := range onNode.Rows {
+		ids = append(ids, j.Id)
+	}
+	assert.Equal(t, []int64{1, 2, 4}, ids, "jobs 1 and 2 ran on worker-0, and job 4 runs there")
+
+	got := ask(h, "/api/v1/clusters/virgo/jobs/99")
+	assert.Equal(t, http.StatusNotFound, got.Code)
+	assert.Equal(t, api.ErrorCodeNotFound, apiError(t, got).Code)
+	assert.Equal(t, http.StatusBadRequest, ask(h, "/api/v1/clusters/virgo/jobs/four").Code)
 }
 
 // A member slurmctld leaves unset is absent, never null and never an empty
@@ -170,6 +194,8 @@ func TestTheNodesPartitionsAndReservationsComeWhole(t *testing.T) {
 	assert.Equal(t, "IDLE", drained.State)
 	assert.Equal(t, []string{"RESERVED", "DRAIN", "MAINTENANCE"}, drained.Flags)
 	assert.Equal(t, "e2e drained", *drained.Reason)
+	assert.Equal(t, "root", *drained.ReasonSetBy)
+	assert.NotNil(t, drained.ReasonTime)
 
 	var parts api.PartitionList
 	decodeOK(t, ask(h, "/api/v1/clusters/virgo/partitions"), &parts)

@@ -30,6 +30,7 @@ function job(id: number, more: Partial<Job> = {}): Job {
     qos: "normal",
     state: "RUNNING",
     flags: [],
+    nodeNames: ["node-1"],
     nodes: "node-1",
     cpus: 4,
     priority: 100,

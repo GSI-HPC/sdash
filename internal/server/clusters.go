@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/GSI-HPC/sdash/internal/api"
@@ -80,6 +81,7 @@ func (o operations) GetJobs(ctx context.Context, r api.GetJobsRequestObject) (ap
 	q := model.JobQuery{
 		User:       deref(p.User),
 		Partition:  deref(p.Partition),
+		Node:       deref(p.Node),
 		Text:       deref(p.Q),
 		Sort:       string(deref(p.Sort)),
 		Descending: deref(p.Order) == api.SortOrderDesc,
@@ -117,6 +119,31 @@ func (o operations) GetJobs(ctx context.Context, r api.GetJobsRequestObject) (ap
 		list.Rows[i] = jobOf(j)
 	}
 	return api.GetJobs200JSONResponse(list), nil
+}
+
+// GetJob gives one job of a cluster, from the jobs GetJobs gives a page of.
+func (o operations) GetJob(ctx context.Context, r api.GetJobRequestObject) (api.GetJobResponseObject, error) {
+	c, refused := o.cluster(r.Cluster)
+	if c == nil {
+		return api.GetJobdefaultJSONResponse(refused), nil
+	}
+	snap, err := c.Jobs.Get(ctx)
+	if err != nil {
+		return api.GetJobdefaultJSONResponse(upstream(err)), nil
+	}
+	i := slices.IndexFunc(snap.Data, func(j model.Job) bool { return j.ID == r.Job })
+	if i < 0 {
+		return api.GetJobdefaultJSONResponse(failure{
+			StatusCode: http.StatusNotFound,
+			Body:       api.Error{Code: api.ErrorCodeNotFound, Message: fmt.Sprintf("slurmctld holds no job %d that the user may see on %q", r.Job, r.Cluster)},
+		}), nil
+	}
+	return api.GetJob200JSONResponse(api.JobItem{
+		Generation: int64(snap.Generation),
+		FetchedAt:  snap.Fetched,
+		Error:      errorOf(snap.Err),
+		Job:        jobOf(snap.Data[i]),
+	}), nil
 }
 
 // GetNodes gives the nodes of a cluster.
@@ -331,13 +358,19 @@ func jobOf(j model.Job) api.Job {
 		EndTime:      j.Ended,
 		TimeLimit:    j.TimeLimit,
 		Nodes:        optional(j.Nodes),
+		NodeNames:    nonNil(j.NodeNames),
 		NodeCount:    j.NodeCount,
 		Cpus:         j.CPUs,
+		Tasks:        j.Tasks,
+		Tres:         optional(j.TRES),
+		BatchHost:    optional(j.BatchHost),
 		Reservation:  optional(j.Reservation),
 		Dependency:   optional(j.Dependency),
 		WorkDir:      optional(j.WorkDir),
 		Stdout:       optional(j.StdOut),
 		Stderr:       optional(j.StdErr),
+		Comment:      optional(j.Comment),
+		SubmitLine:   optional(j.SubmitLine),
 	}
 	if e := j.ExitCode; e != nil {
 		out.ExitCode = &api.ExitCode{Status: e.Status, ReturnCode: e.ReturnCode, Signal: optional(e.Signal)}
@@ -347,23 +380,29 @@ func jobOf(j model.Job) api.Job {
 
 func nodeOf(n model.Node) api.Node {
 	return api.Node{
-		Name:         n.Name,
-		State:        n.State,
-		Flags:        nonNil(n.Flags),
-		Reason:       optional(n.Reason),
-		Partitions:   nonNil(n.Partitions),
-		Features:     nonNil(n.Features),
-		Cpus:         n.CPUs,
-		AllocCpus:    n.AllocCPUs,
-		Load:         n.Load,
-		Memory:       n.Memory,
-		AllocMemory:  n.AllocMemory,
-		FreeMemory:   n.FreeMemory,
-		Gres:         optional(n.GRES),
-		GresUsed:     optional(n.GRESUsed),
-		Architecture: optional(n.Architecture),
-		BootTime:     n.Booted,
-		Reservation:  optional(n.Reservation),
+		Name:            n.Name,
+		State:           n.State,
+		Flags:           nonNil(n.Flags),
+		Reason:          optional(n.Reason),
+		ReasonSetBy:     optional(n.ReasonSetBy),
+		ReasonTime:      n.ReasonChanged,
+		Partitions:      nonNil(n.Partitions),
+		Features:        nonNil(n.Features),
+		Cpus:            n.CPUs,
+		AllocCpus:       n.AllocCPUs,
+		Load:            n.Load,
+		Memory:          n.Memory,
+		AllocMemory:     n.AllocMemory,
+		FreeMemory:      n.FreeMemory,
+		Gres:            optional(n.GRES),
+		GresUsed:        optional(n.GRESUsed),
+		Tres:            optional(n.TRES),
+		TresUsed:        optional(n.TRESUsed),
+		Architecture:    optional(n.Architecture),
+		OperatingSystem: optional(n.OperatingSystem),
+		BootTime:        n.Booted,
+		LastBusy:        n.LastBusy,
+		Reservation:     optional(n.Reservation),
 	}
 }
 

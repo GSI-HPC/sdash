@@ -371,6 +371,7 @@ test("a call on a cluster names it in the path and its parameters in the query",
     limit: 50,
   });
   await client.getJobs("virgo");
+  await client.getJob("virgo", 8);
   await client.getNodes("virgo");
   await client.getPartitions("virgo");
   await client.getReservations("virgo");
@@ -381,6 +382,7 @@ test("a call on a cluster names it in the path and its parameters in the query",
     "/api/v1/clusters/virgo/pulse?kinds=jobs&kinds=nodes",
     "/api/v1/clusters/a%20b%2Fc/jobs?state=PENDING&state=RUNNING&sort=submitted&order=desc&offset=0&limit=50",
     "/api/v1/clusters/virgo/jobs",
+    "/api/v1/clusters/virgo/jobs/8",
     "/api/v1/clusters/virgo/nodes",
     "/api/v1/clusters/virgo/partitions",
     "/api/v1/clusters/virgo/reservations",
