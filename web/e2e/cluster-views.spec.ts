@@ -5,12 +5,14 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { heading, openAt, reload, scan } from "./support.ts";
 
-// The Nodes, Partitions, Reservations and Overview views and the header on
+// The Nodes, Partitions, Reservations, Diagnostics and Overview views and the header on
 // the cluster of the fake slurmrestd, which answers with what the seeded
 // sind cluster answered (e2e/seed.sh): three nodes, two of them allocated
 // and one drained, in the one partition "all", and a reservation for
 // maintenance (doc/adr/0036-the-cluster-views-on-real-data.md,
-// doc/adr/0037-the-reservations-view.md).
+// doc/adr/0037-the-reservations-view.md, doc/adr/0038-the-diagnostics-view.md).
+// The capture of the diagnostics was taken in the first minute of a day, so
+// its counters are zero; the tests look for what the view draws of them.
 
 /** The map of the nodes, once it shows. */
 function nodeMap(page: Page) {
@@ -97,6 +99,26 @@ test("the Reservations view lists the reservations of the cluster", async ({
   expect(problems).toEqual([]);
 });
 
+test("the Diagnostics view shows the schedulers and the calls slurmctld had", async ({
+  page,
+}) => {
+  const problems = await openAt(page, "/diagnostics", { instance: "cluster" });
+
+  await expect(
+    page.getByRole("region", { name: "Main scheduler" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Backfill scheduler" }),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByRole("table", { name: "Calls by user" })
+      .getByRole("row", { name: /^alice / }),
+  ).toBeVisible();
+  await expect(page.getByText(/^Counters reset .*, fetched/)).toBeVisible();
+  expect(problems).toEqual([]);
+});
+
 test("the Overview shows the cluster at a glance and the connection to it", async ({
   page,
 }) => {
@@ -107,6 +129,9 @@ test("the Overview shows the cluster at a glance and the connection to it", asyn
 
   await expect(nodeMap(page).getByRole("gridcell")).toHaveCount(3);
   await expect(connection.getByText("alice")).toBeVisible();
+  await expect(
+    page.getByRole("main").getByRole("region", { name: "Scheduler" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("banner").getByText("Live", { exact: true }),
   ).toBeVisible();
@@ -178,6 +203,20 @@ for (const theme of ["light", "dark"] as const) {
       });
       await expect(
         reservationTable(page).getByRole("row", { name: /^maintenance / }),
+      ).toBeVisible();
+
+      expect(await scan(page)).toEqual([]);
+    });
+
+    test("the Diagnostics view passes the scan with its figures", async ({
+      page,
+    }) => {
+      await openAt(page, "/diagnostics", {
+        instance: "cluster",
+        colorScheme: theme,
+      });
+      await expect(
+        page.getByRole("table", { name: "Calls by message type" }),
       ).toBeVisible();
 
       expect(await scan(page)).toEqual([]);
