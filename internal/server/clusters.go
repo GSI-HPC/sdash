@@ -44,6 +44,8 @@ func (o operations) GetPulse(_ context.Context, r api.GetPulseRequestObject) (ap
 			kp = kindPulse(c.Partitions)
 		case api.DataKindReservations:
 			kp = kindPulse(c.Reservations)
+		case api.DataKindDiagnostics:
+			kp = kindPulse(c.Diagnostics)
 		default:
 			return api.GetPulsedefaultJSONResponse(badRequest(fmt.Sprintf("there is no kind of data %q", k))), nil
 		}
@@ -181,6 +183,58 @@ func (o operations) GetReservations(ctx context.Context, r api.GetReservationsRe
 		list.Rows[i] = reservationOf(res)
 	}
 	return api.GetReservations200JSONResponse(list), nil
+}
+
+// GetDiagnostics gives the diagnostics of a cluster's scheduler.
+func (o operations) GetDiagnostics(ctx context.Context, r api.GetDiagnosticsRequestObject) (api.GetDiagnosticsResponseObject, error) {
+	c, refused := o.cluster(r.Cluster)
+	if c == nil {
+		return api.GetDiagnosticsdefaultJSONResponse(refused), nil
+	}
+	snap, err := c.Diagnostics.Get(ctx)
+	if err != nil {
+		return api.GetDiagnosticsdefaultJSONResponse(upstream(err)), nil
+	}
+	d := snap.Data
+	return api.GetDiagnostics200JSONResponse(api.Diagnostics{
+		Generation:    int64(snap.Generation),
+		FetchedAt:     snap.Fetched,
+		Error:         errorOf(snap.Err),
+		Now:           d.Now,
+		Since:         d.Since,
+		ServerThreads: d.ServerThreads,
+		AgentQueue:    d.AgentQueue,
+		DbdAgentQueue: d.DBDAgentQueue,
+		ClockCost:     d.ClockCost,
+		Jobs: api.DiagnosticsJobs{
+			Submitted: d.Jobs.Submitted, Started: d.Jobs.Started, Completed: d.Jobs.Completed,
+			Canceled: d.Jobs.Canceled, Failed: d.Jobs.Failed,
+			Pending: d.Jobs.Pending, Running: d.Jobs.Running, CountedAt: d.Jobs.CountedAt,
+		},
+		Main: api.DiagnosticsMain{
+			LastCycle: d.Main.LastCycle, MaxCycle: d.Main.MaxCycle, MeanCycle: d.Main.MeanCycle,
+			Cycles: d.Main.Cycles, MeanDepth: d.Main.MeanDepth,
+			CyclesPerMinute: d.Main.CyclesPerMin, QueueLength: d.Main.QueueLength,
+		},
+		Backfill: api.DiagnosticsBackfill{
+			Active:    d.Fill.Active,
+			LastCycle: d.Fill.LastCycle, MaxCycle: d.Fill.MaxCycle, MeanCycle: d.Fill.MeanCycle,
+			Cycles: d.Fill.Cycles, LastDepth: d.Fill.LastDepth, LastTried: d.Fill.LastTried,
+			QueueLength: d.Fill.QueueLength,
+			Backfilled:  d.Fill.Backfilled, BackfilledSinceReset: d.Fill.BackfilledSinceReset,
+			LastCycleAt: d.Fill.LastCycleAt,
+		},
+		RpcsByType: rpcsOf(d.RPCsByType),
+		RpcsByUser: rpcsOf(d.RPCsByUser),
+	}), nil
+}
+
+func rpcsOf(list []model.RPCStat) []api.DiagnosticsRpc {
+	out := make([]api.DiagnosticsRpc, len(list))
+	for i, r := range list {
+		out[i] = api.DiagnosticsRpc{Name: r.Name, Count: r.Count, Mean: r.Mean, Total: r.Total}
+	}
+	return out
 }
 
 // failure is the body and the status of an answer that is not a success,

@@ -269,6 +269,25 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
+  /clusters/{cluster}/diagnostics:
+    get:
+      operationId: getDiagnostics
+      summary: The diagnostics of a cluster's scheduler
+      description: >-
+        What slurmctld counts and times of itself since it reset its counters,
+        which is what sdiag prints. Every duration is in microseconds.
+      parameters:
+        - $ref: "#/components/parameters/ClusterName"
+      responses:
+        "200":
+          description: The diagnostics.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Diagnostics"
+        default:
+          $ref: "#/components/responses/Error"
+
 components:
   parameters:
     ClusterName:
@@ -367,6 +386,7 @@ components:
         - nodes
         - partitions
         - reservations
+        - diagnostics
 
     Pulse:
       description: The state of a cluster and of the kinds of its data.
@@ -920,6 +940,223 @@ components:
           type: string
         licenses:
           type: string
+
+    Diagnostics:
+      description: >-
+        The diagnostics of a cluster's scheduler. The members of the
+        counters are those of sdiag; every duration is in microseconds.
+      type: object
+      required:
+        - generation
+        - fetchedAt
+        - serverThreads
+        - agentQueue
+        - dbdAgentQueue
+        - clockCost
+        - jobs
+        - main
+        - backfill
+        - rpcsByType
+        - rpcsByUser
+      properties:
+        generation:
+          description: The generation of the diagnostics, as the pulse reports it.
+          type: integer
+          format: int64
+        fetchedAt:
+          description: When the diagnostics were fetched.
+          type: string
+          format: date-time
+        error:
+          description: Why a later fetch failed, which leaves these diagnostics older than their period.
+          allOf:
+            - $ref: "#/components/schemas/Error"
+        now:
+          description: When slurmctld answered. Absent when not set.
+          type: string
+          format: date-time
+        since:
+          description: When slurmctld last reset its counters. Absent when not set.
+          type: string
+          format: date-time
+        serverThreads:
+          description: The active threads of slurmctld.
+          type: integer
+          format: int64
+        agentQueue:
+          description: The outgoing RPCs held for a retry.
+          type: integer
+          format: int64
+        dbdAgentQueue:
+          description: The messages queued for slurmdbd.
+          type: integer
+          format: int64
+        clockCost:
+          description: What 1000 reads of the clock take, in microseconds.
+          type: integer
+          format: int64
+        jobs:
+          $ref: "#/components/schemas/DiagnosticsJobs"
+        main:
+          $ref: "#/components/schemas/DiagnosticsMain"
+        backfill:
+          $ref: "#/components/schemas/DiagnosticsBackfill"
+        rpcsByType:
+          description: The calls slurmctld had of each message type, most frequent first.
+          type: array
+          items:
+            $ref: "#/components/schemas/DiagnosticsRpc"
+        rpcsByUser:
+          description: The calls slurmctld had of each user, most frequent first.
+          type: array
+          items:
+            $ref: "#/components/schemas/DiagnosticsRpc"
+
+    DiagnosticsJobs:
+      description: The counters of jobs since the reset.
+      type: object
+      required:
+        - submitted
+        - started
+        - completed
+        - canceled
+        - failed
+        - pending
+        - running
+      properties:
+        submitted:
+          type: integer
+          format: int64
+        started:
+          type: integer
+          format: int64
+        completed:
+          type: integer
+          format: int64
+        canceled:
+          type: integer
+          format: int64
+        failed:
+          type: integer
+          format: int64
+        pending:
+          type: integer
+          format: int64
+        running:
+          type: integer
+          format: int64
+        countedAt:
+          description: When pending and running were counted. Absent when not set.
+          type: string
+          format: date-time
+
+    DiagnosticsMain:
+      description: The timing of the main scheduling cycle.
+      type: object
+      required:
+        - lastCycle
+        - maxCycle
+        - meanCycle
+        - cycles
+        - meanDepth
+        - cyclesPerMinute
+        - queueLength
+      properties:
+        lastCycle:
+          type: integer
+          format: int64
+        maxCycle:
+          type: integer
+          format: int64
+        meanCycle:
+          type: integer
+          format: int64
+        cycles:
+          type: integer
+          format: int64
+        meanDepth:
+          type: integer
+          format: int64
+        cyclesPerMinute:
+          type: integer
+          format: int64
+        queueLength:
+          type: integer
+          format: int64
+
+    DiagnosticsBackfill:
+      description: The timing of the backfill scheduler.
+      type: object
+      required:
+        - active
+        - lastCycle
+        - maxCycle
+        - meanCycle
+        - cycles
+        - lastDepth
+        - lastTried
+        - queueLength
+        - backfilled
+        - backfilledSinceReset
+      properties:
+        active:
+          description: Whether a cycle runs now.
+          type: boolean
+        lastCycle:
+          type: integer
+          format: int64
+        maxCycle:
+          type: integer
+          format: int64
+        meanCycle:
+          type: integer
+          format: int64
+        cycles:
+          type: integer
+          format: int64
+        lastDepth:
+          type: integer
+          format: int64
+        lastTried:
+          type: integer
+          format: int64
+        queueLength:
+          type: integer
+          format: int64
+        backfilled:
+          type: integer
+          format: int64
+        backfilledSinceReset:
+          type: integer
+          format: int64
+        lastCycleAt:
+          description: When the last cycle ran. Absent when none did.
+          type: string
+          format: date-time
+
+    DiagnosticsRpc:
+      description: The calls of one message type or of one user.
+      type: object
+      required:
+        - name
+        - count
+        - mean
+        - total
+      properties:
+        name:
+          description: The message type, or the user.
+          type: string
+        count:
+          type: integer
+          format: int64
+        mean:
+          description: The mean time of a call, in microseconds; 0 when slurmctld gave none.
+          type: integer
+          format: int64
+        total:
+          description: The time of all the calls, in microseconds.
+          type: integer
+          format: int64
 
     # The one body of every answer that is not a success.
     Error:
