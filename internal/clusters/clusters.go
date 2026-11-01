@@ -36,6 +36,7 @@ const (
 	NodesInterval        = 30 * time.Second
 	PartitionsInterval   = 60 * time.Second
 	ReservationsInterval = 60 * time.Second
+	DiagnosticsInterval  = 30 * time.Second
 )
 
 // Options is what the clusters are built with besides the profile.
@@ -110,6 +111,7 @@ type Cluster struct {
 	Nodes        *cache.Cache[[]model.Node]
 	Partitions   *cache.Cache[[]model.Partition]
 	Reservations *cache.Cache[[]model.Reservation]
+	Diagnostics  *cache.Cache[model.Diagnostics]
 
 	ctx    context.Context
 	client *client.Client
@@ -159,7 +161,33 @@ func newCluster(ctx context.Context, pc profile.Cluster, c *client.Client, log *
 			}, model.ReservationOf)
 		},
 	})
+	cl.Diagnostics = cache.New(ctx, cache.Config[model.Diagnostics]{
+		Interval: DiagnosticsInterval,
+		Fetch: func(ctx context.Context) (model.Diagnostics, error) {
+			return one(ctx, cl, func(conn *client.Conn) (wire.Statistics, error) {
+				return conn.Diag(ctx)
+			}, model.DiagnosticsOf)
+		},
+	})
 	return cl
+}
+
+// one fetches a single answer through the connection and maps it to the
+// model.
+func one[W, M any](ctx context.Context, c *Cluster, fetch func(*client.Conn) (W, error), of func(*W) M) (M, error) {
+	var zero M
+	conn, err := c.connect(ctx)
+	if err != nil {
+		return zero, err
+	}
+	w, err := fetch(conn)
+	if errs.Is(err, errs.Unsupported) {
+		c.drop(conn)
+	}
+	if err != nil {
+		return zero, err
+	}
+	return of(&w), nil
 }
 
 // list fetches a list through the connection and maps each element to the
