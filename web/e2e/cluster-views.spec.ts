@@ -10,9 +10,10 @@ import { heading, openAt, reload, scan } from "./support.ts";
 // sind cluster answered (e2e/seed.sh): three nodes, two of them allocated
 // and one drained, in the one partition "all", and a reservation for
 // maintenance (doc/adr/0036-the-cluster-views-on-real-data.md,
-// doc/adr/0037-the-reservations-view.md, doc/adr/0038-the-diagnostics-view.md).
-// The capture of the diagnostics was taken in the first minute of a day, so
-// its counters are zero; the tests look for what the view draws of them.
+// doc/adr/0037-the-reservations-view.md, doc/adr/0038-the-diagnostics-view.md,
+// doc/adr/0039-the-job-and-node-drawers.md). The capture of the diagnostics
+// was taken in the first minute of a day, so its counters are zero; the tests
+// look for what the view draws of them.
 
 /** The map of the nodes, once it shows. */
 function nodeMap(page: Page) {
@@ -60,6 +61,25 @@ test("a state of the nodes is chosen by the keyboard, kept in the address and ke
   await reload(page);
   await expect(heading(page)).toHaveText("Nodes");
   await expect(nodeMap(page).getByRole("gridcell")).toHaveCount(1);
+  expect(problems).toEqual([]);
+});
+
+test("a node opens in a drawer from the map, with the jobs that have it", async ({
+  page,
+}) => {
+  const problems = await openAt(page, "/nodes", { instance: "cluster" });
+
+  await nodeMap(page)
+    .getByRole("gridcell", { name: /^worker-0,/ })
+    .click();
+  const drawer = page.getByRole("dialog", { name: "worker-0" });
+  await expect(drawer).toBeVisible();
+  await expect(page).toHaveURL(/[?&]node=worker-0(&|$)/);
+  const jobs = drawer.getByRole("table", { name: "Jobs on worker-0" });
+  await expect(jobs.locator("tbody tr")).toHaveCount(3);
+
+  await page.keyboard.press("Escape");
+  await expect(drawer).toBeHidden();
   expect(problems).toEqual([]);
 });
 
@@ -181,6 +201,22 @@ for (const theme of ["light", "dark"] as const) {
       });
       await expect(
         page.getByRole("heading", { name: "No nodes match these filters" }),
+      ).toBeVisible();
+
+      expect(await scan(page)).toEqual([]);
+    });
+
+    test("the Nodes view passes the scan with the drawer of a drained node open", async ({
+      page,
+    }) => {
+      await openAt(page, "/nodes?node=worker-2", {
+        instance: "cluster",
+        colorScheme: theme,
+      });
+      const drawer = page.getByRole("dialog", { name: "worker-2" });
+      await expect(drawer.getByText("e2e drained")).toBeVisible();
+      await expect(
+        drawer.getByText("No job runs or ran on this node."),
       ).toBeVisible();
 
       expect(await scan(page)).toEqual([]);
