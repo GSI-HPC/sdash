@@ -153,3 +153,34 @@ func TestTheNamesOfAReservationArePartedAtTheCommas(t *testing.T) {
 	assert.Equal(t, []string{"physics"}, r.Accounts)
 	assert.Nil(t, r.Groups)
 }
+
+func TestTheDiagnosticsMapTheirCountersAndOrderTheRPCsByCount(t *testing.T) {
+	t.Parallel()
+	d := DiagnosticsOf(&wire.Statistics{
+		RequestTime:  wire.Time{Set: true, Number: 1767225618},
+		JobsRunning:  3,
+		CycleMean:    120,
+		CyclesPerMin: 6,
+		RPCsByType: []wire.RPCType{
+			{Message: "REQUEST_PING", Count: 2, TotalTime: 20, AverageTime: wire.Int{Set: true, Number: 10}},
+			{Message: "REQUEST_JOB_INFO", Count: 9, TotalTime: 90},
+			{Message: "ACCOUNTING_UPDATE_MSG", Count: 2},
+		},
+		RPCsByUser: []wire.RPCUser{{User: "bob", Count: 1}, {User: "alice", Count: 4}},
+	})
+	require.NotNil(t, d.Now)
+	assert.Equal(t, int64(1767225618), d.Now.Unix())
+	assert.Nil(t, d.Since, "an unset time stays nil")
+	assert.Equal(t, int64(3), d.Jobs.Running)
+	assert.Equal(t, int64(120), d.Main.MeanCycle)
+	assert.Equal(t, int64(6), d.Main.CyclesPerMin)
+	names := make([]string, len(d.RPCsByType))
+	for i, r := range d.RPCsByType {
+		names[i] = r.Name
+	}
+	assert.Equal(t, []string{"REQUEST_JOB_INFO", "ACCOUNTING_UPDATE_MSG", "REQUEST_PING"}, names,
+		"most frequent first, equal counts by name")
+	assert.Equal(t, int64(10), d.RPCsByType[2].Mean)
+	assert.Equal(t, int64(0), d.RPCsByType[0].Mean, "an unset mean is 0")
+	assert.Equal(t, "alice", d.RPCsByUser[0].Name)
+}
