@@ -54,3 +54,4 @@ ordered by subject.
 | [0035](0035-the-jobs-view-and-its-table.md) | The Jobs view and its table | proposed |
 | [0036](0036-the-cluster-views-on-real-data.md) | The cluster views on real data | proposed |
 | [0037](0037-the-reservations-view.md) | The Reservations view | proposed |
+| [0038](0038-the-diagnostics-view.md) | The Diagnostics view | proposed |
