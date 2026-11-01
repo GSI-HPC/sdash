@@ -170,6 +170,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: node
+          in: query
+          description: Keeps the jobs that have this node.
+          required: false
+          schema:
+            type: string
         - name: q
           in: query
           description: |
@@ -213,6 +219,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/JobList"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /clusters/{cluster}/jobs/{job}:
+    get:
+      operationId: getJob
+      summary: One job of a cluster
+      description: |
+        The job of this id among those getJobs gives, read from the same
+        jobs: what a list shows of a job and what this gives agree.
+
+        When sdash holds the jobs and this one is not among them, the
+        answer is the status 404 with an Error of the code not_found.
+      parameters:
+        - $ref: "#/components/parameters/ClusterName"
+        - name: job
+          in: path
+          description: The job's own id. A task of an array has one of its own.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: The job.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobItem"
         default:
           $ref: "#/components/responses/Error"
 
@@ -530,6 +565,29 @@ components:
         facets:
           $ref: "#/components/schemas/JobFacets"
 
+    JobItem:
+      description: One job of a cluster.
+      type: object
+      required:
+        - generation
+        - fetchedAt
+        - job
+      properties:
+        generation:
+          description: The generation of the jobs the job was read from, as the pulse reports it.
+          type: integer
+          format: int64
+        fetchedAt:
+          description: When those jobs were fetched.
+          type: string
+          format: date-time
+        error:
+          description: Why a later fetch failed, which leaves the job older than its period.
+          allOf:
+            - $ref: "#/components/schemas/Error"
+        job:
+          $ref: "#/components/schemas/Job"
+
     JobFacets:
       description: |
         The jobs of the whole list, before the filters, counted by the
@@ -580,6 +638,7 @@ components:
         - qos
         - state
         - flags
+        - nodeNames
       properties:
         id:
           description: The job's own id. A task of an array has one of its own.
@@ -650,12 +709,28 @@ components:
         nodes:
           description: The host list of the job's nodes, worker-[0-1] say.
           type: string
+        nodeNames:
+          description: The name of each of the job's nodes; none for a job that has none.
+          type: array
+          items:
+            type: string
         nodeCount:
           type: integer
           format: int64
         cpus:
           type: integer
           format: int64
+        tasks:
+          type: integer
+          format: int64
+        tres:
+          description: |
+            What the job was given, cpu=2,mem=1G,node=1 say, or what it
+            asks for while it has been given nothing.
+          type: string
+        batchHost:
+          description: The node the batch script runs on.
+          type: string
         exitCode:
           $ref: "#/components/schemas/ExitCode"
         reservation:
@@ -667,6 +742,11 @@ components:
         stdout:
           type: string
         stderr:
+          type: string
+        comment:
+          type: string
+        submitLine:
+          description: The command line the job was submitted with.
           type: string
 
     ExitCode:
@@ -739,6 +819,13 @@ components:
         reason:
           description: Why the node is drained or down.
           type: string
+        reasonSetBy:
+          description: The user who gave the reason.
+          type: string
+        reasonTime:
+          description: When the reason was given.
+          type: string
+          format: date-time
         partitions:
           type: array
           items:
@@ -775,9 +862,21 @@ components:
         gresUsed:
           description: The generic resources in use.
           type: string
+        tres:
+          description: What the node has, cpu=2,mem=1G say.
+          type: string
+        tresUsed:
+          description: What of it jobs hold.
+          type: string
         architecture:
           type: string
+        operatingSystem:
+          type: string
         bootTime:
+          type: string
+          format: date-time
+        lastBusy:
+          description: When the node last ran a job.
           type: string
           format: date-time
         reservation:

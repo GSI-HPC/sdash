@@ -408,6 +408,10 @@ type Job struct {
 
 	// ArrayTasks The tasks of an array still pending, 1-3 say.
 	ArrayTasks *string `json:"arrayTasks,omitempty"`
+
+	// BatchHost The node the batch script runs on.
+	BatchHost  *string `json:"batchHost,omitempty"`
+	Comment    *string `json:"comment,omitempty"`
 	Cpus       *int64  `json:"cpus,omitempty"`
 	Dependency *string `json:"dependency,omitempty"`
 
@@ -432,6 +436,9 @@ type Job struct {
 	Name      string `json:"name"`
 	NodeCount *int64 `json:"nodeCount,omitempty"`
 
+	// NodeNames The name of each of the job's nodes; none for a job that has none.
+	NodeNames []string `json:"nodeNames"`
+
 	// Nodes The host list of the job's nodes, worker-[0-1] say.
 	Nodes     *string `json:"nodes,omitempty"`
 	Partition string  `json:"partition"`
@@ -444,15 +451,23 @@ type Job struct {
 	StartTime   *time.Time `json:"startTime,omitempty"`
 
 	// State The base state, RUNNING, PENDING and the like.
-	State      string     `json:"state"`
-	Stderr     *string    `json:"stderr,omitempty"`
-	Stdout     *string    `json:"stdout,omitempty"`
+	State  string  `json:"state"`
+	Stderr *string `json:"stderr,omitempty"`
+	Stdout *string `json:"stdout,omitempty"`
+
+	// SubmitLine The command line the job was submitted with.
+	SubmitLine *string    `json:"submitLine,omitempty"`
 	SubmitTime *time.Time `json:"submitTime,omitempty"`
+	Tasks      *int64     `json:"tasks,omitempty"`
 
 	// TimeLimit The time limit in minutes. Absent when there is none.
-	TimeLimit *int64  `json:"timeLimit,omitempty"`
-	User      string  `json:"user"`
-	WorkDir   *string `json:"workDir,omitempty"`
+	TimeLimit *int64 `json:"timeLimit,omitempty"`
+
+	// Tres What the job was given, cpu=2,mem=1G,node=1 say, or what it
+	// asks for while it has been given nothing.
+	Tres    *string `json:"tres,omitempty"`
+	User    string  `json:"user"`
+	WorkDir *string `json:"workDir,omitempty"`
 }
 
 // JobFacets The jobs of the whole list, before the filters, counted by the
@@ -461,6 +476,21 @@ type JobFacets struct {
 	Partitions []Facet `json:"partitions"`
 	States     []Facet `json:"states"`
 	Users      []Facet `json:"users"`
+}
+
+// JobItem One job of a cluster.
+type JobItem struct {
+	// Error Why a later fetch failed, which leaves the job older than its period.
+	Error *Error `json:"error,omitempty"`
+
+	// FetchedAt When those jobs were fetched.
+	FetchedAt time.Time `json:"fetchedAt"`
+
+	// Generation The generation of the jobs the job was read from, as the pulse reports it.
+	Generation int64 `json:"generation"`
+
+	// Job A job as slurmctld knows it.
+	Job Job `json:"job"`
 }
 
 // JobList A page of the jobs of a cluster, and what the whole list holds.
@@ -532,20 +562,36 @@ type Node struct {
 	// GresUsed The generic resources in use.
 	GresUsed *string `json:"gresUsed,omitempty"`
 
+	// LastBusy When the node last ran a job.
+	LastBusy *time.Time `json:"lastBusy,omitempty"`
+
 	// Load The load average.
 	Load float64 `json:"load"`
 
 	// Memory The memory in megabytes.
-	Memory     int64    `json:"memory"`
-	Name       string   `json:"name"`
-	Partitions []string `json:"partitions"`
+	Memory          int64    `json:"memory"`
+	Name            string   `json:"name"`
+	OperatingSystem *string  `json:"operatingSystem,omitempty"`
+	Partitions      []string `json:"partitions"`
 
 	// Reason Why the node is drained or down.
-	Reason      *string `json:"reason,omitempty"`
-	Reservation *string `json:"reservation,omitempty"`
+	Reason *string `json:"reason,omitempty"`
+
+	// ReasonSetBy The user who gave the reason.
+	ReasonSetBy *string `json:"reasonSetBy,omitempty"`
+
+	// ReasonTime When the reason was given.
+	ReasonTime  *time.Time `json:"reasonTime,omitempty"`
+	Reservation *string    `json:"reservation,omitempty"`
 
 	// State The base state, IDLE, ALLOCATED, MIXED and the like.
 	State string `json:"state"`
+
+	// Tres What the node has, cpu=2,mem=1G say.
+	Tres *string `json:"tres,omitempty"`
+
+	// TresUsed What of it jobs hold.
+	TresUsed *string `json:"tresUsed,omitempty"`
 }
 
 // NodeList The nodes of a cluster.
@@ -718,6 +764,9 @@ type GetJobsParams struct {
 	// Partition Keeps the jobs of this partition.
 	Partition *string `form:"partition,omitempty" json:"partition,omitempty"`
 
+	// Node Keeps the jobs that have this node.
+	Node *string `form:"node,omitempty" json:"node,omitempty"`
+
 	// Q Keeps the jobs whose id, name, user or account contains this
 	// text, whatever the case.
 	Q *string `form:"q,omitempty" json:"q,omitempty"`
@@ -750,6 +799,9 @@ type ServerInterface interface {
 	// GetJobs A page of the jobs of a cluster
 	// (GET /clusters/{cluster}/jobs)
 	GetJobs(w http.ResponseWriter, r *http.Request, cluster ClusterName, params GetJobsParams)
+	// GetJob One job of a cluster
+	// (GET /clusters/{cluster}/jobs/{job})
+	GetJob(w http.ResponseWriter, r *http.Request, cluster ClusterName, job int64)
 	// GetNodes The nodes of a cluster
 	// (GET /clusters/{cluster}/nodes)
 	GetNodes(w http.ResponseWriter, r *http.Request, cluster ClusterName)
@@ -783,6 +835,12 @@ func (_ Unimplemented) GetDiagnostics(w http.ResponseWriter, r *http.Request, cl
 // GetJobs A page of the jobs of a cluster
 // (GET /clusters/{cluster}/jobs)
 func (_ Unimplemented) GetJobs(w http.ResponseWriter, r *http.Request, cluster ClusterName, params GetJobsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetJob One job of a cluster
+// (GET /clusters/{cluster}/jobs/{job})
+func (_ Unimplemented) GetJob(w http.ResponseWriter, r *http.Request, cluster ClusterName, job int64) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -914,6 +972,19 @@ func (siw *ServerInterfaceWrapper) GetJobs(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// ------------- Optional query parameter "node" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "node", r.URL.Query(), &params.Node, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "node"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "node", Err: err})
+		}
+		return
+	}
+
 	// ------------- Optional query parameter "q" -------------
 
 	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
@@ -981,6 +1052,41 @@ func (siw *ServerInterfaceWrapper) GetJobs(w http.ResponseWriter, r *http.Reques
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetJobs(w, r, cluster, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetJob operation middleware
+func (siw *ServerInterfaceWrapper) GetJob(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "cluster" -------------
+	var cluster ClusterName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "cluster", chi.URLParam(r, "cluster"), &cluster, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cluster", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "job" -------------
+	var job int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "job", chi.URLParam(r, "job"), &job, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "job", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetJob(w, r, cluster, job)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1264,6 +1370,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/clusters/{cluster}/jobs", wrapper.GetJobs)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/clusters/{cluster}/jobs/{job}", wrapper.GetJob)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/clusters/{cluster}/nodes", wrapper.GetNodes)
 	})
 	r.Group(func(r chi.Router) {
@@ -1349,6 +1458,46 @@ type GetJobsdefaultJSONResponse struct {
 }
 
 func (response GetJobsdefaultJSONResponse) VisitGetJobsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetJobRequestObject struct {
+	Cluster ClusterName `json:"cluster"`
+	Job     int64       `json:"job"`
+}
+
+type GetJobResponseObject interface {
+	VisitGetJobResponse(w http.ResponseWriter) error
+}
+
+type GetJob200JSONResponse JobItem
+
+func (response GetJob200JSONResponse) VisitGetJobResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetJobdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetJobdefaultJSONResponse) VisitGetJobResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -1601,6 +1750,9 @@ type StrictServerInterface interface {
 	// GetJobs A page of the jobs of a cluster
 	// (GET /clusters/{cluster}/jobs)
 	GetJobs(ctx context.Context, request GetJobsRequestObject) (GetJobsResponseObject, error)
+	// GetJob One job of a cluster
+	// (GET /clusters/{cluster}/jobs/{job})
+	GetJob(ctx context.Context, request GetJobRequestObject) (GetJobResponseObject, error)
 	// GetNodes The nodes of a cluster
 	// (GET /clusters/{cluster}/nodes)
 	GetNodes(ctx context.Context, request GetNodesRequestObject) (GetNodesResponseObject, error)
@@ -1706,6 +1858,33 @@ func (sh *strictHandler) GetJobs(w http.ResponseWriter, r *http.Request, cluster
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetJobsResponseObject); ok {
 		if err := validResponse.VisitGetJobsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetJob operation middleware
+func (sh *strictHandler) GetJob(w http.ResponseWriter, r *http.Request, cluster ClusterName, job int64) {
+	var request GetJobRequestObject
+
+	request.Cluster = cluster
+	request.Job = job
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetJob(ctx, request.(GetJobRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetJob")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetJobResponseObject); ok {
+		if err := validResponse.VisitGetJobResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

@@ -261,6 +261,10 @@ func (f failingOperations) GetJobs(context.Context, api.GetJobsRequestObject) (a
 	return nil, f.err
 }
 
+func (f failingOperations) GetJob(context.Context, api.GetJobRequestObject) (api.GetJobResponseObject, error) {
+	return nil, f.err
+}
+
 func (f failingOperations) GetNodes(context.Context, api.GetNodesRequestObject) (api.GetNodesResponseObject, error) {
 	return nil, f.err
 }

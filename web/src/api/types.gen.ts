@@ -239,6 +239,25 @@ export type JobList = {
 };
 
 /**
+ * One job of a cluster.
+ */
+export type JobItem = {
+    /**
+     * The generation of the jobs the job was read from, as the pulse reports it.
+     */
+    generation: number;
+    /**
+     * When those jobs were fetched.
+     */
+    fetchedAt: string;
+    /**
+     * Why a later fetch failed, which leaves the job older than its period.
+     */
+    error?: Error;
+    job: Job;
+};
+
+/**
  * The jobs of the whole list, before the filters, counted by the
  * values of the fields a page filters by: the most frequent first.
  *
@@ -320,14 +339,34 @@ export type Job = {
      * The host list of the job's nodes, worker-[0-1] say.
      */
     nodes?: string;
+    /**
+     * The name of each of the job's nodes; none for a job that has none.
+     */
+    nodeNames: Array<string>;
     nodeCount?: number;
     cpus?: number;
+    tasks?: number;
+    /**
+     * What the job was given, cpu=2,mem=1G,node=1 say, or what it
+     * asks for while it has been given nothing.
+     *
+     */
+    tres?: string;
+    /**
+     * The node the batch script runs on.
+     */
+    batchHost?: string;
     exitCode?: ExitCode;
     reservation?: string;
     dependency?: string;
     workDir?: string;
     stdout?: string;
     stderr?: string;
+    comment?: string;
+    /**
+     * The command line the job was submitted with.
+     */
+    submitLine?: string;
 };
 
 /**
@@ -384,6 +423,14 @@ export type Node = {
      * Why the node is drained or down.
      */
     reason?: string;
+    /**
+     * The user who gave the reason.
+     */
+    reasonSetBy?: string;
+    /**
+     * When the reason was given.
+     */
+    reasonTime?: string;
     partitions: Array<string>;
     features: Array<string>;
     cpus: number;
@@ -412,8 +459,21 @@ export type Node = {
      * The generic resources in use.
      */
     gresUsed?: string;
+    /**
+     * What the node has, cpu=2,mem=1G say.
+     */
+    tres?: string;
+    /**
+     * What of it jobs hold.
+     */
+    tresUsed?: string;
     architecture?: string;
+    operatingSystem?: string;
     bootTime?: string;
+    /**
+     * When the node last ran a job.
+     */
+    lastBusy?: string;
     reservation?: string;
 };
 
@@ -879,6 +939,10 @@ export type GetJobsData = {
          */
         partition?: string;
         /**
+         * Keeps the jobs that have this node.
+         */
+        node?: string;
+        /**
          * Keeps the jobs whose id, name, user or account contains this
          * text, whatever the case.
          *
@@ -925,6 +989,42 @@ export type GetJobsResponses = {
 };
 
 export type GetJobsResponse = GetJobsResponses[keyof GetJobsResponses];
+
+export type GetJobData = {
+    body?: never;
+    path: {
+        /**
+         * The name of the cluster, as the profile file gives it.
+         */
+        cluster: string;
+        /**
+         * The job's own id. A task of an array has one of its own.
+         */
+        job: number;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/jobs/{job}';
+};
+
+export type GetJobErrors = {
+    /**
+     * The request was not answered with what it asked for. The status says
+     * what kind of failure it is, and the body what caused it.
+     *
+     */
+    default: Error;
+};
+
+export type GetJobError = GetJobErrors[keyof GetJobErrors];
+
+export type GetJobResponses = {
+    /**
+     * The job.
+     */
+    200: JobItem;
+};
+
+export type GetJobResponse = GetJobResponses[keyof GetJobResponses];
 
 export type GetNodesData = {
     body?: never;

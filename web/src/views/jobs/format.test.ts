@@ -17,6 +17,7 @@ function job(more: Partial<Job>): Job {
     qos: "normal",
     state: "RUNNING",
     flags: [],
+    nodeNames: [],
     ...more,
   };
 }

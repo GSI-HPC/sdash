@@ -13,6 +13,8 @@
 import {
   ErrorCode,
   type Error as ErrorBody,
+  type GetJobData,
+  type GetJobResponse,
   type GetJobsData,
   type GetJobsResponse,
   type GetNodesData,
@@ -48,6 +50,9 @@ export type JobList = GetJobsResponse;
 
 /** One job of a page of jobs. */
 export type Job = JobList["rows"][number];
+
+/** What one job of a cluster answers. */
+export type JobItem = GetJobResponse;
 
 /** The filters, the order and the window of a page of jobs. */
 export type JobQuery = NonNullable<GetJobsData["query"]>;
@@ -143,6 +148,8 @@ export interface Client {
     query?: JobQuery,
     options?: CallOptions,
   ): Promise<JobList>;
+  /** Gives the job of the cluster with this id, its own and not its array's. */
+  getJob(cluster: string, id: number, options?: CallOptions): Promise<JobItem>;
   /** Gives the nodes of the cluster. */
   getNodes(cluster: string, options?: CallOptions): Promise<NodeList>;
   /** Gives the partitions of the cluster. */
@@ -263,6 +270,12 @@ export function createClient(fetch: typeof globalThis.fetch): Client {
       const url = clusterPath(path, cluster) + queryOf(query);
       const response = await transport.send(url, options);
       return (await bodyOf(response)) as GetJobsResponse;
+    },
+    async getJob(cluster, id, options = {}) {
+      const path: GetJobData["url"] = "/clusters/{cluster}/jobs/{job}";
+      const url = clusterPath(path, cluster).replace("{job}", String(id));
+      const response = await transport.send(url, options);
+      return (await bodyOf(response)) as GetJobResponse;
     },
     async getNodes(cluster, options = {}) {
       const path: GetNodesData["url"] = "/clusters/{cluster}/nodes";
