@@ -168,7 +168,7 @@ func TestTheNodesPartitionsAndReservationsComeWhole(t *testing.T) {
 	drained := nodes.Rows[2]
 	assert.Equal(t, "worker-2", drained.Name)
 	assert.Equal(t, "IDLE", drained.State)
-	assert.Equal(t, []string{"DRAIN"}, drained.Flags)
+	assert.Equal(t, []string{"RESERVED", "DRAIN", "MAINTENANCE"}, drained.Flags)
 	assert.Equal(t, "e2e drained", *drained.Reason)
 
 	var parts api.PartitionList
