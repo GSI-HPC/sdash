@@ -16,13 +16,14 @@ one and out of the other. The decisions behind them are in
 [0030](adr/0030-primitives-that-show-data.md),
 [0035](adr/0035-the-jobs-view-and-its-table.md),
 [0036](adr/0036-the-cluster-views-on-real-data.md) and
-[0037](adr/0037-the-reservations-view.md), the stack in
+[0037](adr/0037-the-reservations-view.md) and
+[0038](adr/0038-the-diagnostics-view.md), the stack in
 [0013](adr/0013-frontend-stack.md), and the look comes from the
 [design handoff](design/README.md), which they depart from in the places
 [listed below](#departures-from-the-handoff).
 
-The Overview, Nodes, Partitions, Reservations and Jobs views show the data of a
-cluster, and the header tells the state of that data and switches between
+The Overview, Nodes, Partitions, Reservations, Diagnostics and Jobs views show
+the data of a cluster, and the header tells the state of that data and switches between
 the clusters. Every other view is a placeholder: its page header and a
 card that says that no cluster is configured, or else that the view is not
 built yet. The Overview also says which sdash is running.
@@ -1098,7 +1099,8 @@ card and 5.99, 11.11 on the track.
 | The Nodes map | Racks, a gradient by load, memory, GPUs or jobs, and a drawer for a node | One grid of the nodes in the colour of their state, filtered by name, state and partition, without racks, gradients or drawer | The browser API serves no racks, GPUs or jobs of a node yet |
 | The state of a node | Its state, coloured by the status mapping | The same mapping; a node that does not respond is down, and one that drains or is reserved is so whatever its base state | slurmrestd gives these as flags beside the base state, and they say more of the node, as in `sinfo` |
 | The Partitions table | A "default" tag, GPUs, running and pending jobs apart, drain and resume | State, the states of the nodes, the CPUs allocated, the limits, the priority tier, the QOS, the nodes per job, and one count of jobs; no actions | The API serves no default flag, GPUs or actions; the count is a facet of the jobs |
-| The Overview | GPUs, the scheduler, reservations, "needs attention", jobs waiting over 6 h | Nodes, CPUs and memory allocated, jobs, the CPUs allocated by partition, the map of the nodes, the connection | The API serves no GPUs, scheduler or attention yet; the reservations card waits for a change of its own |
+| The Overview | GPUs, the scheduler, reservations, "needs attention", jobs waiting over 6 h | Nodes, CPUs and memory allocated, jobs, the CPUs allocated by partition, the scheduler, the map of the nodes, the connection | The API serves no GPUs or attention yet; the reservations card waits for a change of its own |
+| The Diagnostics view | Job counters, three cards of figures, and the RPCs by type and by user with a share bar | The same, with the times written in the unit that fits them; no pending RPCs, exit reasons or count of backfilled heterogeneous jobs | The handoff does not draw them, and they serve the tuning of a scheduler ([0038](adr/0038-the-diagnostics-view.md)) |
 | The timeline of reservations | A row for each reservation | A row for each reservation that holds its nodes in the eight days shown; where each stands, and the line of now, at the moment the reservations were fetched | An empty row says nothing; the table lists every reservation ([0037](adr/0037-the-reservations-view.md)) |
 | The table of reservations | Name, state, nodes, start, end, duration, access, flags, and Delete | The same, with the nodes beside the name, what the reservation holds, and no Delete; "New reservation" is left out too | Making and deleting a reservation change the cluster, and wait for a decision on writes |
 
@@ -1115,7 +1117,7 @@ Of the Jobs view: the job page its ids lead to, the drawer a row opens,
 the boxes that select rows and the bar of what to do with them, the
 "Submit job" button, and the GPUs of a job.
 
-Of the Nodes, Partitions, Reservations and Overview views: what the
+Of the Nodes, Partitions, Reservations, Diagnostics and Overview views: what the
 browser API does not serve yet, listed in the table above.
 
 Of the primitives, the controls, the overlays, what shows data and the
