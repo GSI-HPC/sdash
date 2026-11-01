@@ -43,8 +43,11 @@ as alice scancel "$cancelled"
 
 # The drained node and the reservation leave two workers, four CPUs.
 sind exec -- scontrol update nodename=worker-2 state=drain reason="e2e drained"
+# The reservation starts now and lasts ten years, so that the captures hold
+# one that is active for as long as they are used: one that starts later
+# would have ended by the time a test reads it.
 sind exec -- scontrol create reservation reservationname=maintenance \
-  starttime=now+1day duration=60 users=root flags=maint nodes=worker-2
+  starttime=now duration=3650-00:00:00 users=root flags=maint nodes=worker-2
 
 # Two jobs that fill the four CPUs, so that everything after them waits.
 as alice sbatch --parsable --job-name=running-a --cpus-per-task=2 --wrap='sleep 3600'
