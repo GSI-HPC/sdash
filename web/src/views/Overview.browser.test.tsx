@@ -100,3 +100,16 @@ test("shows the timing of the schedulers on a card that leads to the diagnostics
     .element(scheduler.getByRole("link", { name: "Diagnostics" }))
     .toHaveAttribute("href", "/diagnostics");
 });
+
+test("opens the drawer of a node pressed on the map, in the Nodes view", async () => {
+  const { server } = clusterServer();
+  const screen = await renderApp("/overview?cluster=lyra", server);
+  const map = screen.getByRole("grid", { name: "Nodes of lyra" });
+  await expect.element(map).toBeVisible();
+
+  await map.getByRole("gridcell", { name: /^cpu-2,/ }).click();
+
+  await expect
+    .element(screen.getByRole("dialog", { name: "cpu-2" }))
+    .toBeVisible();
+});

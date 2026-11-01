@@ -31,8 +31,10 @@ import {
   passes,
   wordOf,
 } from "./nodes/nodes";
+import { NodeDrawer } from "./nodes/NodeDrawer";
 import {
   clearFilters,
+  nodeParam,
   partitionParam,
   statesParam,
   textParam,
@@ -63,6 +65,7 @@ function NodesOf({ cluster }: { cluster: string }) {
   const [text] = useSearchParam(textParam);
   const [states] = useSearchParam(statesParam);
   const [partition] = useSearchParam(partitionParam);
+  const [open, setOpen] = useSearchParam(nodeParam);
   const changeSearch = useSearchChanges();
 
   const pulse = usePulse(cluster, viewOf("nodes").kinds);
@@ -219,9 +222,23 @@ function NodesOf({ cluster }: { cluster: string }) {
             label={`Nodes of ${cluster}`}
             cells={shown.map((node) => cellOf(node))}
             tones={nodeStates.map(({ tone, label }) => ({ tone, label }))}
+            onActivate={(cell) => {
+              setOpen(cell.id, { history: "push" });
+            }}
           />
         )}
       </Card>
+      {list !== undefined && (
+        <NodeDrawer
+          cluster={cluster}
+          name={open}
+          nodes={all}
+          fetchedAt={list.fetchedAt}
+          onClose={() => {
+            setOpen("", { history: "push" });
+          }}
+        />
+      )}
     </>
   );
 }

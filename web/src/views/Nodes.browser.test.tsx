@@ -99,3 +99,50 @@ test("says in words why there are no nodes to show when the server has none to g
     .toBeVisible();
   await expect.element(screen.getByText("connection refused")).toBeVisible();
 });
+
+test("opens the drawer of a node pressed on the map, with why it is drained", async () => {
+  const { server } = clusterServer();
+  const screen = await renderApp("/nodes", server);
+  const map = screen.getByRole("grid", { name: "Nodes of virgo" });
+  await expect.element(map).toBeVisible();
+
+  await map.getByRole("gridcell", { name: /^gpu-2,/ }).click();
+
+  const drawer = screen.getByRole("dialog", { name: "gpu-2" });
+  await expect.element(drawer).toBeVisible();
+  await expect.element(drawer.getByText("bad disk")).toBeVisible();
+  await expect
+    .element(drawer.getByRole("meter", { name: "CPUs allocated" }))
+    .toBeVisible();
+
+  await userEvent.keyboard("{Escape}");
+  await expect.element(drawer).not.toBeInTheDocument();
+});
+
+test("lists the jobs of a node in its drawer, each a link to its own drawer", async () => {
+  const { server, asked } = clusterServer();
+  const screen = await renderApp("/nodes?node=gpu-1", server);
+
+  const drawer = screen.getByRole("dialog", { name: "gpu-1" });
+  const jobs = drawer.getByRole("table", { name: "Jobs on gpu-1" });
+  await expect.element(jobs).toBeVisible();
+  await expect
+    .element(jobs.getByRole("link", { name: "7" }))
+    .toHaveAttribute("href", "/jobs?job=7");
+  expect(
+    asked.find((url) => url.searchParams.get("node") === "gpu-1"),
+  ).toBeDefined();
+});
+
+test("says so in the drawer when the address names a node the cluster lacks", async () => {
+  const { server } = clusterServer();
+  const screen = await renderApp("/nodes?node=gpu-9", server);
+
+  await expect
+    .element(
+      screen
+        .getByRole("dialog", { name: "gpu-9" })
+        .getByRole("heading", { name: "No such node" }),
+    )
+    .toBeVisible();
+});

@@ -110,6 +110,27 @@ export const jobCounts: JobList = {
   },
 };
 
+/** The jobs that ran on gpu-1, as a page of jobs answers them. */
+export const gpuJobs: JobList = {
+  ...jobCounts,
+  total: 1,
+  rows: [
+    {
+      id: 7,
+      displayId: "7",
+      name: "train",
+      user: "alice",
+      account: "physics",
+      partition: "gpu",
+      qos: "normal",
+      state: "RUNNING",
+      flags: [],
+      nodes: "gpu-1",
+      nodeNames: ["gpu-1"],
+    },
+  ],
+};
+
 /**
  * The reservations: one for maintenance tomorrow, one held daily that is
  * active now, and one in a month without an end, beyond the timeline.
@@ -282,7 +303,12 @@ export function clusterServer(answers: ClusterAnswers = {}): {
         return answers.partitions ?? { body: partitions };
       }
       if (url.pathname.endsWith("/jobs")) {
-        return answers.jobs ?? { body: jobCounts };
+        // The jobs of a node, for its drawer, or the counts the views show.
+        return (
+          answers.jobs ?? {
+            body: url.searchParams.has("node") ? gpuJobs : jobCounts,
+          }
+        );
       }
       if (url.pathname.endsWith("/reservations")) {
         return answers.reservations ?? { body: reservations };

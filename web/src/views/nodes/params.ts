@@ -21,6 +21,9 @@ export const statesParam = defineSearchParam("state", words, []);
 /** The partition the nodes are in; empty for every partition. */
 export const partitionParam = defineSearchParam("partition", text, "");
 
+/** The name of the node whose drawer is open; empty for none. */
+export const nodeParam = defineSearchParam("node", text, "");
+
 /** The changes that take every filter away. */
 export const clearFilters: readonly SearchChange[] = [
   setTo(textParam, textParam.fallback),
