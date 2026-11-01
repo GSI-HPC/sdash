@@ -13,7 +13,9 @@
 package model
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -322,4 +324,121 @@ func moment(t wire.Time) *time.Time {
 	}
 	v = v.UTC()
 	return &v
+}
+
+// Diagnostics is what slurmctld counts and times of itself since its
+// counters were last reset, which is what sdiag prints. Durations are in
+// microseconds.
+type Diagnostics struct {
+	// Now is when slurmctld answered and Since when its counters were last
+	// reset; nil when not set.
+	Now, Since *time.Time
+
+	ServerThreads int64
+	// AgentQueue is the outgoing RPCs held for a retry and DBDAgentQueue
+	// the messages queued for slurmdbd.
+	AgentQueue    int64
+	DBDAgentQueue int64
+	// ClockCost is what 1000 reads of the clock take.
+	ClockCost int64
+
+	Jobs JobCounts
+	Main MainScheduler
+	Fill Backfill
+
+	// RPCsByType and RPCsByUser are the calls slurmctld had, most
+	// frequent first.
+	RPCsByType []RPCStat
+	RPCsByUser []RPCStat
+}
+
+// JobCounts are the counters of jobs since the reset.
+type JobCounts struct {
+	Submitted, Started, Completed, Canceled, Failed int64
+	// Pending and Running are the counts at CountedAt, nil when not set.
+	Pending, Running int64
+	CountedAt        *time.Time
+}
+
+// MainScheduler is the timing of the main scheduling cycle.
+type MainScheduler struct {
+	LastCycle, MaxCycle, MeanCycle int64
+	Cycles                         int64
+	// MeanDepth is the mean of the jobs a cycle processes.
+	MeanDepth    int64
+	CyclesPerMin int64
+	QueueLength  int64
+}
+
+// Backfill is the timing of the backfill scheduler.
+type Backfill struct {
+	// Active says whether a cycle runs now.
+	Active                         bool
+	LastCycle, MaxCycle, MeanCycle int64
+	Cycles                         int64
+	// LastDepth is the jobs the last cycle processed, LastTried those it
+	// tried to schedule.
+	LastDepth, LastTried int64
+	QueueLength          int64
+	// Backfilled counts the jobs started by backfill since slurmctld
+	// started, BackfilledSinceReset since the reset.
+	Backfilled, BackfilledSinceReset int64
+	// LastCycleAt is when the last cycle ran; nil when none did.
+	LastCycleAt *time.Time
+}
+
+// RPCStat is the calls of one message type or of one user.
+type RPCStat struct {
+	// Name is the message type or the user.
+	Name  string
+	Count int64
+	// Mean and Total are the time slurmctld spent on them, in
+	// microseconds; Mean is 0 when slurmctld gave none.
+	Mean, Total int64
+}
+
+// DiagnosticsOf maps the statistics of the wire to the model.
+func DiagnosticsOf(w *wire.Statistics) Diagnostics {
+	d := Diagnostics{
+		Now:           moment(w.RequestTime),
+		Since:         moment(w.Since),
+		ServerThreads: w.ServerThreads,
+		AgentQueue:    w.AgentQueueSize,
+		DBDAgentQueue: w.DBDAgentQueue,
+		ClockCost:     w.GettimeofdayCost,
+		Jobs: JobCounts{
+			Submitted: w.JobsSubmitted, Started: w.JobsStarted, Completed: w.JobsCompleted,
+			Canceled: w.JobsCanceled, Failed: w.JobsFailed,
+			Pending: w.JobsPending, Running: w.JobsRunning, CountedAt: moment(w.JobStatesTime),
+		},
+		Main: MainScheduler{
+			LastCycle: w.CycleLast, MaxCycle: w.CycleMax, MeanCycle: w.CycleMean,
+			Cycles: w.CycleTotal, MeanDepth: w.CycleMeanDepth,
+			CyclesPerMin: w.CyclesPerMin, QueueLength: w.QueueLength,
+		},
+		Fill: Backfill{
+			Active:    w.BackfillActive,
+			LastCycle: w.BackfillCycleLast, MaxCycle: w.BackfillCycleMax, MeanCycle: w.BackfillCycleMean,
+			Cycles: w.BackfillCycleCount, LastDepth: w.BackfillLastDepth, LastTried: w.BackfillLastTried,
+			QueueLength: w.BackfillQueueLength,
+			Backfilled:  w.BackfilledJobs, BackfilledSinceReset: w.BackfilledSinceReset,
+			LastCycleAt: moment(w.BackfillLastCycle),
+		},
+	}
+	for _, r := range w.RPCsByType {
+		d.RPCsByType = append(d.RPCsByType, RPCStat{Name: r.Message, Count: r.Count, Mean: orZero(r.AverageTime), Total: r.TotalTime})
+	}
+	for _, r := range w.RPCsByUser {
+		d.RPCsByUser = append(d.RPCsByUser, RPCStat{Name: r.User, Count: r.Count, Mean: orZero(r.AverageTime), Total: r.TotalTime})
+	}
+	byCount := func(a, b RPCStat) int { return cmp.Or(cmp.Compare(b.Count, a.Count), strings.Compare(a.Name, b.Name)) }
+	slices.SortStableFunc(d.RPCsByType, byCount)
+	slices.SortStableFunc(d.RPCsByUser, byCount)
+	return d
+}
+
+// orZero is the number of n, or 0 when it is unset or unlimited.
+func orZero(n wire.Int) int64 {
+	v, _ := n.Value()
+	return v
 }
