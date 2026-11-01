@@ -50,6 +50,23 @@ export function useSearchChanges(): (
 }
 
 /**
+ * A function that gives the address of this page with changes made to its
+ * query string, for a link: a link that opens a drawer, say, which Back
+ * then closes as it would any page a link led to.
+ */
+export function useSearchLink(): (changes: readonly SearchChange[]) => string {
+  const [search] = useSearchParams();
+
+  return (changes) => {
+    const query = applySearchChanges(
+      new URLSearchParams(search),
+      changes,
+    ).toString();
+    return query === "" ? "?" : `?${query}`;
+  };
+}
+
+/**
  * One parameter of the address's query string as state: its value, and a
  * function that sets it. The value is read from the address on every
  * render, so Back, Forward and a pasted link change it like a click does.
