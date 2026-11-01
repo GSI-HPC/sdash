@@ -47,7 +47,9 @@ days and in a table
 ([`doc/adr/0037-the-reservations-view.md`](doc/adr/0037-the-reservations-view.md)),
 and the Diagnostics view the timing of the schedulers and the calls the
 controller had
-([`doc/adr/0038-the-diagnostics-view.md`](doc/adr/0038-the-diagnostics-view.md));
+([`doc/adr/0038-the-diagnostics-view.md`](doc/adr/0038-the-diagnostics-view.md)).
+A job and a node open in a drawer with their details
+([`doc/adr/0039-the-job-and-node-drawers.md`](doc/adr/0039-the-job-and-node-drawers.md));
 the other views come next.
 The client is tested end to end against clusters that
 [sind](https://github.com/GSI-HPC/sind) creates, which are also where every

@@ -15,16 +15,18 @@ one and out of the other. The decisions behind them are in
 [0029](adr/0029-ui-primitives-on-base-ui.md),
 [0030](adr/0030-primitives-that-show-data.md),
 [0035](adr/0035-the-jobs-view-and-its-table.md),
-[0036](adr/0036-the-cluster-views-on-real-data.md) and
-[0037](adr/0037-the-reservations-view.md) and
-[0038](adr/0038-the-diagnostics-view.md), the stack in
+[0036](adr/0036-the-cluster-views-on-real-data.md),
+[0037](adr/0037-the-reservations-view.md),
+[0038](adr/0038-the-diagnostics-view.md) and
+[0039](adr/0039-the-job-and-node-drawers.md), the stack in
 [0013](adr/0013-frontend-stack.md), and the look comes from the
 [design handoff](design/README.md), which they depart from in the places
 [listed below](#departures-from-the-handoff).
 
 The Overview, Nodes, Partitions, Reservations, Diagnostics and Jobs views show
-the data of a cluster, and the header tells the state of that data and switches between
-the clusters. Every other view is a placeholder: its page header and a
+the data of a cluster, and the header tells the state of that data and switches
+between the clusters. A job opens in a drawer from the Jobs view, and a node
+from the maps of the Nodes view and the Overview. Every other view is a placeholder: its page header and a
 card that says that no cluster is configured, or else that the view is not
 built yet. The Overview also says which sdash is running.
 
@@ -359,7 +361,15 @@ value of the parameter reads as the fallback, and a value that is the
 fallback is left out of the address. A value has one spelling, so that a
 state has one address: `integer` reads `7` and `-3`, and takes `007`, `+7`,
 `-0` and `7` with a space for no number. The Jobs view keeps its filters,
-its sort and its page there (`views/jobs/params.ts`).
+its sort, its page and the job whose drawer is open there
+(`views/jobs/params.ts`).
+
+A link that opens a drawer is a link to the same view with the drawer's
+parameter set, which `useSearchLink` gives: the id of a job in the table
+of jobs is one. A link adds an entry to the history, so Back closes the
+drawer it opened; a control that opens a drawer, such as a cell of a map,
+sets the parameter with `{ history: "push" }` for the same reason, and
+the drawer is closed the same way.
 
 An event that changes two parameters, a filter that also puts the list
 back on its first page, makes one navigation of it with `useSearchChanges`:
@@ -395,7 +405,8 @@ that cluster, or the one card that says why there is none: no cluster in
 the file, a name the file does not have, or no answer from sdash. A link
 to another view, a shortcut and the palette keep the cluster and leave
 the other parameters behind (`useAddressOf` in `cluster/`). The Nodes view
-keeps its filters in the address too (`views/nodes/params.ts`).
+keeps its filters and the node whose drawer is open in the address too
+(`views/nodes/params.ts`).
 
 ## Primitives
 
@@ -1016,7 +1027,7 @@ card and 5.99, 11.11 on the track.
 | The buttons of a dialog | In one row; Cancel 34 px high at a weight of 400 with 14 px of padding at its sides, the button that carries on with 16 px | They go on in a second line where they do not fit. Both are 32 px high with 12 px at their sides, and Cancel has the weight of 500 every secondary button has | Reflow at 320 px (WCAG 2.1, 1.4.10); the sizes and the looks are one set |
 | A dialog in a low window | Not drawn | Below a height of 480 px its body keeps at least 56 px, and the dialog scrolls as a whole where its head and its buttons leave less. A confirmation lets its body shrink instead | The head and the buttons of a dialog can be higher together than the dialog may be, and what did not fit was cut off for good |
 | The close button of the drawer | An icon button 30 px wide with the `title` "Close (Esc)" | An icon button 32 px wide named "Close", whose tooltip shows the name and the key | The scale, and a tooltip the keyboard reaches |
-| The header of the drawer | A button beside the close button ("Open job page"); actions 30 px high | No place beside the close button yet; actions 32 px high | The scale; the button waits for the view that needs it |
+| The header of the drawer | A button beside the close button ("Open job page"); actions 30 px high | No place beside the close button yet; actions 32 px high | The scale; the button waits for the job page, which is not built |
 | A drawer in a low window | Not drawn | Below a height of 480 px the whole drawer scrolls as one, the header with the content | The header would leave the content no room on an enlarged page |
 | The drawer and a toast appearing | At once, without motion | The drawer slides in from the right in 300 ms while its scrim fades in, and a toast fades in 150 ms, on the handoff's one easing; none of it for a user who asked for less motion | So that the eye sees where a panel came from that covers a third of the window. The time and the easing are those the handoff has for the sidebar; the motion itself is for the designer to accept or to take out |
 | A toast | A dot, a title and a line | The same, and a button "Dismiss" | A toast that stays has to be dismissable, by keyboard too |
@@ -1096,12 +1107,15 @@ card and 5.99, 11.11 on the track.
 | The clusters of the switcher | Those slurmdbd knows of | Those of the profile file | sdash reaches only the slurmrestd the profile file names ([0033](adr/0033-the-profile-file.md)) |
 | Choosing a cluster | Not drawn | Keeps the view, leaves its filters behind | Filters set on one cluster can hide all of another's data |
 | A link to another view | Not drawn | Keeps the cluster of the address | A user who switched expects every view to show the cluster |
-| The Nodes map | Racks, a gradient by load, memory, GPUs or jobs, and a drawer for a node | One grid of the nodes in the colour of their state, filtered by name, state and partition, without racks, gradients or drawer | The browser API serves no racks, GPUs or jobs of a node yet |
+| The Nodes map | Racks, a gradient by load, memory, GPUs or jobs, and a drawer for a node | One grid of the nodes in the colour of their state, filtered by name, state and partition, without racks or gradients; a cell opens the node's drawer | The browser API serves no racks or GPUs yet |
 | The state of a node | Its state, coloured by the status mapping | The same mapping; a node that does not respond is down, and one that drains or is reserved is so whatever its base state | slurmrestd gives these as flags beside the base state, and they say more of the node, as in `sinfo` |
 | The Partitions table | A "default" tag, GPUs, running and pending jobs apart, drain and resume | State, the states of the nodes, the CPUs allocated, the limits, the priority tier, the QOS, the nodes per job, and one count of jobs; no actions | The API serves no default flag, GPUs or actions; the count is a facet of the jobs |
 | The Overview | GPUs, the scheduler, reservations, "needs attention", jobs waiting over 6 h | Nodes, CPUs and memory allocated, jobs, the CPUs allocated by partition, the scheduler, the map of the nodes, the connection | The API serves no GPUs or attention yet; the reservations card waits for a change of its own |
 | The Diagnostics view | Job counters, three cards of figures, and the RPCs by type and by user with a share bar | The same, with the times written in the unit that fits them; no pending RPCs, exit reasons or count of backfilled heterogeneous jobs | The handoff does not draw them, and they serve the tuning of a scheduler ([0038](adr/0038-the-diagnostics-view.md)) |
 | The timeline of reservations | A row for each reservation | A row for each reservation that holds its nodes in the eight days shown; where each stands, and the line of now, at the moment the reservations were fetched | An empty row says nothing; the table lists every reservation ([0037](adr/0037-the-reservations-view.md)) |
+| Opening a job | A press on the row opens its drawer, and one on the id the job page | The id is a link that opens the drawer; the rest of the row opens nothing | A link is what the keyboard and a screen reader know, and there is no job page yet ([0039](adr/0039-the-job-and-node-drawers.md)) |
+| The drawer of a job | Tabs Overview, Related and JSON; actions to hold, release, requeue and cancel | One body: the state, the times, the resources with a link to each node, and the files; no tabs and no actions | slurmrestd's shapes do not reach the browser; actions change the cluster and wait for a decision on writes |
+| The drawer of a node | Meters, GPU slots, the reason, terms and features, the jobs; Drain, Set down and Resume | Meters for CPUs, memory and load, the reason with who gave it and when, terms and features, and the newest 20 jobs that have the node, each a link to its drawer; no GPU slots and no actions | The API serves no GPUs; actions wait for a decision on writes |
 | The table of reservations | Name, state, nodes, start, end, duration, access, flags, and Delete | The same, with the nodes beside the name, what the reservation holds, and no Delete; "New reservation" is left out too | Making and deleting a reservation change the cluster, and wait for a decision on writes |
 
 ### Not built yet
