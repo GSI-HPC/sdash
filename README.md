@@ -44,7 +44,10 @@ word how the data on the screen stand and switches between the clusters
 ([`doc/adr/0036-the-cluster-views-on-real-data.md`](doc/adr/0036-the-cluster-views-on-real-data.md)).
 The Reservations view shows the reservations on a timeline of the next
 days and in a table
-([`doc/adr/0037-the-reservations-view.md`](doc/adr/0037-the-reservations-view.md));
+([`doc/adr/0037-the-reservations-view.md`](doc/adr/0037-the-reservations-view.md)),
+and the Diagnostics view the timing of the schedulers and the calls the
+controller had
+([`doc/adr/0038-the-diagnostics-view.md`](doc/adr/0038-the-diagnostics-view.md));
 the other views come next.
 The client is tested end to end against clusters that
 [sind](https://github.com/GSI-HPC/sind) creates, which are also where every

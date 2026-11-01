@@ -27,7 +27,9 @@ Overview, Nodes and Partitions views show the cluster, and the header its
 state and the switcher between clusters
 (`0036-the-cluster-views-on-real-data`); the Reservations view shows
 the reservations on a timeline and in a table
-(`0037-the-reservations-view`); the other views are placeholders. No
+(`0037-the-reservations-view`); the Diagnostics view shows the timing
+of the schedulers and the calls the controller had
+(`0038-the-diagnostics-view`); the other views are placeholders. No
 release yet.
 Everything Slurm-facing (the slurmrestd client, vendored specs, fixtures,
 the views of cluster data) is built against a slurmrestd on a sind cluster,
