@@ -24,6 +24,15 @@ export function duration(seconds: number): string {
   return days > 0 ? `${String(days)}-${clock}` : clock;
 }
 
+/**
+ * The state a job shows: COMPLETING, a flag of a job that has ended and
+ * still holds its nodes, where it has that flag, and its base state
+ * otherwise.
+ */
+export function stateOf(job: Job): string {
+  return job.flags.includes("COMPLETING") ? "COMPLETING" : job.state;
+}
+
 /** The states in which a job runs, or has run and still holds its nodes. */
 const running = new Set(["RUNNING", "SUSPENDED"]);
 

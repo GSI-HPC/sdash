@@ -12,6 +12,7 @@ import { PageHeader } from "../layout/PageHeader";
 import { type SearchChange, setTo } from "../routing/searchParams";
 import {
   useSearchChanges,
+  useSearchLink,
   useSearchParam,
   useTypedText,
 } from "../routing/useSearchParam";
@@ -28,8 +29,10 @@ import { Skeleton } from "../primitives/Skeleton";
 import { Table } from "../primitives/Table";
 import { jobColumns } from "./jobs/columns";
 import { wordOf } from "./jobs/format";
+import { JobDrawer } from "./jobs/JobDrawer";
 import {
   clearFilters,
+  jobParam,
   orderParam,
   pageParam,
   pageSize,
@@ -88,7 +91,9 @@ function JobsOf({ cluster }: { cluster: string }) {
   const [sort] = useSearchParam(sortParam);
   const [order] = useSearchParam(orderParam);
   const [page, setPage] = useSearchParam(pageParam);
+  const [open, setOpen] = useSearchParam(jobParam);
   const changeSearch = useSearchChanges();
+  const linkWith = useSearchLink();
 
   const pulse = usePulse(cluster, viewOf("jobs").kinds);
   const query = queryOf({ text, states, partition, user, sort, order, page });
@@ -329,7 +334,9 @@ function JobsOf({ cluster }: { cluster: string }) {
         ) : (
           <Table
             label={`Jobs of ${cluster}`}
-            columns={jobColumns(me, new Date(list.fetchedAt))}
+            columns={jobColumns(me, new Date(list.fetchedAt), (job) =>
+              linkWith([setTo(jobParam, job.id)]),
+            )}
             rows={list.rows}
             rowKey={(job) => String(job.id)}
             sort={{ column: sort, order }}
@@ -348,6 +355,13 @@ function JobsOf({ cluster }: { cluster: string }) {
           />
         )}
       </Card>
+      <JobDrawer
+        cluster={cluster}
+        id={open}
+        onClose={() => {
+          setOpen(0, { history: "push" });
+        }}
+      />
     </>
   );
 }

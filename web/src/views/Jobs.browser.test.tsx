@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { beforeEach, expect, test } from "vitest";
+import { userEvent } from "vitest/browser";
 
 import type { Job, JobList, Pulse } from "../client/client";
 import {
@@ -85,7 +86,12 @@ const twoClusters = {
  * A server with the clusters virgo and lyra, which answers a page of jobs
  * with `list` and keeps every request for them in `asked`.
  */
-function cluster(list: Answer = { body: jobs }): {
+function cluster(
+  list: Answer = { body: jobs },
+  one: Answer = {
+    body: { generation: 1, fetchedAt, job: job(3, { batchHost: "node-1" }) },
+  },
+): {
   server: Server;
   asked: URL[];
 } {
@@ -102,6 +108,10 @@ function cluster(list: Answer = { body: jobs }): {
       if (url.pathname.endsWith("/jobs")) {
         asked.push(url);
         return list;
+      }
+      if (/\/jobs\/\d+$/.test(url.pathname)) {
+        asked.push(url);
+        return one;
       }
       return undefined;
     },
@@ -301,4 +311,50 @@ test("says that no job passes the filters, and takes them away when asked", asyn
   await screen.getByRole("button", { name: "Clear the filters" }).click();
   await expect.poll(() => lastQuery(asked)).not.toHaveProperty("q");
   await expect.poll(() => lastQuery(asked)).not.toHaveProperty("state");
+});
+
+test("opens the drawer of a job from its id, and closes it with Escape", async () => {
+  const { server, asked } = cluster();
+  const screen = await renderApp("/jobs?cluster=virgo", server);
+  await expect.element(screen.getByRole("table")).toBeVisible();
+
+  await screen.getByRole("link", { name: "3", exact: true }).click();
+
+  const drawer = screen.getByRole("dialog", { name: "example-3" });
+  await expect.element(drawer).toBeVisible();
+  await expect
+    .poll(() => asked.at(-1)?.pathname)
+    .toBe("/api/v1/clusters/virgo/jobs/3");
+  await expect
+    .element(drawer.getByRole("link", { name: "node-1" }))
+    .toHaveAttribute("href", "/nodes?cluster=virgo&node=node-1");
+  await expect.element(drawer.getByText("Batch host")).toBeVisible();
+
+  await userEvent.keyboard("{Escape}");
+  await expect.element(drawer).not.toBeInTheDocument();
+  await expect
+    .element(screen.getByRole("link", { name: "3", exact: true }))
+    .toHaveFocus();
+});
+
+test("opens the drawer of the job the address names, though no page shows it", async () => {
+  const { server } = cluster();
+  const screen = await renderApp("/jobs?job=3&page=9", server);
+
+  await expect
+    .element(screen.getByRole("dialog", { name: "example-3" }))
+    .toBeVisible();
+});
+
+test("says so in the drawer when slurmctld holds no job of the id", async () => {
+  const { server } = cluster(undefined, {
+    status: 404,
+    body: { code: "not_found", message: "slurmctld holds no job 99" },
+  });
+  const screen = await renderApp("/jobs?job=99", server);
+
+  const drawer = screen.getByRole("dialog", { name: "Job 99" });
+  await expect
+    .element(drawer.getByRole("heading", { name: "No such job" }))
+    .toBeVisible();
 });

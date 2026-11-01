@@ -1,36 +1,31 @@
 // SPDX-FileCopyrightText: 2026 GSI Helmholtz Centre for Heavy Ion Research GmbH <http://www.gsi.de>
 // SPDX-License-Identifier: Apache-2.0
 
+import { Link } from "react-router";
+
 import type { Job } from "../../client/client";
 import { Badge } from "../../primitives/Badge";
 import type { TableColumn } from "../../primitives/Table";
-import { duration, elapsed, limit, toneOf } from "./format";
-
-/**
- * The state a job shows: COMPLETING, a flag of a job that has ended and
- * still holds its nodes, where it has that flag, and its base state
- * otherwise.
- */
-function stateOf(job: Job): string {
-  return job.flags.includes("COMPLETING") ? "COMPLETING" : job.state;
-}
+import { duration, elapsed, limit, stateOf, toneOf } from "./format";
 
 /**
  * The columns of the table of jobs, after the handoff's. The id of a
  * column that sorts is the key the server sorts by. `user` is the user the
  * token names, whose jobs say "you"; `at` is when the jobs were fetched,
  * the moment the time of a running job is counted to, so that the table
- * shows one moment and the age beside it says which.
+ * shows one moment and the age beside it says which. `linkOf` gives the
+ * address that opens the drawer of a job, which the id leads to.
  */
 export function jobColumns(
   user: string | undefined,
   at: Date,
+  linkOf: (job: Job) => string,
 ): readonly TableColumn<Job>[] {
   return [
     {
       id: "id",
       header: "Job ID",
-      cell: (job) => job.displayId,
+      cell: (job) => <Link to={linkOf(job)}>{job.displayId}</Link>,
       mono: true,
       sortable: true,
       firstOrder: "desc",

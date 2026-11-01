@@ -49,6 +49,9 @@ export const orderParam = defineSearchParam(
 /** The page, from 1. */
 export const pageParam = defineSearchParam("page", integer, 1);
 
+/** The own id of the job whose drawer is open; 0 for none. */
+export const jobParam = defineSearchParam("job", integer, 0);
+
 /** The changes that take every filter away. */
 export const clearFilters: readonly SearchChange[] = [
   setTo(textParam, textParam.fallback),
