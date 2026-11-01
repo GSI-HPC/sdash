@@ -35,7 +35,7 @@
       "cluster": "default",
       "constraints": "",
       "container": "",
-      "sluid": "s6G1M5ZSTN8V00",
+      "sluid": "s61DM6C71N7G00",
       "derived_exit_code": {
         "status": [
           "SUCCESS"
@@ -157,7 +157,7 @@
       },
       "script": "",
       "segment_size": 0,
-      "original_sluid": "s6G1M5ZSTN8V00",
+      "original_sluid": "s61DM6C71N7G00",
       "stdin_expanded": "/dev/null",
       "stdout_expanded": "/home/alice/slurm-1.out",
       "stderr_expanded": "",
@@ -404,7 +404,7 @@
       "accounting_storage": "accounting_storage/slurmdbd"
     },
     "client": {
-      "source": "192.0.2.7:6820(fd:9)",
+      "source": "192.0.2.5:6820(fd:9)",
       "user": "nobody",
       "group": ""
     },

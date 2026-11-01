@@ -97,7 +97,7 @@ func TestTheSeededNodesMapWithTheirStateFlagsAndLoad(t *testing.T) {
 			drained := nodes[2]
 			assert.Equal(t, "worker-2", drained.Name)
 			assert.Equal(t, "IDLE", drained.State)
-			assert.Equal(t, []string{"DRAIN"}, drained.Flags)
+			assert.Equal(t, []string{"RESERVED", "DRAIN", "MAINTENANCE"}, drained.Flags, "the node is drained and in the reservation for maintenance")
 			assert.Equal(t, "e2e drained", drained.Reason)
 			assert.Equal(t, int64(2), drained.CPUs)
 			assert.Equal(t, []string{"all"}, drained.Partitions)
@@ -141,7 +141,7 @@ func TestTheSeededReservationMapsWithItsTimesAndUsers(t *testing.T) {
 			assert.Nil(t, r.Accounts, "the seed names no account")
 			require.NotNil(t, r.Start)
 			require.NotNil(t, r.End)
-			assert.Equal(t, time.Hour, r.End.Sub(*r.Start))
+			assert.Equal(t, 3650*24*time.Hour, r.End.Sub(*r.Start), "the seed reserves the node for ten years")
 		})
 	}
 }

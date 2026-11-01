@@ -157,7 +157,7 @@ func TestTheSeededReservationDecodes(t *testing.T) {
 			require.True(t, ok)
 			end, ok := maint.EndTime.Value()
 			require.True(t, ok)
-			assert.Equal(t, time.Hour, end.Sub(start), "the seed reserves the node for an hour")
+			assert.Equal(t, 3650*24*time.Hour, end.Sub(start), "the seed reserves the node for ten years")
 		})
 	}
 }

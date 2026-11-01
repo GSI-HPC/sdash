@@ -81,9 +81,9 @@ test("the Partitions view shows each partition with its nodes and its jobs, and 
   expect(problems).toEqual([]);
 });
 
-// The capture was taken when the reservation was a day ahead; it has ended
-// since, and the timeline of the days around today is empty.
-test("the Reservations view lists the reservations of the cluster", async ({
+// The seeded reservation lasts ten years from the capture, so it is active
+// and on the timeline of the days around today.
+test("the Reservations view shows the reservations of the cluster on the timeline and in the table", async ({
   page,
 }) => {
   const problems = await openAt(page, "/reservations", { instance: "cluster" });
@@ -92,9 +92,15 @@ test("the Reservations view lists the reservations of the cluster", async ({
   });
 
   await expect(row).toBeVisible();
+  await expect(row.getByText("Active")).toBeVisible();
   await expect(row.getByText("worker-2")).toBeVisible();
   await expect(row.getByText("Users: root")).toBeVisible();
-  await expect(row.getByText("01:00:00")).toBeVisible();
+  await expect(row.getByText("3650-00:00:00")).toBeVisible();
+  await expect(
+    page.getByRole("img", {
+      name: /^The reservations of virgo from yesterday/,
+    }),
+  ).toBeVisible();
   await expect(page.getByText(/^1 reservation, fetched/)).toBeVisible();
   expect(problems).toEqual([]);
 });

@@ -7,7 +7,7 @@
       "boot_time": {
         "set": true,
         "infinite": false,
-        "number": 1767225523
+        "number": 1767225466
       },
       "tls_cert_last_renewal": {
         "set": true,
@@ -65,7 +65,7 @@
       "state": [
         "ALLOCATED"
       ],
-      "operating_system": "Linux 6.17.0-1022-azure #22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026",
+      "operating_system": "Linux 7.0.0-1017-azure #17~24.04.1-Ubuntu SMP PREEMPT Thu Sep 24 18:46:57 UTC 2026",
       "owner": "",
       "partitions": [
         "all"
@@ -123,7 +123,7 @@
       "accounting_storage": "accounting_storage/slurmdbd"
     },
     "client": {
-      "source": "192.0.2.7:6820(fd:9)",
+      "source": "192.0.2.5:6820(fd:9)",
       "user": "root",
       "group": "root"
     },
