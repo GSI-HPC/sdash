@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 import { client, type Pulse } from "../client/client";
 import { statusQuery } from "../client/query";
@@ -72,6 +72,7 @@ function share(part: number, whole: number): string {
  */
 function OverviewOf({ cluster }: { cluster: string }) {
   const addressOf = useAddressOf();
+  const navigate = useNavigate();
   const pulse = usePulse(cluster, viewOf("overview").kinds);
   const nodes = useQuery({
     queryKey: ["nodes", cluster],
@@ -296,6 +297,9 @@ function OverviewOf({ cluster }: { cluster: string }) {
             cells={all.map((node) => cellOf(node))}
             tones={nodeStates.map(({ tone, label }) => ({ tone, label }))}
             emptyText={`slurmctld knows of no node on ${cluster}.`}
+            onActivate={(cell) => {
+              void navigate(addressOf("/nodes", { node: cell.id }));
+            }}
           />
         )}
       </Card>
