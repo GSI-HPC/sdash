@@ -19,6 +19,7 @@ import { Meter } from "../primitives/Meter";
 import { StackedBar } from "../primitives/StackedBar";
 import { StatCard } from "../primitives/StatCard";
 import { StatusSummary } from "../status/StatusSummary";
+import { micros } from "./diagnostics/diagnostics";
 import { Stale, Unready } from "./Fetching";
 import {
   cellOf,
@@ -84,6 +85,11 @@ function OverviewOf({ cluster }: { cluster: string }) {
     queryKey: ["jobs", cluster, countsOnly],
     queryFn: ({ signal }) => client.getJobs(cluster, countsOnly, { signal }),
   });
+  const diagnostics = useQuery({
+    queryKey: ["diagnostics", cluster],
+    queryFn: ({ signal }) => client.getDiagnostics(cluster, { signal }),
+  });
+  useFollow(diagnostics, generationOf(pulse.data, "diagnostics"));
   useFollow(nodes, generationOf(pulse.data, "nodes"));
   useFollow(partitions, generationOf(pulse.data, "partitions"));
   const me = useUser(pulse, useFollow(jobs, generationOf(pulse.data, "jobs")));
@@ -111,6 +117,10 @@ function OverviewOf({ cluster }: { cluster: string }) {
       <Stale error={nodes.data?.error} what="The nodes shown" />
       <Stale error={jobs.data?.error} what="The jobs counted" />
       <Stale error={partitions.data?.error} what="The partitions shown" />
+      <Stale
+        error={diagnostics.data?.error}
+        what="The scheduler figures shown"
+      />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(14.375rem,1fr))] gap-3">
         {all === undefined ? (
           <Card title="Nodes">
@@ -219,6 +229,52 @@ function OverviewOf({ cluster }: { cluster: string }) {
                 );
               })}
             </div>
+          )}
+        </Card>
+        <Card
+          title="Scheduler"
+          action={<Link to={addressOf("/diagnostics")}>Diagnostics</Link>}
+        >
+          {diagnostics.data === undefined ? (
+            <Unready
+              error={diagnostics.error}
+              what="the scheduler"
+              level={3}
+              onRetry={retry(diagnostics)}
+            />
+          ) : (
+            <KVList
+              items={[
+                {
+                  term: "Main cycle, last",
+                  value: micros(diagnostics.data.main.lastCycle),
+                },
+                {
+                  term: "Main cycle, mean",
+                  value: micros(diagnostics.data.main.meanCycle),
+                },
+                {
+                  term: "Backfill cycle, last",
+                  value: micros(diagnostics.data.backfill.lastCycle),
+                },
+                {
+                  term: "Backfill depth",
+                  value: count(diagnostics.data.backfill.lastDepth),
+                },
+                {
+                  term: "Backfilled jobs",
+                  value: count(diagnostics.data.backfill.backfilled),
+                },
+                {
+                  term: "Server threads",
+                  value: count(diagnostics.data.serverThreads),
+                },
+                {
+                  term: "Agent queue",
+                  value: count(diagnostics.data.agentQueue),
+                },
+              ]}
+            />
           )}
         </Card>
         <Connection cluster={cluster} pulse={pulse.data} />

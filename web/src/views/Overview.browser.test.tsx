@@ -88,3 +88,15 @@ test("still says which sdash is running", async () => {
     .element(screen.getByRole("region", { name: "About" }).getByText("v1.4.0"))
     .toBeVisible();
 });
+
+test("shows the timing of the schedulers on a card that leads to the diagnostics", async () => {
+  const { server } = clusterServer();
+  const screen = await renderApp("/overview", server);
+
+  const scheduler = screen.getByRole("region", { name: "Scheduler" });
+  await expect.element(scheduler.getByText("1.2 ms")).toBeVisible();
+  await expect.element(scheduler.getByText("1,234")).toBeVisible();
+  await expect
+    .element(scheduler.getByRole("link", { name: "Diagnostics" }))
+    .toHaveAttribute("href", "/diagnostics");
+});
