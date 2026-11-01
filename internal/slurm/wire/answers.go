@@ -83,6 +83,19 @@ type Job struct {
 	StdOut      string   `json:"stdout_expanded"`
 	StdErr      string   `json:"stderr_expanded"`
 	SubmitLine  string   `json:"submit_line"`
+	// Resources are what the job was given, of which the names of its
+	// nodes are read.
+	Resources JobResources `json:"job_resources"`
+}
+
+// JobResources are the resources slurmctld gave a job.
+type JobResources struct {
+	Nodes struct {
+		// Allocation has an entry for each node of the job.
+		Allocation []struct {
+			Name string `json:"name"`
+		} `json:"allocation"`
+	} `json:"nodes"`
 }
 
 // Node is a node as slurmctld knows it, an entry of the node list.
