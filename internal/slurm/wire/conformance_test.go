@@ -133,6 +133,7 @@ func TestTheWireStructsConformToEveryVendoredDocument(t *testing.T) {
 	t.Parallel()
 	answers := map[string]any{
 		"/slurm/{v}/ping/":                          Pings{},
+		"/slurm/{v}/diag/":                          Diag{},
 		"/slurm/{v}/jobs/":                          Jobs{},
 		"/slurm/{v}/job/{job_id}":                   Jobs{},
 		"/slurm/{v}/nodes/":                         Nodes{},

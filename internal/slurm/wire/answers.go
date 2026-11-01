@@ -206,3 +206,77 @@ type Reservation struct {
 	Features string `json:"features"`
 	Licenses string `json:"licenses"`
 }
+
+// Diag is the answer of the diagnostics of slurmctld, what sdiag prints.
+type Diag struct {
+	Envelope
+	Statistics Statistics `json:"statistics"`
+}
+
+// Statistics is the counters and timings slurmctld keeps since it last
+// reset them, at midnight UTC or on a request. Times of a cycle are in
+// microseconds.
+type Statistics struct {
+	// RequestTime is when slurmctld answered and Since when its counters
+	// were last reset.
+	RequestTime Time `json:"req_time"`
+	Since       Time `json:"req_time_start"`
+
+	ServerThreads    int64 `json:"server_thread_count"`
+	AgentQueueSize   int64 `json:"agent_queue_size"`
+	DBDAgentQueue    int64 `json:"dbd_agent_queue_size"`
+	GettimeofdayCost int64 `json:"gettimeofday_latency"`
+
+	JobsSubmitted int64 `json:"jobs_submitted"`
+	JobsStarted   int64 `json:"jobs_started"`
+	JobsCompleted int64 `json:"jobs_completed"`
+	JobsCanceled  int64 `json:"jobs_canceled"`
+	JobsFailed    int64 `json:"jobs_failed"`
+	// JobsPending and JobsRunning are the counts at JobStatesTime.
+	JobsPending   int64 `json:"jobs_pending"`
+	JobsRunning   int64 `json:"jobs_running"`
+	JobStatesTime Time  `json:"job_states_ts"`
+
+	CycleLast      int64 `json:"schedule_cycle_last"`
+	CycleMax       int64 `json:"schedule_cycle_max"`
+	CycleMean      int64 `json:"schedule_cycle_mean"`
+	CycleTotal     int64 `json:"schedule_cycle_total"`
+	CycleMeanDepth int64 `json:"schedule_cycle_mean_depth"`
+	CyclesPerMin   int64 `json:"schedule_cycle_per_minute"`
+	QueueLength    int64 `json:"schedule_queue_length"`
+
+	BackfillActive      bool  `json:"bf_active"`
+	BackfillCycleLast   int64 `json:"bf_cycle_last"`
+	BackfillCycleMax    int64 `json:"bf_cycle_max"`
+	BackfillCycleMean   int64 `json:"bf_cycle_mean"`
+	BackfillCycleCount  int64 `json:"bf_cycle_counter"`
+	BackfillLastDepth   int64 `json:"bf_last_depth"`
+	BackfillLastTried   int64 `json:"bf_last_depth_try"`
+	BackfillQueueLength int64 `json:"bf_queue_len"`
+	// BackfilledJobs counts the jobs backfill started since slurmctld
+	// started, BackfilledSinceReset those since the last reset.
+	BackfilledJobs       int64 `json:"bf_backfilled_jobs"`
+	BackfilledSinceReset int64 `json:"bf_last_backfilled_jobs"`
+	BackfillLastCycle    Time  `json:"bf_when_last_cycle"`
+
+	RPCsByType []RPCType `json:"rpcs_by_message_type"`
+	RPCsByUser []RPCUser `json:"rpcs_by_user"`
+}
+
+// RPCType is the calls slurmctld had of one message type. The document
+// says seconds of the times; slurmctld counts microseconds, as sdiag
+// prints them.
+type RPCType struct {
+	Message     string `json:"message_type"`
+	Count       int64  `json:"count"`
+	TotalTime   int64  `json:"total_time"`
+	AverageTime Int    `json:"average_time"`
+}
+
+// RPCUser is the calls slurmctld had of one user.
+type RPCUser struct {
+	User        string `json:"user"`
+	Count       int64  `json:"count"`
+	TotalTime   int64  `json:"total_time"`
+	AverageTime Int    `json:"average_time"`
+}

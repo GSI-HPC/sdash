@@ -214,6 +214,15 @@ func (c *Conn) Reservations(ctx context.Context) ([]wire.Reservation, error) {
 	return answer.Reservations, nil
 }
 
+// Diag returns the diagnostics of slurmctld.
+func (c *Conn) Diag(ctx context.Context) (wire.Statistics, error) {
+	var answer wire.Diag
+	if err := c.c.get(ctx, c.Profile, c.path("slurm", "diag/"), decode(&answer)); err != nil {
+		return wire.Statistics{}, err
+	}
+	return answer.Statistics, nil
+}
+
 // decode reads a small answer whole into v, a struct that embeds the
 // envelope.
 func decode[T interface{ Head() *wire.Envelope }](v T) reader {

@@ -134,6 +134,15 @@ func TestReservationsReadsTheSeededReservation(t *testing.T) {
 	assert.Equal(t, "/slurm/"+string(newest())+"/reservations/", fake.Requests()[2].URL.Path)
 }
 
+func TestDiagReadsTheCapturedStatistics(t *testing.T) {
+	t.Parallel()
+	conn, fake := connect(t)
+	stats, err := conn.Diag(t.Context())
+	require.NoError(t, err)
+	assert.NotEmpty(t, stats.RPCsByType)
+	assert.Equal(t, "/slurm/"+string(newest())+"/diag/", fake.Requests()[2].URL.Path)
+}
+
 func TestAnErrorOfTheCallerStopsTheListAndComesBackAsItIs(t *testing.T) {
 	t.Parallel()
 	conn, _ := connect(t)
