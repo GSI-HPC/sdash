@@ -17,6 +17,7 @@ import (
 
 // Defines values for DataKind.
 const (
+	DataKindDiagnostics  DataKind = "diagnostics"
 	DataKindJobs         DataKind = "jobs"
 	DataKindNodes        DataKind = "nodes"
 	DataKindPartitions   DataKind = "partitions"
@@ -26,6 +27,8 @@ const (
 // Valid indicates whether the value is a known member of the DataKind enum.
 func (e DataKind) Valid() bool {
 	switch e {
+	case DataKindDiagnostics:
+		return true
 	case DataKindJobs:
 		return true
 	case DataKindNodes:
@@ -200,6 +203,108 @@ type Connection struct {
 
 // DataKind A kind of a cluster's data, which sdash fetches and holds as one.
 type DataKind string
+
+// Diagnostics The diagnostics of a cluster's scheduler. The members of the counters are those of sdiag; every duration is in microseconds.
+type Diagnostics struct {
+	// AgentQueue The outgoing RPCs held for a retry.
+	AgentQueue int64 `json:"agentQueue"`
+
+	// Backfill The timing of the backfill scheduler.
+	Backfill DiagnosticsBackfill `json:"backfill"`
+
+	// ClockCost What 1000 reads of the clock take, in microseconds.
+	ClockCost int64 `json:"clockCost"`
+
+	// DbdAgentQueue The messages queued for slurmdbd.
+	DbdAgentQueue int64 `json:"dbdAgentQueue"`
+
+	// Error Why a later fetch failed, which leaves these diagnostics older than their period.
+	Error *Error `json:"error,omitempty"`
+
+	// FetchedAt When the diagnostics were fetched.
+	FetchedAt time.Time `json:"fetchedAt"`
+
+	// Generation The generation of the diagnostics, as the pulse reports it.
+	Generation int64 `json:"generation"`
+
+	// Jobs The counters of jobs since the reset.
+	Jobs DiagnosticsJobs `json:"jobs"`
+
+	// Main The timing of the main scheduling cycle.
+	Main DiagnosticsMain `json:"main"`
+
+	// Now When slurmctld answered. Absent when not set.
+	Now *time.Time `json:"now,omitempty"`
+
+	// RpcsByType The calls slurmctld had of each message type, most frequent first.
+	RpcsByType []DiagnosticsRpc `json:"rpcsByType"`
+
+	// RpcsByUser The calls slurmctld had of each user, most frequent first.
+	RpcsByUser []DiagnosticsRpc `json:"rpcsByUser"`
+
+	// ServerThreads The active threads of slurmctld.
+	ServerThreads int64 `json:"serverThreads"`
+
+	// Since When slurmctld last reset its counters. Absent when not set.
+	Since *time.Time `json:"since,omitempty"`
+}
+
+// DiagnosticsBackfill The timing of the backfill scheduler.
+type DiagnosticsBackfill struct {
+	// Active Whether a cycle runs now.
+	Active               bool  `json:"active"`
+	Backfilled           int64 `json:"backfilled"`
+	BackfilledSinceReset int64 `json:"backfilledSinceReset"`
+	Cycles               int64 `json:"cycles"`
+	LastCycle            int64 `json:"lastCycle"`
+
+	// LastCycleAt When the last cycle ran. Absent when none did.
+	LastCycleAt *time.Time `json:"lastCycleAt,omitempty"`
+	LastDepth   int64      `json:"lastDepth"`
+	LastTried   int64      `json:"lastTried"`
+	MaxCycle    int64      `json:"maxCycle"`
+	MeanCycle   int64      `json:"meanCycle"`
+	QueueLength int64      `json:"queueLength"`
+}
+
+// DiagnosticsJobs The counters of jobs since the reset.
+type DiagnosticsJobs struct {
+	Canceled  int64 `json:"canceled"`
+	Completed int64 `json:"completed"`
+
+	// CountedAt When pending and running were counted. Absent when not set.
+	CountedAt *time.Time `json:"countedAt,omitempty"`
+	Failed    int64      `json:"failed"`
+	Pending   int64      `json:"pending"`
+	Running   int64      `json:"running"`
+	Started   int64      `json:"started"`
+	Submitted int64      `json:"submitted"`
+}
+
+// DiagnosticsMain The timing of the main scheduling cycle.
+type DiagnosticsMain struct {
+	Cycles          int64 `json:"cycles"`
+	CyclesPerMinute int64 `json:"cyclesPerMinute"`
+	LastCycle       int64 `json:"lastCycle"`
+	MaxCycle        int64 `json:"maxCycle"`
+	MeanCycle       int64 `json:"meanCycle"`
+	MeanDepth       int64 `json:"meanDepth"`
+	QueueLength     int64 `json:"queueLength"`
+}
+
+// DiagnosticsRpc The calls of one message type or of one user.
+type DiagnosticsRpc struct {
+	Count int64 `json:"count"`
+
+	// Mean The mean time of a call, in microseconds; 0 when slurmctld gave none.
+	Mean int64 `json:"mean"`
+
+	// Name The message type, or the user.
+	Name string `json:"name"`
+
+	// Total The time of all the calls, in microseconds.
+	Total int64 `json:"total"`
+}
 
 // Error Why a request was not answered with what it asked for.
 type Error struct {
@@ -639,6 +744,9 @@ type GetPulseParams struct {
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// GetDiagnostics The diagnostics of a cluster's scheduler
+	// (GET /clusters/{cluster}/diagnostics)
+	GetDiagnostics(w http.ResponseWriter, r *http.Request, cluster ClusterName)
 	// GetJobs A page of the jobs of a cluster
 	// (GET /clusters/{cluster}/jobs)
 	GetJobs(w http.ResponseWriter, r *http.Request, cluster ClusterName, params GetJobsParams)
@@ -665,6 +773,12 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// GetDiagnostics The diagnostics of a cluster's scheduler
+// (GET /clusters/{cluster}/diagnostics)
+func (_ Unimplemented) GetDiagnostics(w http.ResponseWriter, r *http.Request, cluster ClusterName) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // GetJobs A page of the jobs of a cluster
 // (GET /clusters/{cluster}/jobs)
@@ -716,6 +830,32 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetDiagnostics operation middleware
+func (siw *ServerInterfaceWrapper) GetDiagnostics(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "cluster" -------------
+	var cluster ClusterName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "cluster", chi.URLParam(r, "cluster"), &cluster, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cluster", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDiagnostics(w, r, cluster)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // GetJobs operation middleware
 func (siw *ServerInterfaceWrapper) GetJobs(w http.ResponseWriter, r *http.Request) {
@@ -1132,11 +1272,53 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/clusters/{cluster}/reservations", wrapper.GetReservations)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/clusters/{cluster}/diagnostics", wrapper.GetDiagnostics)
+	})
 
 	return r
 }
 
 type ErrorJSONResponse Error
+
+type GetDiagnosticsRequestObject struct {
+	Cluster ClusterName `json:"cluster"`
+}
+
+type GetDiagnosticsResponseObject interface {
+	VisitGetDiagnosticsResponse(w http.ResponseWriter) error
+}
+
+type GetDiagnostics200JSONResponse Diagnostics
+
+func (response GetDiagnostics200JSONResponse) VisitGetDiagnosticsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetDiagnosticsdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response GetDiagnosticsdefaultJSONResponse) VisitGetDiagnosticsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type GetJobsRequestObject struct {
 	Cluster ClusterName `json:"cluster"`
@@ -1413,6 +1595,9 @@ func (response GetStatusdefaultJSONResponse) VisitGetStatusResponse(w http.Respo
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// GetDiagnostics The diagnostics of a cluster's scheduler
+	// (GET /clusters/{cluster}/diagnostics)
+	GetDiagnostics(ctx context.Context, request GetDiagnosticsRequestObject) (GetDiagnosticsResponseObject, error)
 	// GetJobs A page of the jobs of a cluster
 	// (GET /clusters/{cluster}/jobs)
 	GetJobs(ctx context.Context, request GetJobsRequestObject) (GetJobsResponseObject, error)
@@ -1473,6 +1658,32 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// GetDiagnostics operation middleware
+func (sh *strictHandler) GetDiagnostics(w http.ResponseWriter, r *http.Request, cluster ClusterName) {
+	var request GetDiagnosticsRequestObject
+
+	request.Cluster = cluster
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetDiagnostics(ctx, request.(GetDiagnosticsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetDiagnostics")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetDiagnosticsResponseObject); ok {
+		if err := validResponse.VisitGetDiagnosticsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // GetJobs operation middleware

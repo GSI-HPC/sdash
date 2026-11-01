@@ -87,7 +87,8 @@ export const DataKind = {
     JOBS: 'jobs',
     NODES: 'nodes',
     PARTITIONS: 'partitions',
-    RESERVATIONS: 'reservations'
+    RESERVATIONS: 'reservations',
+    DIAGNOSTICS: 'diagnostics'
 } as const;
 
 /**
@@ -539,6 +540,131 @@ export type Reservation = {
 };
 
 /**
+ * The diagnostics of a cluster's scheduler. The members of the counters are those of sdiag; every duration is in microseconds.
+ */
+export type Diagnostics = {
+    /**
+     * The generation of the diagnostics, as the pulse reports it.
+     */
+    generation: number;
+    /**
+     * When the diagnostics were fetched.
+     */
+    fetchedAt: string;
+    /**
+     * Why a later fetch failed, which leaves these diagnostics older than their period.
+     */
+    error?: Error;
+    /**
+     * When slurmctld answered. Absent when not set.
+     */
+    now?: string;
+    /**
+     * When slurmctld last reset its counters. Absent when not set.
+     */
+    since?: string;
+    /**
+     * The active threads of slurmctld.
+     */
+    serverThreads: number;
+    /**
+     * The outgoing RPCs held for a retry.
+     */
+    agentQueue: number;
+    /**
+     * The messages queued for slurmdbd.
+     */
+    dbdAgentQueue: number;
+    /**
+     * What 1000 reads of the clock take, in microseconds.
+     */
+    clockCost: number;
+    jobs: DiagnosticsJobs;
+    main: DiagnosticsMain;
+    backfill: DiagnosticsBackfill;
+    /**
+     * The calls slurmctld had of each message type, most frequent first.
+     */
+    rpcsByType: Array<DiagnosticsRpc>;
+    /**
+     * The calls slurmctld had of each user, most frequent first.
+     */
+    rpcsByUser: Array<DiagnosticsRpc>;
+};
+
+/**
+ * The counters of jobs since the reset.
+ */
+export type DiagnosticsJobs = {
+    submitted: number;
+    started: number;
+    completed: number;
+    canceled: number;
+    failed: number;
+    pending: number;
+    running: number;
+    /**
+     * When pending and running were counted. Absent when not set.
+     */
+    countedAt?: string;
+};
+
+/**
+ * The timing of the main scheduling cycle.
+ */
+export type DiagnosticsMain = {
+    lastCycle: number;
+    maxCycle: number;
+    meanCycle: number;
+    cycles: number;
+    meanDepth: number;
+    cyclesPerMinute: number;
+    queueLength: number;
+};
+
+/**
+ * The timing of the backfill scheduler.
+ */
+export type DiagnosticsBackfill = {
+    /**
+     * Whether a cycle runs now.
+     */
+    active: boolean;
+    lastCycle: number;
+    maxCycle: number;
+    meanCycle: number;
+    cycles: number;
+    lastDepth: number;
+    lastTried: number;
+    queueLength: number;
+    backfilled: number;
+    backfilledSinceReset: number;
+    /**
+     * When the last cycle ran. Absent when none did.
+     */
+    lastCycleAt?: string;
+};
+
+/**
+ * The calls of one message type or of one user.
+ */
+export type DiagnosticsRpc = {
+    /**
+     * The message type, or the user.
+     */
+    name: string;
+    count: number;
+    /**
+     * The mean time of a call, in microseconds; 0 when slurmctld gave none.
+     */
+    mean: number;
+    /**
+     * The time of all the calls, in microseconds.
+     */
+    total: number;
+};
+
+/**
  * Why a request was not answered with what it asked for.
  */
 export type Error = {
@@ -895,3 +1021,35 @@ export type GetReservationsResponses = {
 };
 
 export type GetReservationsResponse = GetReservationsResponses[keyof GetReservationsResponses];
+
+export type GetDiagnosticsData = {
+    body?: never;
+    path: {
+        /**
+         * The name of the cluster, as the profile file gives it.
+         */
+        cluster: string;
+    };
+    query?: never;
+    url: '/clusters/{cluster}/diagnostics';
+};
+
+export type GetDiagnosticsErrors = {
+    /**
+     * The request was not answered with what it asked for. The status says
+     * what kind of failure it is, and the body what caused it.
+     *
+     */
+    default: Error;
+};
+
+export type GetDiagnosticsError = GetDiagnosticsErrors[keyof GetDiagnosticsErrors];
+
+export type GetDiagnosticsResponses = {
+    /**
+     * The diagnostics.
+     */
+    200: Diagnostics;
+};
+
+export type GetDiagnosticsResponse = GetDiagnosticsResponses[keyof GetDiagnosticsResponses];

@@ -273,6 +273,10 @@ func (f failingOperations) GetReservations(context.Context, api.GetReservationsR
 	return nil, f.err
 }
 
+func (f failingOperations) GetDiagnostics(context.Context, api.GetDiagnosticsRequestObject) (api.GetDiagnosticsResponseObject, error) {
+	return nil, f.err
+}
+
 // An error from inside sdash may name a path, a host or a command. The log
 // is where the user looks for it; the answer says only that there is
 // something to look for.

@@ -71,7 +71,7 @@ func TestTheStatusListsTheClustersOfTheProfile(t *testing.T) {
 func TestAClusterTheProfileDoesNotNameIsNotFound(t *testing.T) {
 	t.Parallel()
 	h, _ := clusterAPI(t)
-	for _, path := range []string{"pulse", "jobs", "nodes", "partitions", "reservations"} {
+	for _, path := range []string{"pulse", "jobs", "nodes", "partitions", "reservations", "diagnostics"} {
 		got := ask(h, "/api/v1/clusters/lyra/"+path)
 		assert.Equal(t, http.StatusNotFound, got.Code, path)
 		assert.Equal(t, api.ErrorCodeNotFound, apiError(t, got).Code, path)
@@ -143,6 +143,20 @@ func TestTheJobsSortByTheKeysTheDocumentNames(t *testing.T) {
 	}
 	slices.Sort(keys)
 	assert.Equal(t, model.SortKeys(), keys)
+}
+
+func TestTheDiagnosticsComeWhole(t *testing.T) {
+	t.Parallel()
+	h, _ := clusterAPI(t)
+	var diag api.Diagnostics
+	decodeOK(t, ask(h, "/api/v1/clusters/virgo/diagnostics"), &diag)
+	require.NotNil(t, diag.Now)
+	require.NotNil(t, diag.Since)
+	assert.False(t, diag.Now.Before(*diag.Since))
+	require.NotEmpty(t, diag.RpcsByType)
+	assert.Equal(t, "ACCOUNTING_UPDATE_MSG", diag.RpcsByType[0].Name, "equal counts go by name")
+	assert.NotEmpty(t, diag.RpcsByUser)
+	assert.Nil(t, diag.Error)
 }
 
 func TestTheNodesPartitionsAndReservationsComeWhole(t *testing.T) {

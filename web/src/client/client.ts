@@ -20,6 +20,8 @@ import {
   type GetPartitionsData,
   type GetPartitionsResponse,
   type GetPulseData,
+  type GetDiagnosticsData,
+  type GetDiagnosticsResponse,
   type GetReservationsData,
   type GetReservationsResponse,
   type GetPulseResponse,
@@ -58,6 +60,12 @@ export type PartitionList = GetPartitionsResponse;
 
 /** What the reservations of a cluster answer. */
 export type ReservationList = GetReservationsResponse;
+
+/** What the diagnostics of a cluster answer. */
+export type Diagnostics = GetDiagnosticsResponse;
+
+/** The calls of one message type or of one user, in the diagnostics. */
+export type DiagnosticsRpc = Diagnostics["rpcsByType"][number];
 
 /** A kind of a cluster's data. */
 export type DataKind = NonNullable<
@@ -144,6 +152,8 @@ export interface Client {
     cluster: string,
     options?: CallOptions,
   ): Promise<ReservationList>;
+  /** Gives the diagnostics of the cluster's scheduler. */
+  getDiagnostics(cluster: string, options?: CallOptions): Promise<Diagnostics>;
 }
 
 /** Sends a request to the API, and rejects with an ApiError if it fails. */
@@ -278,6 +288,14 @@ export function createClient(fetch: typeof globalThis.fetch): Client {
         options,
       );
       return (await bodyOf(response)) as GetReservationsResponse;
+    },
+    async getDiagnostics(cluster, options = {}) {
+      const path: GetDiagnosticsData["url"] = "/clusters/{cluster}/diagnostics";
+      const response = await transport.send(
+        clusterPath(path, cluster),
+        options,
+      );
+      return (await bodyOf(response)) as GetDiagnosticsResponse;
     },
   };
 }
