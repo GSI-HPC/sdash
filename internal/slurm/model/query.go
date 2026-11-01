@@ -22,6 +22,8 @@ type JobQuery struct {
 	User string
 	// Partition keeps the jobs of this partition; empty for all.
 	Partition string
+	// Node keeps the jobs that have this node; empty for all.
+	Node string
 	// Text keeps the jobs whose id, name, user or account contains it,
 	// whatever the case; empty for all.
 	Text string
@@ -99,6 +101,7 @@ func (q JobQuery) Apply(jobs []Job) (JobPage, error) {
 		case len(q.States) > 0 && !slices.Contains(q.States, j.State),
 			q.User != "" && j.User != q.User,
 			q.Partition != "" && j.Partition != q.Partition,
+			q.Node != "" && !slices.Contains(j.NodeNames, q.Node),
 			text != "" && !matches(j, text):
 			continue
 		}

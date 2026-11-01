@@ -13,10 +13,10 @@ import (
 // queue is a small queue whose jobs differ in each key the tests use.
 func queue() []Job {
 	return []Job{
-		{ID: 1, DisplayID: "1", Name: "train", User: "alice", Partition: "gpu", State: "RUNNING", Priority: ptr[int64](10)},
+		{ID: 1, DisplayID: "1", Name: "train", User: "alice", Partition: "gpu", State: "RUNNING", Priority: ptr[int64](10), NodeNames: []string{"gpu-1", "gpu-2"}},
 		{ID: 2, DisplayID: "2", Name: "Analyse", User: "bob", Partition: "main", State: "PENDING", Priority: ptr[int64](30)},
 		{ID: 3, DisplayID: "3", Name: "sim", User: "alice", Partition: "main", State: "PENDING"},
-		{ID: 4, DisplayID: "4_1", Name: "sweep", User: "carol", Partition: "main", State: "RUNNING", Priority: ptr[int64](20)},
+		{ID: 4, DisplayID: "4_1", Name: "sweep", User: "carol", Partition: "main", State: "RUNNING", Priority: ptr[int64](20), NodeNames: []string{"cpu-1"}},
 	}
 }
 
@@ -38,6 +38,7 @@ func TestAJobQueryFiltersByEachOfItsFields(t *testing.T) {
 		"states":         {JobQuery{States: []string{"PENDING"}}, []int64{2, 3}},
 		"user":           {JobQuery{User: "alice"}, []int64{1, 3}},
 		"partition":      {JobQuery{Partition: "main"}, []int64{2, 3, 4}},
+		"node":           {JobQuery{Node: "gpu-2"}, []int64{1}},
 		"text in a name": {JobQuery{Text: "ANALY"}, []int64{2}},
 		"text in an id":  {JobQuery{Text: "4_1"}, []int64{4}},
 		"together":       {JobQuery{User: "alice", States: []string{"PENDING"}}, []int64{3}},

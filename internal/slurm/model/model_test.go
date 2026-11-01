@@ -61,10 +61,16 @@ func TestTheSeededJobsMapToTheirStatesIdsAndExitCodes(t *testing.T) {
 			assert.Nil(t, running.TimeLimit, "the seeded jobs run without a limit")
 			require.NotNil(t, running.Started)
 			assert.Equal(t, time.UTC, running.Started.Location())
+			assert.Equal(t, []string{"worker-0"}, running.NodeNames)
+			assert.Equal(t, "worker-0", running.BatchHost)
+			assert.Equal(t, "cpu=2,mem=512M,node=1,billing=2", running.TRES)
+			assert.Contains(t, running.SubmitLine, "--job-name=running-a")
 
 			pending := byID[6]
 			assert.Equal(t, "PENDING", pending.State)
 			assert.Nil(t, pending.Started, "a start time of 0 is none")
+			assert.Nil(t, pending.NodeNames, "a pending job has no nodes")
+			assert.NotEmpty(t, pending.TRES, "a job given nothing has what it asks for")
 			assert.Equal(t, "Resources", pending.Reason)
 
 			array := byID[8]
@@ -99,6 +105,9 @@ func TestTheSeededNodesMapWithTheirStateFlagsAndLoad(t *testing.T) {
 			assert.Equal(t, "IDLE", drained.State)
 			assert.Equal(t, []string{"RESERVED", "DRAIN", "MAINTENANCE"}, drained.Flags, "the node is drained and in the reservation for maintenance")
 			assert.Equal(t, "e2e drained", drained.Reason)
+			assert.Equal(t, "root", drained.ReasonSetBy)
+			assert.NotNil(t, drained.ReasonChanged)
+			assert.Contains(t, drained.TRES, "cpu=2")
 			assert.Equal(t, int64(2), drained.CPUs)
 			assert.Equal(t, []string{"all"}, drained.Partitions)
 

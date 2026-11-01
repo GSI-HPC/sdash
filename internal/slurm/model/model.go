@@ -61,10 +61,18 @@ type Job struct {
 	// TimeLimit is in minutes; nil when it is not set or unlimited.
 	TimeLimit *int64
 
-	// Nodes is the host list of the job's nodes, "worker-[0-1]".
+	// Nodes is the host list of the job's nodes, "worker-[0-1]", and
+	// NodeNames the name of each of them; nil for a job that has none.
 	Nodes     string
+	NodeNames []string
 	NodeCount *int64
 	CPUs      *int64
+	Tasks     *int64
+	// TRES is what the job was given, "cpu=2,mem=1G,node=1", or what it
+	// asks for while it has been given nothing.
+	TRES string
+	// BatchHost is the node the batch script runs on.
+	BatchHost string
 	// ExitCode is how the job ended; nil for one that has not.
 	ExitCode *ExitCode
 
@@ -73,6 +81,9 @@ type Job struct {
 	WorkDir     string
 	StdOut      string
 	StdErr      string
+	Comment     string
+	// SubmitLine is the command line the job was submitted with.
+	SubmitLine string
 }
 
 // ExitCode is how a job ended.
@@ -92,9 +103,12 @@ type Node struct {
 	// Flags are the flags of the state, DRAIN among them.
 	Flags []string
 	// Reason is why the node is drained or down; empty for none.
-	Reason     string
-	Partitions []string
-	Features   []string
+	// ReasonSetBy is the user who gave it, and ReasonChanged when.
+	Reason        string
+	ReasonSetBy   string
+	ReasonChanged *time.Time
+	Partitions    []string
+	Features      []string
 
 	CPUs      int64
 	AllocCPUs int64
@@ -109,10 +123,17 @@ type Node struct {
 	// use.
 	GRES     string
 	GRESUsed string
+	// TRES is what the node has, "cpu=2,mem=1G", and TRESUsed what of it
+	// jobs hold.
+	TRES     string
+	TRESUsed string
 
-	Architecture string
-	Booted       *time.Time
-	Reservation  string
+	Architecture    string
+	OperatingSystem string
+	Booted          *time.Time
+	// LastBusy is when the node last ran a job.
+	LastBusy    *time.Time
+	Reservation string
 }
 
 // Partition is a partition as slurmctld knows it.
@@ -177,11 +198,19 @@ func JobOf(w *wire.Job) Job {
 		Nodes:       w.Nodes,
 		NodeCount:   value(w.NodeCount),
 		CPUs:        value(w.CPUs),
+		Tasks:       value(w.Tasks),
+		TRES:        cmp.Or(w.TRESAlloc, w.TRESRequest),
+		BatchHost:   w.BatchHost,
 		Reservation: w.Reservation,
 		Dependency:  w.Dependency,
 		WorkDir:     w.WorkDir,
 		StdOut:      w.StdOut,
 		StdErr:      w.StdErr,
+		Comment:     w.Comment,
+		SubmitLine:  w.SubmitLine,
+	}
+	for _, a := range w.Resources.Nodes.Allocation {
+		j.NodeNames = append(j.NodeNames, a.Name)
 	}
 	j.State, j.Flags = split(w.State)
 
@@ -212,21 +241,27 @@ func JobOf(w *wire.Job) Job {
 // NodeOf maps a node of the wire to the model.
 func NodeOf(w *wire.Node) Node {
 	n := Node{
-		Name:         w.Name,
-		Reason:       w.Reason,
-		Partitions:   w.Partitions,
-		Features:     w.Features,
-		CPUs:         w.CPUs,
-		AllocCPUs:    w.AllocCPUs,
-		Load:         float64(w.CPULoad) / 100,
-		Memory:       w.RealMemory,
-		AllocMemory:  w.AllocMemory,
-		FreeMemory:   value(w.FreeMemory),
-		GRES:         w.GRES,
-		GRESUsed:     w.GRESUsed,
-		Architecture: w.Architecture,
-		Booted:       moment(w.BootTime),
-		Reservation:  w.Reservation,
+		Name:            w.Name,
+		Reason:          w.Reason,
+		ReasonSetBy:     w.ReasonSetByUser,
+		ReasonChanged:   moment(w.ReasonChangedAt),
+		Partitions:      w.Partitions,
+		Features:        w.Features,
+		CPUs:            w.CPUs,
+		AllocCPUs:       w.AllocCPUs,
+		Load:            float64(w.CPULoad) / 100,
+		Memory:          w.RealMemory,
+		AllocMemory:     w.AllocMemory,
+		FreeMemory:      value(w.FreeMemory),
+		GRES:            w.GRES,
+		GRESUsed:        w.GRESUsed,
+		TRES:            w.TRES,
+		TRESUsed:        w.TRESUsed,
+		Architecture:    w.Architecture,
+		OperatingSystem: w.OperatingSystem,
+		Booted:          moment(w.BootTime),
+		LastBusy:        moment(w.LastBusy),
+		Reservation:     w.Reservation,
 	}
 	n.State, n.Flags = split(w.State)
 	return n
