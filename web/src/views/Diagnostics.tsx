@@ -16,7 +16,7 @@ import { StatCard } from "../primitives/StatCard";
 import { Table, type TableColumn } from "../primitives/Table";
 import { viewOf } from "../routing/views";
 import { count, micros, shareOfBusiest } from "./diagnostics/diagnostics";
-import { timeOf } from "./reservations/reservations";
+import { timeOf } from "./moments";
 import { Stale, Unready } from "./Fetching";
 import { WithCluster } from "./WithCluster";
 
@@ -104,7 +104,7 @@ function DiagnosticsOf({ cluster }: { cluster: string }) {
           <>
             {d.since === undefined
               ? "Counters reset at a time not known"
-              : `Counters reset ${timeOf(d.since, "")}`}
+              : `Counters reset ${timeOf(d.since, "", new Date(d.fetchedAt))}`}
             {", "}
             <DataAge fetchedAt={d.fetchedAt} />
           </>
@@ -189,7 +189,11 @@ function DiagnosticsOf({ cluster }: { cluster: string }) {
                   },
                   {
                     term: "Last cycle at",
-                    value: timeOf(d.backfill.lastCycleAt, "None yet"),
+                    value: timeOf(
+                      d.backfill.lastCycleAt,
+                      "None yet",
+                      new Date(d.fetchedAt),
+                    ),
                     mono: false,
                   },
                 ]}

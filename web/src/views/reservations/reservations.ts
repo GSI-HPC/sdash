@@ -96,19 +96,6 @@ export function inWindow(reservation: Reservation, now: Date): boolean {
   );
 }
 
-const moment = new Intl.DateTimeFormat("en-GB", {
-  weekday: "short",
-  day: "numeric",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
-/** A time of a reservation, as "Thu 15 Jan, 14:00"; `none` when it has none. */
-export function timeOf(time: string | undefined, none: string): string {
-  return time === undefined ? none : moment.format(new Date(time));
-}
-
 /** How long a reservation lasts, as Slurm's tools write it; none without both ends. */
 export function lengthOf(reservation: Reservation): string | undefined {
   if (
