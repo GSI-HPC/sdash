@@ -77,6 +77,9 @@ func TestTheFirstReadConnectsAndFetchesTheKindAsTheUser(t *testing.T) {
 	reservations, err := c.Reservations.Get(t.Context())
 	require.NoError(t, err)
 	assert.Equal(t, "maintenance", reservations.Data[0].Name)
+	diag, err := c.Diagnostics.Get(t.Context())
+	require.NoError(t, err)
+	assert.NotEmpty(t, diag.Data.RPCsByType)
 
 	connects := 0
 	for _, r := range fake.Requests() {
