@@ -56,3 +56,4 @@ ordered by subject.
 | [0037](0037-the-reservations-view.md) | The Reservations view | proposed |
 | [0038](0038-the-diagnostics-view.md) | The Diagnostics view | proposed |
 | [0039](0039-the-job-and-node-drawers.md) | The job and node drawers | proposed |
+| [0040](0040-rpc-times-are-microseconds.md) | The times of an RPC are microseconds | proposed |
