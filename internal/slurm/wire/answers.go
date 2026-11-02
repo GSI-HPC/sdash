@@ -277,8 +277,9 @@ type Statistics struct {
 }
 
 // RPCType is the calls slurmctld had of one message type. The document
-// says seconds of the times; slurmctld counts microseconds, as sdiag
-// prints them.
+// says seconds of the times; slurmctld counts microseconds, which a
+// comparison with sdiag on a sind cluster confirmed
+// (doc/adr/0040-rpc-times-are-microseconds.md).
 type RPCType struct {
 	Message     string `json:"message_type"`
 	Count       int64  `json:"count"`
