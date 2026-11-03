@@ -3,7 +3,7 @@
 
 # 0040: The times of an RPC are microseconds
 
-Status: proposed
+Status: accepted
 
 ## Context
 

@@ -3,7 +3,7 @@
 
 # 0034: The data of a cluster in the browser API
 
-Status: proposed
+Status: accepted
 
 ## Context
 

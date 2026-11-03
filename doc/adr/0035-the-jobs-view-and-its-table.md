@@ -3,7 +3,7 @@
 
 # 0035: The Jobs view and its table
 
-Status: proposed
+Status: accepted
 
 ## Context
 

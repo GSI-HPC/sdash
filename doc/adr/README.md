@@ -49,11 +49,11 @@ ordered by subject.
 | [0030](0030-primitives-that-show-data.md) | The primitives that show data | proposed |
 | [0031](0031-slurmrestd-end-to-end-on-26-05.md) | End-to-end tests against slurmrestd start on Slurm 26.05 | accepted |
 | [0032](0032-the-slurm-client-as-built.md) | The Slurm client as built | proposed |
-| [0033](0033-the-profile-file.md) | The profile file | proposed |
-| [0034](0034-cluster-data-in-the-browser-api.md) | The data of a cluster in the browser API | proposed |
-| [0035](0035-the-jobs-view-and-its-table.md) | The Jobs view and its table | proposed |
-| [0036](0036-the-cluster-views-on-real-data.md) | The cluster views on real data | proposed |
-| [0037](0037-the-reservations-view.md) | The Reservations view | proposed |
-| [0038](0038-the-diagnostics-view.md) | The Diagnostics view | proposed |
-| [0039](0039-the-job-and-node-drawers.md) | The job and node drawers | proposed |
-| [0040](0040-rpc-times-are-microseconds.md) | The times of an RPC are microseconds | proposed |
+| [0033](0033-the-profile-file.md) | The profile file | accepted |
+| [0034](0034-cluster-data-in-the-browser-api.md) | The data of a cluster in the browser API | accepted |
+| [0035](0035-the-jobs-view-and-its-table.md) | The Jobs view and its table | accepted |
+| [0036](0036-the-cluster-views-on-real-data.md) | The cluster views on real data | accepted |
+| [0037](0037-the-reservations-view.md) | The Reservations view | accepted |
+| [0038](0038-the-diagnostics-view.md) | The Diagnostics view | accepted |
+| [0039](0039-the-job-and-node-drawers.md) | The job and node drawers | accepted |
+| [0040](0040-rpc-times-are-microseconds.md) | The times of an RPC are microseconds | accepted |
