@@ -3,7 +3,7 @@
 
 # 0038: The Diagnostics view
 
-Status: proposed
+Status: accepted
 
 ## Context
 

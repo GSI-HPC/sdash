@@ -3,7 +3,7 @@
 
 # 0039: The job and node drawers
 
-Status: proposed
+Status: accepted
 
 ## Context
 

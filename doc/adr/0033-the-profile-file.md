@@ -3,7 +3,7 @@
 
 # 0033: The profile file
 
-Status: proposed
+Status: accepted
 
 ## Context
 
