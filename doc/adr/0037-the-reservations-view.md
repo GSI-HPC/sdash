@@ -3,7 +3,7 @@
 
 # 0037: The Reservations view
 
-Status: proposed
+Status: accepted
 
 ## Context
 

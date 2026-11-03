@@ -3,7 +3,7 @@
 
 # 0036: The cluster views on real data
 
-Status: proposed
+Status: accepted
 
 ## Context
 
