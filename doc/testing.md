@@ -18,6 +18,7 @@ layer of tests is for and how it is run.
 | Smoke test | A built binary starts, signs a client in and serves its page and its API | `.github/scripts/smoke-test.sh bin/sdash` |
 | Release tag verification | The check that refuses a release tag | `make test-release` |
 | End to end against Slurm | slurmrestd itself and the Slurm client on a sind cluster; see [below](#end-to-end-against-slurm) | `make e2e` |
+| Views against Slurm | The views of cluster data in a browser against the slurmrestd of the sind cluster, with screenshots; see [below](#end-to-end-against-slurm) | `make e2e-browser` |
 
 CI (`.github/workflows/ci.yml`) runs each of them on every pull request.
 The Go tests run there on both Go release lines, the `go` line of `go.mod`
@@ -294,6 +295,19 @@ into 192.0.2.0/24, and what measures the machine, such as the latency of a
 ping or a node's load, is 0
 ([0032](adr/0032-the-slurm-client-as-built.md)). The artifact keeps the
 daemon's bytes.
+
+`make e2e-browser` builds `bin/sdash` and runs `e2e/browser.sh`, which
+writes a profile file that names the cluster `e2e` with a token of alice,
+from the token command a login node would have, and runs the Playwright
+tests of `web/e2e/sind` with `web/playwright.sind.config.ts`. They open the
+Overview, Jobs, Nodes, Partitions, Reservations and Diagnostics views in
+Chromium, in both themes, check that each shows the seeded cluster and
+passes the axe scan, and write a screenshot of each to
+`web/test-results/sind/screenshots/`. The browser tests of `web/e2e` check
+the same views in detail and in every engine against the captures; these
+check that the views hold on the answers of a live daemon. The CI job `e2e`
+runs them after the capture and before the Go tests, which change the
+scenario, and keeps the screenshots as an artifact.
 
 The suite tests slurmrestd itself, what sdash relies on, and the Slurm
 client of `internal/slurm/client` against it: the connection with a token

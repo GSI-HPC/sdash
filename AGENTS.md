@@ -53,7 +53,8 @@ else.
   package is named `xxxtest`. The root `e2e/` holds the end-to-end tests,
   the sind cluster file in `testdata/`, `seed.sh`, which puts jobs in every
   state on it, `capture.sh`, which writes what slurmrestd sends, and
-  `vendor.sh` with `normalise.jq`, which copy a capture into the tree.
+  `vendor.sh` with `normalise.jq`, which copy a capture into the tree, and
+  `browser.sh`, which runs the views of `web/e2e/sind` against it.
 - `internal/profile/`: the profile file, which names the clusters
   (`0033-the-profile-file`). `internal/clusters/`: for each cluster its
   client, its connection and the caches of its data
@@ -123,8 +124,9 @@ make help             # list the targets
 `build`, `ui`, `generate`, `lint-ui`, `test-ui`, `test-components`,
 `test-browser`, `lint-docs` and `notices` need Node; `test-components` and
 `test-browser` also need Playwright's browsers.
-`make e2e-up`, `e2e-seed`, `e2e`, `e2e-capture` and `e2e-down` run the
-end-to-end suite and need Docker and sind.
+`make e2e-up`, `e2e-seed`, `e2e`, `e2e-browser`, `e2e-capture` and
+`e2e-down` run the end-to-end suite and need Docker and sind;
+`e2e-browser` needs Node and Playwright's Chromium as well.
 
 ## Code conventions
 

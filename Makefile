@@ -140,6 +140,11 @@ e2e-seed:
 e2e:
 	$(GO) test -tags e2e -count=1 ./e2e/...
 
+## e2e-browser: build bin/sdash and run its views in a browser against the seeded cluster, with screenshots
+.PHONY: e2e-browser
+e2e-browser: build
+	e2e/browser.sh
+
 ## e2e-capture: write what slurmrestd sends to E2E_CAPTURE, for specs and fixtures
 .PHONY: e2e-capture
 e2e-capture:
