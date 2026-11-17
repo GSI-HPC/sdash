@@ -49,6 +49,8 @@ const gracefulShutdown = { signal: "SIGTERM", timeout: 10_000 } as const;
 
 export default defineConfig({
   testDir: "e2e",
+  // The tests of the live sind cluster, which playwright.sind.config.ts runs.
+  testIgnore: "sind/**",
   fullyParallel: true,
   // A test.only left in by mistake would turn CI into a run of one test.
   forbidOnly: Boolean(process.env.CI),
