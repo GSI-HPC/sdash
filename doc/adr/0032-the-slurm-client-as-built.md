@@ -3,7 +3,7 @@
 
 # 0032: The Slurm client as built
 
-Status: proposed
+Status: accepted
 
 ## Context
 

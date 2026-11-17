@@ -45,10 +45,10 @@ ordered by subject.
 | [0026](0026-go-clikit-localweb-for-the-listener-and-the-guard.md) | go-clikit's localweb for the listener and the guard | accepted |
 | [0027](0027-go-clikit-launch-for-the-browser.md) | go-clikit's launch for the browser | accepted |
 | [0028](0028-one-sdash-server-per-user.md) | One sdash server per user | accepted |
-| [0029](0029-ui-primitives-on-base-ui.md) | The UI primitives, on Base UI | proposed |
-| [0030](0030-primitives-that-show-data.md) | The primitives that show data | proposed |
+| [0029](0029-ui-primitives-on-base-ui.md) | The UI primitives, on Base UI | accepted |
+| [0030](0030-primitives-that-show-data.md) | The primitives that show data | accepted |
 | [0031](0031-slurmrestd-end-to-end-on-26-05.md) | End-to-end tests against slurmrestd start on Slurm 26.05 | accepted |
-| [0032](0032-the-slurm-client-as-built.md) | The Slurm client as built | proposed |
+| [0032](0032-the-slurm-client-as-built.md) | The Slurm client as built | accepted |
 | [0033](0033-the-profile-file.md) | The profile file | accepted |
 | [0034](0034-cluster-data-in-the-browser-api.md) | The data of a cluster in the browser API | accepted |
 | [0035](0035-the-jobs-view-and-its-table.md) | The Jobs view and its table | accepted |
