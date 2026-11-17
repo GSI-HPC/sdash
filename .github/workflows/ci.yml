@@ -254,6 +254,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-go
+      - uses: ./.github/actions/setup-node
+
+      # bin/sdash with the UI embedded, and the browser of the step that
+      # shows its views, before the cluster starts.
+      - name: Build
+        run: make build
+
+      - name: Install the browser
+        working-directory: web
+        run: npx playwright install --with-deps chromium
 
       # The sind mise.toml pins, and the cluster of e2e/testdata with the
       # node image of this Slurm release line.
@@ -290,6 +300,12 @@ jobs:
       - name: Capture what slurmrestd sends
         run: make e2e-capture
 
+      # The views in a browser against this slurmrestd, with a screenshot
+      # of each in both themes. Before the Go tests as well, for the same
+      # reason: the views count the seeded jobs.
+      - name: Test the views in a browser
+        run: e2e/browser.sh
+
       - name: Test
         run: make e2e
 
@@ -298,6 +314,17 @@ jobs:
         with:
           name: capture-slurm-${{ matrix.slurm }}
           path: e2e/capture/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # The screenshots, and the report and the traces of a failed test.
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: e2e-browser-slurm-${{ matrix.slurm }}
+          path: |
+            web/test-results/sind/
+            web/playwright-report/sind/
           if-no-files-found: ignore
           retention-days: 14
 
