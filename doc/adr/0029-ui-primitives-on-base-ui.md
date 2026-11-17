@@ -3,7 +3,7 @@
 
 # 0029: The UI primitives, on Base UI
 
-Status: proposed
+Status: accepted
 
 ## Context
 

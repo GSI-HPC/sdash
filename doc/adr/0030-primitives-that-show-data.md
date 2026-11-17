@@ -3,7 +3,7 @@
 
 # 0030: The primitives that show data
 
-Status: proposed
+Status: accepted
 
 ## Context
 
