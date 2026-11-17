@@ -52,6 +52,10 @@ function rpcColumns(
     {
       id: "share",
       header: "Share of the busiest",
+      // The bar alone: the row's first cell names it and the next cell
+      // gives its count, and a label beside the bar would not fit the
+      // name of a message type. The width is the bar's, which a cell of
+      // a table does not give a drawing by itself.
       cell: (row) => (
         <Meter
           label={`Calls of ${row.name}`}
@@ -59,7 +63,8 @@ function rpcColumns(
           max={1}
           format={() => count(row.count)}
           size="sm"
-          layout="inline"
+          layout="bare"
+          className="w-24"
         />
       ),
     },
